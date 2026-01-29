@@ -1,0 +1,575 @@
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=BIZ+UDGothic:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary - Deep Navy & Indigo */
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #829ab1;
+  --color-navy-500: #627d98;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #243b53;
+  --color-navy-900: #102a43;
+
+  /* Accent - Warm Vermillion */
+  --color-vermillion-400: #e85d4c;
+  --color-vermillion-500: #d64933;
+  --color-vermillion-600: #b83b28;
+
+  /* Accent - Gold */
+  --color-gold-400: #d4a84b;
+  --color-gold-500: #c49a3a;
+  --color-gold-600: #a8832e;
+
+  /* Accent - Sage Green */
+  --color-sage-400: #7dad93;
+  --color-sage-500: #5f9c7a;
+  --color-sage-600: #4a8565;
+
+  /* Paper tones */
+  --color-paper: #faf8f5;
+  --color-paper-dark: #f3f0eb;
+  --color-ink: #1a1a1a;
+  --color-ink-light: #4a4a4a;
+  --color-ink-muted: #7a7a7a;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(16, 42, 67, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 42, 67, 0.08);
+  --shadow-lg: 0 8px 24px rgba(16, 42, 67, 0.1);
+  --shadow-xl: 0 16px 48px rgba(16, 42, 67, 0.12);
+
+  /* Typography */
+  --font-serif: 'Shippori Mincho', 'Yu Mincho', serif;
+  --font-sans: 'BIZ UDGothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  --font-display: 'Crimson Pro', 'Shippori Mincho', serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+
+  ::selection {
+    background-color: var(--color-navy-200);
+    color: var(--color-navy-900);
+  }
+}
+
+@layer components {
+  /* Editorial card with paper texture */
+  .paper-card {
+    background: white;
+    border: 1px solid var(--color-navy-100);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+  }
+
+  .paper-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 1px,
+        rgba(16, 42, 67, 0.01) 1px,
+        rgba(16, 42, 67, 0.01) 2px
+      );
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* Primary button - Solid Navy */
+  .btn-primary {
+    @apply relative px-6 py-3 font-medium text-white transition-all duration-200;
+    background-color: var(--color-navy-800);
+    border: none;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-navy-900);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-primary.btn-success {
+    background-color: var(--color-sage-600);
+  }
+
+  .btn-primary.btn-success:hover {
+    background-color: var(--color-sage-500);
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-5 py-2.5 font-medium transition-all duration-200;
+    background-color: transparent;
+    color: var(--color-navy-700);
+    border: 1px solid var(--color-navy-200);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-navy-50);
+    border-color: var(--color-navy-300);
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply px-4 py-2 font-medium transition-all duration-200;
+    color: var(--color-navy-600);
+    background: transparent;
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--color-navy-50);
+    color: var(--color-navy-800);
+  }
+
+  /* Input fields - Clean editorial style */
+  .input-field {
+    @apply w-full px-4 py-3 transition-all duration-200;
+    background-color: white;
+    border: 1px solid var(--color-navy-200);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-ink-muted);
+  }
+
+  .input-field:hover {
+    border-color: var(--color-navy-300);
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-navy-600);
+    box-shadow: 0 0 0 3px rgba(72, 101, 129, 0.1);
+  }
+
+  .input-field:disabled {
+    background-color: var(--color-paper-dark);
+    color: var(--color-ink-muted);
+    cursor: not-allowed;
+  }
+
+  /* Label styling */
+  .input-label {
+    @apply block mb-2 text-sm font-medium;
+    color: var(--color-navy-700);
+    letter-spacing: 0.03em;
+  }
+
+  /* Section heading - Editorial style with vertical bar */
+  .section-heading {
+    @apply text-lg font-semibold mb-6 pb-3 flex items-center gap-3;
+    font-family: var(--font-serif);
+    color: var(--color-navy-900);
+    border-bottom: 2px solid var(--color-navy-800);
+  }
+
+  .section-heading::before {
+    content: '';
+    width: 3px;
+    height: 20px;
+    background-color: var(--color-vermillion-500);
+  }
+
+  /* Status badges - Clean, minimal */
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium tracking-wide;
+    border: 1px solid currentColor;
+    transition: all 0.2s;
+  }
+
+  .status-badge-interested {
+    background-color: var(--color-navy-50);
+    color: var(--color-navy-600);
+    border-color: var(--color-navy-200);
+  }
+
+  .status-badge-applied,
+  .status-badge-es_submitted {
+    background-color: rgba(95, 156, 122, 0.1);
+    color: var(--color-sage-600);
+    border-color: var(--color-sage-400);
+  }
+
+  .status-badge-webtest,
+  .status-badge-gd {
+    background-color: rgba(196, 154, 58, 0.1);
+    color: var(--color-gold-600);
+    border-color: var(--color-gold-400);
+  }
+
+  .status-badge-interview_1,
+  .status-badge-interview_2,
+  .status-badge-interview_3 {
+    background-color: rgba(72, 101, 129, 0.1);
+    color: var(--color-navy-700);
+    border-color: var(--color-navy-400);
+  }
+
+  .status-badge-interview_final {
+    background-color: rgba(214, 73, 51, 0.1);
+    color: var(--color-vermillion-600);
+    border-color: var(--color-vermillion-400);
+  }
+
+  .status-badge-offer {
+    background-color: var(--color-sage-600);
+    color: white;
+    border-color: var(--color-sage-600);
+  }
+
+  .status-badge-rejected {
+    background-color: rgba(214, 73, 51, 0.05);
+    color: var(--color-vermillion-500);
+    border-color: var(--color-vermillion-400);
+  }
+
+  .status-badge-declined {
+    background-color: var(--color-navy-100);
+    color: var(--color-navy-500);
+    border-color: var(--color-navy-200);
+  }
+
+  /* Card styles - Clean with subtle border */
+  .card {
+    @apply p-5;
+    background-color: white;
+    border: 1px solid var(--color-navy-100);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+
+  .card:hover {
+    border-color: var(--color-navy-200);
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-deadline-soon {
+    border-left: 3px solid var(--color-vermillion-500);
+  }
+
+  /* Filter pills - Editorial tabs */
+  .filter-pill {
+    @apply px-4 py-2 text-sm font-medium transition-all duration-200;
+    background-color: transparent;
+    color: var(--color-navy-500);
+    border-bottom: 2px solid transparent;
+  }
+
+  .filter-pill:hover {
+    color: var(--color-navy-700);
+  }
+
+  .filter-pill-active {
+    color: var(--color-navy-900);
+    border-bottom-color: var(--color-navy-800);
+    background-color: transparent;
+  }
+
+  /* Tab navigation */
+  .tab-item {
+    @apply relative px-6 py-4 font-medium transition-all duration-200;
+    color: var(--color-navy-500);
+    font-family: var(--font-sans);
+  }
+
+  .tab-item:hover {
+    color: var(--color-navy-700);
+    background-color: var(--color-navy-50);
+  }
+
+  .tab-item-active {
+    color: var(--color-navy-900);
+    background-color: white;
+  }
+
+  .tab-item-active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: var(--color-navy-800);
+  }
+
+  /* Toast messages - Clean alerts */
+  .toast {
+    @apply px-4 py-3 text-sm font-medium;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .toast-success {
+    background-color: rgba(95, 156, 122, 0.1);
+    color: var(--color-sage-600);
+    border: 1px solid var(--color-sage-400);
+  }
+
+  .toast-error {
+    background-color: rgba(214, 73, 51, 0.1);
+    color: var(--color-vermillion-600);
+    border: 1px solid var(--color-vermillion-400);
+  }
+
+  /* Modal overlay - Subtle blur */
+  .modal-overlay {
+    @apply fixed inset-0 flex items-center justify-center z-50;
+    background: rgba(16, 42, 67, 0.4);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .modal-content {
+    @apply bg-white overflow-hidden;
+    box-shadow: var(--shadow-xl);
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+    border: 1px solid var(--color-navy-100);
+  }
+
+  /* Character counter */
+  .char-counter {
+    @apply text-sm font-medium tabular-nums;
+    color: var(--color-navy-500);
+    transition: color 0.2s;
+  }
+
+  .char-counter-warning {
+    color: var(--color-gold-600);
+  }
+
+  .char-counter-over {
+    color: var(--color-vermillion-500);
+  }
+
+  /* Scrollbar styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--color-paper-dark);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-navy-200);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-navy-300);
+  }
+
+  /* Accent text */
+  .accent-text {
+    color: var(--color-vermillion-500);
+  }
+
+  /* Editorial background with subtle pattern */
+  .bg-editorial {
+    background-color: var(--color-paper);
+    background-image:
+      linear-gradient(90deg, rgba(16, 42, 67, 0.02) 1px, transparent 1px),
+      linear-gradient(rgba(16, 42, 67, 0.02) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Checkbox styling */
+  .checkbox-custom {
+    @apply w-5 h-5 cursor-pointer transition-all duration-200;
+    border: 2px solid var(--color-navy-300);
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: white;
+  }
+
+  .checkbox-custom:checked {
+    background-color: var(--color-navy-800);
+    border-color: var(--color-navy-800);
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .checkbox-custom:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(72, 101, 129, 0.15);
+  }
+
+  /* Select dropdown */
+  .select-field {
+    @apply w-full px-4 py-3 transition-all duration-200 cursor-pointer;
+    background-color: white;
+    border: 1px solid var(--color-navy-200);
+    color: var(--color-ink);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23627d98' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 20px;
+    padding-right: 40px;
+  }
+
+  .select-field:hover {
+    border-color: var(--color-navy-300);
+  }
+
+  .select-field:focus {
+    outline: none;
+    border-color: var(--color-navy-600);
+    box-shadow: 0 0 0 3px rgba(72, 101, 129, 0.1);
+  }
+
+  /* Glass card - Updated for editorial */
+  .glass-card {
+    background: white;
+    border: 1px solid var(--color-navy-100);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Gradient mesh - Editorial version */
+  .bg-gradient-mesh {
+    background-color: var(--color-paper);
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: fadeIn 0.4s ease-out, slideUp 0.4s ease-out;
+    animation-fill-mode: both;
+  }
+
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.25s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Pulse effect for autofill button */
+.pulse-glow {
+  animation: pulse-navy 2s infinite;
+}
+
+@keyframes pulse-navy {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(36, 59, 83, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(36, 59, 83, 0);
+  }
+}

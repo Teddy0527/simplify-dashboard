@@ -1,0 +1,180 @@
+import type { Profile } from './profile';
+import type { Template, TemplateType } from './template';
+import type { Company, SelectionStatus, SelectionStage } from './company';
+
+// Supabase Database型定義
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+        };
+        Update: {
+          email?: string | null;
+          full_name?: string | null;
+          avatar_url?: string | null;
+        };
+      };
+      user_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          profile_data: Profile;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          profile_data: Profile;
+        };
+        Update: {
+          profile_data?: Profile;
+        };
+      };
+      templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          content_200: string | null;
+          content_400: string | null;
+          content_600: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          content_200?: string | null;
+          content_400?: string | null;
+          content_600?: string | null;
+        };
+        Update: {
+          type?: string;
+          title?: string;
+          content_200?: string | null;
+          content_400?: string | null;
+          content_600?: string | null;
+        };
+      };
+      companies: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          industry: string | null;
+          login_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          industry?: string | null;
+          login_url?: string | null;
+        };
+        Update: {
+          name?: string;
+          industry?: string | null;
+          login_url?: string | null;
+        };
+      };
+      applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          company_id: string;
+          status: string;
+          stages: SelectionStage[];
+          deadline: string | null;
+          memo: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          company_id: string;
+          status?: string;
+          stages?: SelectionStage[];
+          deadline?: string | null;
+          memo?: string | null;
+        };
+        Update: {
+          status?: string;
+          stages?: SelectionStage[];
+          deadline?: string | null;
+          memo?: string | null;
+        };
+      };
+    };
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+  };
+}
+
+// DB行 → アプリ型の変換
+export function dbTemplateToTemplate(row: Database['public']['Tables']['templates']['Row']): Template {
+  return {
+    id: row.id,
+    type: row.type as TemplateType,
+    title: row.title,
+    content200: row.content_200 ?? undefined,
+    content400: row.content_400 ?? undefined,
+    content600: row.content_600 ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// アプリ型 → DB行の変換
+export function templateToDbInsert(
+  template: Template,
+  userId: string,
+): Database['public']['Tables']['templates']['Insert'] {
+  return {
+    id: template.id,
+    user_id: userId,
+    type: template.type,
+    title: template.title,
+    content_200: template.content200 ?? null,
+    content_400: template.content400 ?? null,
+    content_600: template.content600 ?? null,
+  };
+}
+
+// companies + applications → Company型の変換
+export function dbToCompany(
+  company: Database['public']['Tables']['companies']['Row'],
+  application: Database['public']['Tables']['applications']['Row'],
+): Company {
+  return {
+    id: company.id,
+    name: company.name,
+    industry: company.industry ?? undefined,
+    status: application.status as SelectionStatus,
+    stages: application.stages ?? [],
+    deadline: application.deadline ?? undefined,
+    memo: application.memo ?? undefined,
+    loginUrl: company.login_url ?? undefined,
+    createdAt: company.created_at,
+    updatedAt: application.updated_at,
+  };
+}

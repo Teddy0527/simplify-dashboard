@@ -1,0 +1,73 @@
+import { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
+import { NAV_ITEMS } from './navItems';
+
+export default function MobileNav() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  return (
+    <>
+      {/* Hamburger button — visible only on small screens, rendered in Header */}
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden w-8 h-8 flex items-center justify-center hover:bg-[var(--color-navy-50)] transition-colors"
+        aria-label="メニューを開く"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-700)" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Overlay + slide-in nav */}
+      {open && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
+          <nav className="absolute left-0 top-0 h-full w-56 bg-white shadow-xl flex flex-col py-4 animate-slide-in-left">
+            <div className="px-5 pb-4 mb-2 border-b border-[var(--color-navy-100)] flex items-center justify-between">
+              <span className="text-sm font-semibold text-[var(--color-navy-900)]" style={{ fontFamily: 'var(--font-serif)' }}>
+                メニュー
+              </span>
+              <button onClick={() => setOpen(false)} className="w-8 h-8 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-500)" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-[var(--color-navy-900)] bg-[var(--color-navy-50)]'
+                      : 'text-[var(--color-navy-500)] hover:text-[var(--color-navy-700)] hover:bg-[var(--color-navy-50)]'
+                  }`
+                }
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                </svg>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      )}
+    </>
+  );
+}
