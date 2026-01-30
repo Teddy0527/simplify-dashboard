@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Company } from '@simplify/shared';
+import { Company, INDUSTRY_OPTIONS } from '@simplify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
-import AddCompanyModal from '../components/AddCompanyModal';
+import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -44,17 +44,12 @@ function TrackerContent() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
-  const [deadlineOnly, setDeadlineOnly] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [drawerCompany, setDrawerCompany] = useState<Company | null>(null);
 
-  const industries = useMemo(() => {
-    const set = new Set<string>();
-    companies.forEach((c) => { if (c.industry) set.add(c.industry); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ja'));
-  }, [companies]);
+  const industries = INDUSTRY_OPTIONS as unknown as string[];
 
   const filtered = useMemo(() => {
     let result = companies;
@@ -65,11 +60,8 @@ function TrackerContent() {
     if (industryFilter) {
       result = result.filter((c) => c.industry === industryFilter);
     }
-    if (deadlineOnly) {
-      result = result.filter((c) => !!c.deadline);
-    }
     return result;
-  }, [companies, searchQuery, industryFilter, deadlineOnly]);
+  }, [companies, searchQuery, industryFilter]);
 
   function handleCardClick(company: Company) {
     setDrawerCompany(company);
@@ -98,8 +90,6 @@ function TrackerContent() {
         onSearchChange={setSearchQuery}
         industryFilter={industryFilter}
         onIndustryChange={setIndustryFilter}
-        deadlineOnly={deadlineOnly}
-        onDeadlineOnlyChange={setDeadlineOnly}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         industries={industries}
@@ -107,7 +97,7 @@ function TrackerContent() {
       />
 
       {/* View */}
-      <div className="flex-1 overflow-hidden flex pt-4">
+      <div className="flex-1 overflow-hidden flex pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
         {companies.length === 0 ? (
           <EmptyState
             icon={
@@ -138,7 +128,7 @@ function TrackerContent() {
       </div>
 
       {showAddModal && (
-        <AddCompanyModal
+        <AddCompanyDrawer
           onSave={(company) => {
             addCompany(company);
             setShowAddModal(false);

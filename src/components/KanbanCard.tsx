@@ -23,15 +23,6 @@ function getInitialColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-function formatDeadline(deadline: string): string {
-  const d = new Date(deadline);
-  const now = new Date();
-  const diff = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const label = `${d.getMonth() + 1}/${d.getDate()}`;
-  if (diff < 0) return `${label} (期限切れ)`;
-  if (diff <= 3) return `${label} (あと${diff}日)`;
-  return label;
-}
 
 export default function KanbanCard({ company, onClick, isDragOverlay }: KanbanCardProps) {
   const {
@@ -50,17 +41,13 @@ export default function KanbanCard({ company, onClick, isDragOverlay }: KanbanCa
         transition,
       };
 
-  const isUrgent = company.deadline && (() => {
-    const diff = Math.ceil((new Date(company.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return diff >= 0 && diff <= 3;
-  })();
-
   return (
     <div
       ref={!isDragOverlay ? setNodeRef : undefined}
       {...(!isDragOverlay ? { ...attributes, ...listeners } : {})}
+      data-kanban-card
       style={style}
-      className={`card cursor-pointer mb-2 touch-none ${isUrgent ? 'card-deadline-soon' : ''} ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
+      className={`card cursor-pointer mb-2 touch-none ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
       onClick={() => !isDragging && onClick(company)}
     >
       <div className="flex items-start gap-3">
@@ -78,9 +65,10 @@ export default function KanbanCard({ company, onClick, isDragOverlay }: KanbanCa
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        {company.deadline ? (
-          <span className={`text-xs ${isUrgent ? 'text-warning-600 font-medium' : 'text-gray-400'}`}>
-            {formatDeadline(company.deadline)}
+        {company.loginUrl ? (
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            マイページ
           </span>
         ) : (
           <span />

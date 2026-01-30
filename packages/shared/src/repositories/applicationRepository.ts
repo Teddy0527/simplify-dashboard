@@ -60,6 +60,7 @@ export async function addCompany(company: Company): Promise<void> {
       name: company.name,
       industry: company.industry ?? null,
       login_url: company.loginUrl ?? null,
+      login_password: company.loginPassword ?? null,
     })
     .select()
     .single();
@@ -74,7 +75,7 @@ export async function addCompany(company: Company): Promise<void> {
     company_id: companyRow.id,
     status: company.status,
     stages: company.stages as any,
-    deadline: company.deadline ?? null,
+
     memo: company.memo ?? null,
   });
 
@@ -106,6 +107,7 @@ export async function updateCompany(company: Company): Promise<void> {
       name: company.name,
       industry: company.industry ?? null,
       login_url: company.loginUrl ?? null,
+      login_password: company.loginPassword ?? null,
     })
     .eq('id', company.id);
 
@@ -115,7 +117,7 @@ export async function updateCompany(company: Company): Promise<void> {
     .update({
       status: company.status,
       stages: company.stages as any,
-      deadline: company.deadline ?? null,
+  
       memo: company.memo ?? null,
     })
     .eq('company_id', company.id)

@@ -24,7 +24,7 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver }:
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
   return (
-    <div className="flex flex-col flex-1 min-w-0">
+    <div className="flex flex-col w-[280px] min-w-[280px]">
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-3 mb-2">
         <span>{column.icon}</span>
@@ -39,7 +39,7 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver }:
       {/* Cards area */}
       <div
         ref={setNodeRef}
-        className={`flex-1 overflow-y-auto custom-scrollbar px-1 pb-4 rounded-lg transition-colors duration-200 min-h-[80px] ${isOver ? 'bg-primary-50' : ''}`}
+        className={`flex-1 overflow-y-auto custom-scrollbar px-1 pb-4 rounded-lg transition-colors duration-200 min-h-[80px] ${isOver ? 'bg-primary-50' : 'bg-gray-100/50'}`}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {companies.length === 0 ? (
