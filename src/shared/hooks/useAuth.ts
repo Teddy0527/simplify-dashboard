@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { getSupabase } from '../lib/supabase';
 import { migrateLocalToCloud } from '../services/dataMigration';
 
 interface AuthState {
@@ -24,25 +25,34 @@ export function useAuthProvider(): AuthState {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const supabase = getSupabase();
+
     // 起動時にセッション取得
-    chrome.runtime.sendMessage({ type: 'GET_SESSION' }, (response: any) => {
-      if (response?.session) {
-        setSession(response.session);
-        setUser(response.session.user);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
     });
+
+    // セッション変更を監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'SIGN_IN' });
-      if (response?.error) {
-        throw new Error(response.error);
-      }
-      setUser(response.user);
-      setSession(response.session);
+      const { error } = await getSupabase().auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
       // 初回ログイン時にローカルデータをクラウドに移行
       migrateLocalToCloud().catch(console.error);
     } finally {
@@ -53,10 +63,8 @@ export function useAuthProvider(): AuthState {
   const signOut = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'SIGN_OUT' });
-      if (response?.error) {
-        throw new Error(response.error);
-      }
+      const { error } = await getSupabase().auth.signOut();
+      if (error) throw error;
       setUser(null);
       setSession(null);
     } finally {

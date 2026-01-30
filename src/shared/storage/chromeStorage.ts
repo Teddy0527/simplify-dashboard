@@ -7,24 +7,47 @@ const STORAGE_KEYS = {
   SETTINGS: 'settings',
 } as const;
 
+function isChromeStorageAvailable(): boolean {
+  try {
+    return typeof chrome !== 'undefined' && !!chrome?.storage?.local;
+  } catch {
+    return false;
+  }
+}
+
+async function getItem<T>(key: string, fallback: T): Promise<T> {
+  if (isChromeStorageAvailable()) {
+    const result = await chrome.storage.local.get(key);
+    return (result[key] as T) ?? fallback;
+  }
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : fallback;
+}
+
+async function setItem(key: string, value: unknown): Promise<void> {
+  if (isChromeStorageAvailable()) {
+    await chrome.storage.local.set({ [key]: value });
+  } else {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+}
+
 // Profile
 export async function getProfile(): Promise<Profile> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.PROFILE);
-  return (result[STORAGE_KEYS.PROFILE] as Profile) || DEFAULT_PROFILE;
+  return getItem(STORAGE_KEYS.PROFILE, DEFAULT_PROFILE);
 }
 
 export async function saveProfile(profile: Profile): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEYS.PROFILE]: profile });
+  await setItem(STORAGE_KEYS.PROFILE, profile);
 }
 
 // Templates
 export async function getTemplates(): Promise<Template[]> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.TEMPLATES);
-  return (result[STORAGE_KEYS.TEMPLATES] as Template[]) || [];
+  return getItem(STORAGE_KEYS.TEMPLATES, []);
 }
 
 export async function saveTemplates(templates: Template[]): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEYS.TEMPLATES]: templates });
+  await setItem(STORAGE_KEYS.TEMPLATES, templates);
 }
 
 export async function addTemplate(template: Template): Promise<void> {
@@ -49,12 +72,11 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 // Companies
 export async function getCompanies(): Promise<Company[]> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.COMPANIES);
-  return (result[STORAGE_KEYS.COMPANIES] as Company[]) || [];
+  return getItem(STORAGE_KEYS.COMPANIES, []);
 }
 
 export async function saveCompanies(companies: Company[]): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEYS.COMPANIES]: companies });
+  await setItem(STORAGE_KEYS.COMPANIES, companies);
 }
 
 export async function addCompany(company: Company): Promise<void> {
@@ -79,12 +101,11 @@ export async function deleteCompany(id: string): Promise<void> {
 
 // Settings
 export async function getSettings(): Promise<Settings> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-  return (result[STORAGE_KEYS.SETTINGS] as Settings) || DEFAULT_SETTINGS;
+  return getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: settings });
+  await setItem(STORAGE_KEYS.SETTINGS, settings);
 }
 
 // Export all data (for backup)
