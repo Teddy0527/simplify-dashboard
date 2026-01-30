@@ -7,8 +7,6 @@ interface FilterBarProps {
   onSearchChange: (query: string) => void;
   industryFilter: string;
   onIndustryChange: (industry: string) => void;
-  deadlineOnly: boolean;
-  onDeadlineOnlyChange: (value: boolean) => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   industries: string[];
@@ -20,8 +18,6 @@ export default function FilterBar({
   onSearchChange,
   industryFilter,
   onIndustryChange,
-  deadlineOnly,
-  onDeadlineOnlyChange,
   viewMode,
   onViewModeChange,
   industries,
@@ -63,17 +59,6 @@ export default function FilterBar({
           <option key={ind} value={ind}>{ind}</option>
         ))}
       </select>
-
-      {/* Deadline toggle */}
-      <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none whitespace-nowrap">
-        <input
-          type="checkbox"
-          checked={deadlineOnly}
-          onChange={(e) => onDeadlineOnlyChange(e.target.checked)}
-          className="checkbox-custom"
-        />
-        締切あり
-      </label>
 
       {/* Spacer */}
       <div className="flex-1" />

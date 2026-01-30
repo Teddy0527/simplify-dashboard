@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Company, STATUS_LABELS } from '@simplify/shared';
 
-type SortKey = 'name' | 'industry' | 'status' | 'deadline' | 'updatedAt';
+type SortKey = 'name' | 'industry' | 'status' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
 interface ListViewProps {
@@ -39,11 +39,6 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
           return dir * (a.industry ?? '').localeCompare(b.industry ?? '', 'ja');
         case 'status':
           return dir * ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
-        case 'deadline': {
-          const ad = a.deadline ?? '9999-12-31';
-          const bd = b.deadline ?? '9999-12-31';
-          return dir * ad.localeCompare(bd);
-        }
         case 'updatedAt':
           return dir * a.updatedAt.localeCompare(b.updatedAt);
         default:
@@ -67,7 +62,6 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
     { key: 'name', label: '企業名', className: 'flex-[2] min-w-[160px]' },
     { key: 'industry', label: '業界', className: 'flex-1 min-w-[100px]' },
     { key: 'status', label: 'ステータス', className: 'flex-1 min-w-[100px]' },
-    { key: 'deadline', label: '締切', className: 'w-28' },
     { key: 'updatedAt', label: '更新日', className: 'w-28' },
   ];
 
@@ -106,9 +100,6 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
               <span className={`status-badge status-badge-${company.status}`}>
                 {STATUS_LABELS[company.status]}
               </span>
-            </div>
-            <div className="w-28 text-sm text-gray-600">
-              {company.deadline ? formatDate(company.deadline) : '-'}
             </div>
             <div className="w-28 text-sm text-gray-500">
               {formatDate(company.updatedAt)}

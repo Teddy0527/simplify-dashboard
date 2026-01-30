@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, SelectionStage, STATUS_LABELS } from '@simplify/shared';
+import { Company, SelectionStatus, SelectionStage, STATUS_LABELS, INDUSTRY_OPTIONS } from '@simplify/shared';
 import StageTimeline from './StageTimeline';
 import ConfirmDialog from './Common/ConfirmDialog';
 
@@ -35,9 +35,9 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
   const [name, setName] = useState(company.name);
   const [industry, setIndustry] = useState(company.industry || '');
   const [status, setStatus] = useState<SelectionStatus>(company.status);
-  const [deadline, setDeadline] = useState(company.deadline || '');
   const [memo, setMemo] = useState(company.memo || '');
   const [loginUrl, setLoginUrl] = useState(company.loginUrl || '');
+  const [loginPassword, setLoginPassword] = useState(company.loginPassword || '');
   const [stages, setStages] = useState<SelectionStage[]>(company.stages ?? []);
   const [visible, setVisible] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -64,11 +64,11 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
     onSave({
       ...company,
       name: name.trim(),
-      industry: industry.trim() || undefined,
+      industry: industry || undefined,
       status,
-      deadline: deadline || undefined,
       memo: memo.trim() || undefined,
       loginUrl: loginUrl.trim() || undefined,
+      loginPassword: loginPassword.trim() || undefined,
       stages,
       updatedAt: new Date().toISOString(),
     });
@@ -135,13 +135,16 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
 
           <div>
             <label className="input-label">業界</label>
-            <input
-              type="text"
+            <select
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
-              className="input-field"
-              placeholder="IT・通信"
-            />
+              className="select-field"
+            >
+              <option value="">選択してください</option>
+              {INDUSTRY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -158,16 +161,6 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
           </div>
 
           <div>
-            <label className="input-label">締切日</label>
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div>
             <label className="input-label">マイページURL</label>
             <input
               type="url"
@@ -175,6 +168,17 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
               onChange={(e) => setLoginUrl(e.target.value)}
               className="input-field"
               placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label className="input-label">マイページパスワード</label>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              className="input-field"
+              placeholder="パスワード"
             />
           </div>
 

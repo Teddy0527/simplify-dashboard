@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragStartEvent,
@@ -105,6 +105,79 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const lastOverId = useRef<string | null>(null);
 
+  // Grab-to-scroll state
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDraggingScroll = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const velocity = useRef(0);
+  const lastClientX = useRef(0);
+  const lastTime = useRef(0);
+  const momentumRaf = useRef<number>(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function onMouseDown(e: MouseEvent) {
+      // Only trigger on background/column areas, not on cards
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-kanban-card]')) return;
+
+      isDraggingScroll.current = true;
+      startX.current = e.clientX;
+      scrollLeftStart.current = el!.scrollLeft;
+      lastClientX.current = e.clientX;
+      lastTime.current = Date.now();
+      velocity.current = 0;
+      cancelAnimationFrame(momentumRaf.current);
+      el!.style.cursor = 'grabbing';
+      el!.style.userSelect = 'none';
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      if (!isDraggingScroll.current) return;
+      const dx = e.clientX - startX.current;
+      el!.scrollLeft = scrollLeftStart.current - dx;
+
+      const now = Date.now();
+      const dt = now - lastTime.current;
+      if (dt > 0) {
+        velocity.current = (e.clientX - lastClientX.current) / dt;
+      }
+      lastClientX.current = e.clientX;
+      lastTime.current = now;
+    }
+
+    function onMouseUp() {
+      if (!isDraggingScroll.current) return;
+      isDraggingScroll.current = false;
+      el!.style.cursor = '';
+      el!.style.userSelect = '';
+
+      // Momentum scroll
+      let v = velocity.current * 15; // amplify
+      function step() {
+        if (Math.abs(v) < 0.5) return;
+        el!.scrollLeft -= v;
+        v *= 0.92; // friction
+        momentumRaf.current = requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    el.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      el.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      cancelAnimationFrame(momentumRaf.current);
+    };
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -206,7 +279,7 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex gap-4 pb-4 px-6 flex-1">
+      <div ref={scrollRef} className="flex gap-4 pb-4 px-6 overflow-x-auto kanban-scroll cursor-grab">
         {COLUMNS.map((col) => {
           const filtered = companies.filter((c) => col.statuses.includes(c.status));
           return (

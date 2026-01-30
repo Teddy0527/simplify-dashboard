@@ -80,6 +80,7 @@ export interface Database {
           name: string;
           industry: string | null;
           login_url: string | null;
+          login_password: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -89,11 +90,13 @@ export interface Database {
           name: string;
           industry?: string | null;
           login_url?: string | null;
+          login_password?: string | null;
         };
         Update: {
           name?: string;
           industry?: string | null;
           login_url?: string | null;
+          login_password?: string | null;
         };
       };
       applications: {
@@ -103,7 +106,7 @@ export interface Database {
           company_id: string;
           status: string;
           stages: SelectionStage[];
-          deadline: string | null;
+
           memo: string | null;
           created_at: string;
           updated_at: string;
@@ -114,13 +117,13 @@ export interface Database {
           company_id: string;
           status?: string;
           stages?: SelectionStage[];
-          deadline?: string | null;
+
           memo?: string | null;
         };
         Update: {
           status?: string;
           stages?: SelectionStage[];
-          deadline?: string | null;
+
           memo?: string | null;
         };
       };
@@ -171,9 +174,9 @@ export function dbToCompany(
     industry: company.industry ?? undefined,
     status: application.status as SelectionStatus,
     stages: application.stages ?? [],
-    deadline: application.deadline ?? undefined,
     memo: application.memo ?? undefined,
     loginUrl: company.login_url ?? undefined,
+    loginPassword: company.login_password ?? undefined,
     createdAt: company.created_at,
     updatedAt: application.updated_at,
   };
