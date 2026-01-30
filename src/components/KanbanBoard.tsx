@@ -23,35 +23,35 @@ const COLUMNS: ColumnDef[] = [
     id: 'interested',
     label: '興味あり',
     icon: '💡',
-    color: 'var(--color-navy-500)',
+    color: 'var(--color-primary-500)',
     statuses: ['interested'],
   },
   {
     id: 'applied',
     label: 'ES / 応募',
     icon: '📝',
-    color: 'var(--color-sage-600)',
+    color: 'var(--color-success-600)',
     statuses: ['applied', 'es_submitted'],
   },
   {
     id: 'selection',
     label: '選考中',
     icon: '🔄',
-    color: 'var(--color-gold-600)',
+    color: 'var(--color-warning-600)',
     statuses: ['webtest', 'gd', 'interview_1', 'interview_2', 'interview_3', 'interview_final'],
   },
   {
     id: 'offer',
     label: '内定',
     icon: '🎉',
-    color: 'var(--color-sage-600)',
+    color: 'var(--color-success-600)',
     statuses: ['offer'],
   },
   {
     id: 'closed',
     label: '不合格 / 辞退',
     icon: '📁',
-    color: 'var(--color-navy-400)',
+    color: 'var(--color-gray-400)',
     statuses: ['rejected', 'declined'],
   },
 ];
@@ -70,26 +70,16 @@ function findColumnId(status: SelectionStatus): string {
 
 const COLUMN_IDS = new Set(COLUMNS.map((c) => c.id));
 
-/**
- * Custom collision detection:
- * 1. Use pointerWithin to find which column the pointer is inside
- * 2. Among those, prefer card-level (sortable) hits via closestCenter
- * 3. Fall back to column-level droppable (handles empty columns)
- */
 const customCollisionDetection: CollisionDetection = (args) => {
-  // First check pointer-within for reliable container detection
   const pointerCollisions = pointerWithin(args);
 
   if (pointerCollisions.length === 0) {
-    // Fallback to rect intersection for edge cases
     return rectIntersection(args);
   }
 
-  // Separate column hits from card hits
   const columnHits = pointerCollisions.filter((c) => COLUMN_IDS.has(c.id as string));
   const cardHits = pointerCollisions.filter((c) => !COLUMN_IDS.has(c.id as string));
 
-  // If we're over cards, use closestCenter among them for precise positioning
   if (cardHits.length > 0) {
     const filteredArgs = {
       ...args,
@@ -101,7 +91,6 @@ const customCollisionDetection: CollisionDetection = (args) => {
     return closest.length > 0 ? closest : columnHits;
   }
 
-  // No cards under pointer — return the column (empty column case)
   return columnHits;
 };
 
@@ -123,9 +112,7 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
   const activeCompany = activeId ? companies.find((c) => c.id === activeId) : null;
 
   const findColumnForId = useCallback((id: string): string | undefined => {
-    // Check if id is a column
     if (COLUMNS.some((c) => c.id === id)) return id;
-    // Otherwise find company's column
     const company = companies.find((c) => c.id === id);
     if (!company) return undefined;
     return findColumnId(company.status);
@@ -146,7 +133,6 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
     const activeIdStr = active.id as string;
     const overIdStr = over.id as string;
 
-    // Prevent processing the same over event repeatedly
     if (lastOverId.current === overIdStr) return;
     lastOverId.current = overIdStr;
 
@@ -157,19 +143,16 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
 
     if (!activeCol || !overCol || activeCol === overCol) return;
 
-    // Cross-column move: update status immediately for seamless feel
     const newStatus = COLUMN_DEFAULT_STATUS[overCol];
     if (!newStatus) return;
 
     const activeCompany = companies.find((c) => c.id === activeIdStr);
     if (!activeCompany || findColumnId(activeCompany.status) === overCol) return;
 
-    // Build new array: remove from old position, insert at target position
     const updated = companies.map((c) =>
       c.id === activeIdStr ? { ...c, status: newStatus, updatedAt: new Date().toISOString() } : c
     );
 
-    // If over a card, insert near it; if over a column, append to end
     const isOverColumn = COLUMNS.some((c) => c.id === overIdStr);
     if (!isOverColumn) {
       const oldIndex = updated.findIndex((c) => c.id === activeIdStr);
@@ -196,7 +179,6 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
 
     if (activeIdStr === overIdStr) return;
 
-    // Same column reorder
     const activeCol = findColumnForId(activeIdStr);
     const overCol = findColumnForId(overIdStr);
 

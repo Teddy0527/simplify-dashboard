@@ -54,7 +54,7 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
   }, [companies, sortKey, sortDir]);
 
   function SortIcon({ column }: { column: SortKey }) {
-    if (sortKey !== column) return <span className="text-[var(--color-navy-300)] ml-1">&#8597;</span>;
+    if (sortKey !== column) return <span className="text-gray-300 ml-1">&#8597;</span>;
     return <span className="ml-1">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
   }
 
@@ -74,12 +74,12 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
   return (
     <div className="flex-1 overflow-auto custom-scrollbar px-6 pb-4">
       {/* Header */}
-      <div className="flex items-center gap-2 py-3 border-b-2 border-[var(--color-navy-800)] sticky top-0 bg-[var(--color-paper)] z-10">
+      <div className="flex items-center gap-2 py-3 border-b border-gray-200 sticky top-0 bg-white z-10">
         {headers.map((h) => (
           <button
             key={h.key}
             onClick={() => toggleSort(h.key)}
-            className={`${h.className} text-left text-xs font-semibold text-[var(--color-navy-700)] tracking-wide hover:text-[var(--color-navy-900)] transition-colors`}
+            className={`${h.className} text-left text-xs font-semibold text-gray-700 tracking-wide hover:text-gray-900 transition-colors`}
           >
             {h.label}<SortIcon column={h.key} />
           </button>
@@ -88,18 +88,18 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
 
       {/* Rows */}
       {sorted.length === 0 ? (
-        <div className="text-center py-12 text-sm text-[var(--color-navy-400)]">該当する企業がありません</div>
+        <div className="text-center py-12 text-sm text-gray-400">該当する企業がありません</div>
       ) : (
         sorted.map((company) => (
           <div
             key={company.id}
             onClick={() => onCardClick(company)}
-            className="flex items-center gap-2 py-3 border-b border-[var(--color-navy-100)] cursor-pointer hover:bg-white transition-colors"
+            className="flex items-center gap-2 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
           >
             <div className="flex-[2] min-w-[160px] flex items-center gap-2">
-              <span className="text-sm font-medium text-[var(--color-navy-900)] truncate">{company.name}</span>
+              <span className="text-sm font-medium text-gray-900 truncate">{company.name}</span>
             </div>
-            <div className="flex-1 min-w-[100px] text-sm text-[var(--color-navy-600)]">
+            <div className="flex-1 min-w-[100px] text-sm text-gray-600">
               {company.industry ?? '-'}
             </div>
             <div className="flex-1 min-w-[100px]">
@@ -107,10 +107,10 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
                 {STATUS_LABELS[company.status]}
               </span>
             </div>
-            <div className="w-28 text-sm text-[var(--color-navy-600)]">
+            <div className="w-28 text-sm text-gray-600">
               {company.deadline ? formatDate(company.deadline) : '-'}
             </div>
-            <div className="w-28 text-sm text-[var(--color-navy-500)]">
+            <div className="w-28 text-sm text-gray-500">
               {formatDate(company.updatedAt)}
             </div>
           </div>

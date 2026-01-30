@@ -37,21 +37,21 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
         onClick={onCancel}
       />
       <div
-        className={`relative bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6 transition-all duration-200 ${
+        className={`relative bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 transition-all duration-200 ${
           visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
       >
-        <h3 className="text-base font-semibold text-[var(--color-navy-900)]" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h3 className="text-base font-semibold text-gray-900">
           {title}
         </h3>
-        <p className="mt-2 text-sm text-[var(--color-navy-600)]">{message}</p>
+        <p className="mt-2 text-sm text-gray-600">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onCancel} className="btn-secondary text-sm">
             キャンセル
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-[var(--color-vermillion-500)] hover:bg-[var(--color-vermillion-600)] transition-colors rounded"
+            className="px-4 py-2 text-sm font-medium text-white bg-error-600 hover:bg-error-700 transition-colors rounded-lg"
           >
             削除
           </button>

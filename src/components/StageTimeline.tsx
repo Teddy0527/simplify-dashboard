@@ -8,9 +8,9 @@ interface StageTimelineProps {
 }
 
 const RESULT_COLORS: Record<string, string> = {
-  passed: 'bg-[var(--color-sage-600)]',
-  failed: 'bg-[var(--color-vermillion-500)]',
-  pending: 'bg-[var(--color-gold-500)]',
+  passed: 'bg-success-600',
+  failed: 'bg-error-500',
+  pending: 'bg-warning-500',
 };
 
 const RESULT_LABELS: Record<string, string> = {
@@ -53,17 +53,17 @@ export default function StageTimeline({ stages, onStagesChange }: StageTimelineP
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-[var(--color-navy-800)] mb-3 tracking-wide">選考タイムライン</h3>
+      <h3 className="text-sm font-semibold text-gray-800 mb-3 tracking-wide">選考タイムライン</h3>
 
       {stages.length === 0 && !adding ? (
-        <p className="text-xs text-[var(--color-navy-400)] mb-2">ステージがまだありません</p>
+        <p className="text-xs text-gray-400 mb-2">ステージがまだありません</p>
       ) : (
         <div className="relative pl-5 mb-2">
           {/* Vertical line */}
-          <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-[var(--color-navy-200)]" />
+          <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
 
           {stages.map((stage, i) => {
-            const color = stage.result ? RESULT_COLORS[stage.result] : 'bg-[var(--color-navy-300)]';
+            const color = stage.result ? RESULT_COLORS[stage.result] : 'bg-gray-300';
             return (
               <div key={i} className="relative flex items-start gap-3 mb-4 last:mb-0">
                 {/* Dot */}
@@ -71,18 +71,18 @@ export default function StageTimeline({ stages, onStagesChange }: StageTimelineP
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[var(--color-navy-900)]">
+                    <span className="text-sm font-medium text-gray-900">
                       {STATUS_LABELS[stage.type]}
                     </span>
                     {stage.date && (
-                      <span className="text-xs text-[var(--color-navy-400)]">{stage.date}</span>
+                      <span className="text-xs text-gray-400">{stage.date}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <select
                       value={stage.result ?? 'pending'}
                       onChange={(e) => handleResultChange(i, e.target.value as 'pending' | 'passed' | 'failed')}
-                      className="text-xs py-0.5 px-1 border border-[var(--color-navy-200)] bg-white"
+                      className="text-xs py-0.5 px-1 border border-gray-200 rounded bg-white"
                     >
                       {Object.entries(RESULT_LABELS).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
@@ -90,7 +90,7 @@ export default function StageTimeline({ stages, onStagesChange }: StageTimelineP
                     </select>
                     <button
                       onClick={() => handleRemove(i)}
-                      className="text-xs text-[var(--color-navy-400)] hover:text-[var(--color-vermillion-500)] transition-colors"
+                      className="text-xs text-gray-400 hover:text-error-500 transition-colors"
                     >
                       削除
                     </button>
@@ -107,7 +107,7 @@ export default function StageTimeline({ stages, onStagesChange }: StageTimelineP
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as SelectionStatus)}
-            className="text-sm py-1.5 px-2 border border-[var(--color-navy-200)] bg-white"
+            className="text-sm py-1.5 px-2 border border-gray-200 rounded-lg bg-white"
           >
             {STAGE_OPTIONS.map((s) => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -117,15 +117,15 @@ export default function StageTimeline({ stages, onStagesChange }: StageTimelineP
             type="date"
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
-            className="text-sm py-1.5 px-2 border border-[var(--color-navy-200)] bg-white"
+            className="text-sm py-1.5 px-2 border border-gray-200 rounded-lg bg-white"
           />
-          <button onClick={handleAdd} className="text-sm py-1.5 px-3 bg-[var(--color-navy-800)] text-white">追加</button>
-          <button onClick={() => setAdding(false)} className="text-sm py-1.5 px-3 text-[var(--color-navy-600)]">取消</button>
+          <button onClick={handleAdd} className="text-sm py-1.5 px-3 bg-primary-700 text-white rounded-lg">追加</button>
+          <button onClick={() => setAdding(false)} className="text-sm py-1.5 px-3 text-gray-600 rounded-lg">取消</button>
         </div>
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="text-xs text-[var(--color-navy-600)] hover:text-[var(--color-navy-800)] transition-colors"
+          className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
         >
           + ステージ追加
         </button>

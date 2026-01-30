@@ -6,7 +6,7 @@ import { ToastProvider } from '../../hooks/useToast';
 export default function DashboardLayout() {
   return (
     <ToastProvider>
-      <div className="h-screen flex flex-col bg-editorial">
+      <div className="h-screen flex flex-col bg-white">
         <Header />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />

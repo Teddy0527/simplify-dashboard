@@ -74,18 +74,15 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b-2 border-[var(--color-navy-800)] flex items-center justify-between bg-white">
-          <h2
-            className="text-lg font-semibold text-[var(--color-navy-900)]"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-white">
+          <h2 className="text-lg font-semibold text-gray-900">
             {isEditing ? '企業を編集' : '企業を追加'}
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center hover:bg-[var(--color-navy-50)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg transition-colors"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -93,10 +90,10 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar bg-[var(--color-paper)]">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white">
           <div>
             <label className="input-label">
-              企業名 <span className="text-[var(--color-vermillion-500)]">*</span>
+              企業名 <span className="text-error-500">*</span>
             </label>
             <input
               type="text"
@@ -169,12 +166,12 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--color-navy-100)] flex items-center justify-between gap-3 bg-white">
+        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-3 bg-white">
           {isEditing && onDelete ? (
             <button
               type="button"
               onClick={() => company && onDelete(company.id)}
-              className="px-4 py-2 text-sm font-medium text-[var(--color-vermillion-500)] hover:text-[var(--color-vermillion-600)] hover:bg-[var(--color-vermillion-500)]/5 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-error-600 hover:text-error-700 hover:bg-error-50 rounded-lg transition-colors"
             >
               削除
             </button>

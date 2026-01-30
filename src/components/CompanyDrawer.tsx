@@ -18,11 +18,11 @@ const ALL_STATUSES: SelectionStatus[] = [
 
 function getInitialColor(name: string): string {
   const colors = [
-    'bg-[var(--color-navy-800)]',
-    'bg-[var(--color-vermillion-500)]',
-    'bg-[var(--color-sage-600)]',
-    'bg-[var(--color-gold-600)]',
-    'bg-[var(--color-navy-600)]',
+    'bg-primary-800',
+    'bg-primary-600',
+    'bg-success-600',
+    'bg-warning-600',
+    'bg-primary-700',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -95,26 +95,26 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
 
       {/* Drawer panel */}
       <div
-        className={`relative w-full max-w-lg bg-[var(--color-paper)] shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`relative w-full max-w-lg bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b-2 border-[var(--color-navy-800)] bg-white flex items-center gap-4">
+        <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center gap-4">
           <div className={`w-10 h-10 rounded-lg ${getInitialColor(company.name)} flex items-center justify-center flex-shrink-0`}>
             <span className="text-white text-base font-semibold">{company.name[0]}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-[var(--color-navy-900)] truncate" style={{ fontFamily: 'var(--font-serif)' }}>
+            <h2 className="text-lg font-semibold text-gray-900 truncate">
               {company.name}
             </h2>
             {company.industry && (
-              <p className="text-xs text-[var(--color-navy-500)]">{company.industry}</p>
+              <p className="text-xs text-gray-500">{company.industry}</p>
             )}
           </div>
           <button
             onClick={handleClose}
-            className="w-8 h-8 flex items-center justify-center hover:bg-[var(--color-navy-50)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg transition-colors"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -179,7 +179,7 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
           </div>
 
           {/* Stage Timeline */}
-          <div className="border-t border-[var(--color-navy-100)] pt-4">
+          <div className="border-t border-gray-200 pt-4">
             <StageTimeline
               stages={stages}
               currentStatus={status}
@@ -200,10 +200,10 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--color-navy-100)] bg-white flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between">
           <button
             onClick={handleDelete}
-            className="px-4 py-2 text-sm font-medium text-[var(--color-vermillion-500)] hover:text-[var(--color-vermillion-600)] hover:bg-[var(--color-vermillion-500)]/5 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-error-600 hover:text-error-700 hover:bg-error-50 rounded-lg transition-colors"
           >
             削除
           </button>

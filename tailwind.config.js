@@ -7,12 +7,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Shippori Mincho', 'Yu Mincho', 'serif'],
-        sans: ['BIZ UDGothic', 'Hiragino Kaku Gothic ProN', 'sans-serif'],
-        display: ['Crimson Pro', 'Shippori Mincho', 'serif'],
+        sans: ['Inter', 'Noto Sans JP', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
-        navy: {
+        primary: {
           50: '#f0f4f8',
           100: '#d9e2ec',
           200: '#bcccdc',
@@ -24,29 +22,26 @@ export default {
           800: '#243b53',
           900: '#102a43',
         },
-        vermillion: {
-          400: '#e85d4c',
-          500: '#d64933',
-          600: '#b83b28',
+        success: {
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
         },
-        gold: {
-          400: '#d4a84b',
-          500: '#c49a3a',
-          600: '#a8832e',
+        warning: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
         },
-        sage: {
-          400: '#7dad93',
-          500: '#5f9c7a',
-          600: '#4a8565',
-        },
-        paper: {
-          DEFAULT: '#faf8f5',
-          dark: '#f3f0eb',
-        },
-        ink: {
-          DEFAULT: '#1a1a1a',
-          light: '#4a4a4a',
-          muted: '#7a7a7a',
+        error: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#b91c1c',
         },
       },
       animation: {

@@ -3,7 +3,7 @@ import { NAV_ITEMS } from './navItems';
 
 export default function Sidebar() {
   return (
-    <nav className="w-48 bg-white border-r border-[var(--color-navy-100)] hidden md:flex flex-col py-4 flex-shrink-0">
+    <nav className="w-48 bg-white border-r border-gray-200 hidden md:flex flex-col py-4 flex-shrink-0">
       <div className="flex-1">
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -13,8 +13,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'text-[var(--color-navy-900)] bg-[var(--color-navy-50)] border-r-3 border-[var(--color-navy-800)]'
-                  : 'text-[var(--color-navy-500)] hover:text-[var(--color-navy-700)] hover:bg-[var(--color-navy-50)]'
+                  ? 'text-primary-800 bg-primary-50 border-r-3 border-primary-700'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`
             }
           >
@@ -25,10 +25,10 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </div>
-      <div className="px-4 pt-2 border-t border-[var(--color-navy-100)]">
+      <div className="px-4 pt-2 border-t border-gray-200">
         <NavLink
           to="/?add=true"
-          className="flex items-center justify-center gap-1.5 w-full py-2 text-sm font-medium text-[var(--color-navy-600)] hover:text-[var(--color-navy-800)] hover:bg-[var(--color-navy-50)] transition-colors rounded"
+          className="flex items-center justify-center gap-1.5 w-full py-2 text-sm font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 transition-colors rounded-lg"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

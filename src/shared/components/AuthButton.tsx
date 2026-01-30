@@ -5,8 +5,8 @@ export default function AuthButton() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-[var(--color-navy-400)]">
-        <div className="w-4 h-4 border-2 border-[var(--color-navy-200)] border-t-[var(--color-navy-500)] rounded-full animate-spin" />
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="w-4 h-4 border-2 border-gray-200 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -22,13 +22,13 @@ export default function AuthButton() {
               className="w-6 h-6 rounded-full"
             />
           )}
-          <span className="text-xs text-[var(--color-navy-600)] truncate max-w-[120px]">
+          <span className="text-xs text-gray-600 truncate max-w-[120px]">
             {user.user_metadata?.full_name || user.email}
           </span>
         </div>
         <button
           onClick={signOut}
-          className="text-xs text-[var(--color-navy-400)] hover:text-[var(--color-navy-600)] transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
           ログアウト
         </button>
@@ -39,7 +39,7 @@ export default function AuthButton() {
   return (
     <button
       onClick={signIn}
-      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[var(--color-navy-700)] bg-white border border-[var(--color-navy-200)] hover:border-[var(--color-navy-300)] hover:bg-[var(--color-navy-50)] transition-all rounded"
+      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary-700 bg-white border border-gray-200 hover:border-gray-300 hover:bg-primary-50 transition-all rounded-lg"
     >
       <svg width="14" height="14" viewBox="0 0 24 24">
         <path

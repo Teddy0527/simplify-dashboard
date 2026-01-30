@@ -10,11 +10,11 @@ interface KanbanCardProps {
 
 function getInitialColor(name: string): string {
   const colors = [
-    'bg-[var(--color-navy-800)]',
-    'bg-[var(--color-vermillion-500)]',
-    'bg-[var(--color-sage-600)]',
-    'bg-[var(--color-gold-600)]',
-    'bg-[var(--color-navy-600)]',
+    'bg-primary-800',
+    'bg-primary-600',
+    'bg-success-600',
+    'bg-warning-600',
+    'bg-primary-700',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -60,7 +60,7 @@ export default function KanbanCard({ company, onClick, isDragOverlay }: KanbanCa
       ref={!isDragOverlay ? setNodeRef : undefined}
       {...(!isDragOverlay ? { ...attributes, ...listeners } : {})}
       style={style}
-      className={`card cursor-pointer rounded-lg mb-2 touch-none ${isUrgent ? 'card-deadline-soon' : ''} ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
+      className={`card cursor-pointer mb-2 touch-none ${isUrgent ? 'card-deadline-soon' : ''} ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
       onClick={() => !isDragging && onClick(company)}
     >
       <div className="flex items-start gap-3">
@@ -68,24 +68,24 @@ export default function KanbanCard({ company, onClick, isDragOverlay }: KanbanCa
           <span className="text-white text-sm font-semibold">{company.name[0]}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-[var(--color-navy-900)] truncate">
+          <h4 className="text-sm font-semibold text-gray-900 truncate">
             {company.name}
           </h4>
           {company.industry && (
-            <p className="text-xs text-[var(--color-navy-500)] mt-0.5">{company.industry}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{company.industry}</p>
           )}
         </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
         {company.deadline ? (
-          <span className={`text-xs ${isUrgent ? 'text-[var(--color-vermillion-500)] font-medium' : 'text-[var(--color-navy-400)]'}`}>
+          <span className={`text-xs ${isUrgent ? 'text-warning-600 font-medium' : 'text-gray-400'}`}>
             {formatDeadline(company.deadline)}
           </span>
         ) : (
           <span />
         )}
-        <span className="text-xs py-0.5 px-1.5 border border-[var(--color-navy-100)] rounded text-[var(--color-navy-600)] bg-white">
+        <span className="text-xs py-0.5 px-2 border border-gray-200 rounded-full text-gray-600 bg-white">
           {STATUS_LABELS[company.status]}
         </span>
       </div>

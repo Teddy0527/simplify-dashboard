@@ -28,13 +28,10 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver }:
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-3 mb-2">
         <span>{column.icon}</span>
-        <h3
-          className="text-sm font-semibold text-[var(--color-navy-800)] tracking-wide"
-          style={{ fontFamily: 'var(--font-sans)' }}
-        >
+        <h3 className="text-sm font-semibold text-gray-800 tracking-wide">
           {column.label}
         </h3>
-        <span className="ml-auto text-xs font-medium text-white bg-[var(--color-navy-400)] rounded-full w-5 h-5 flex items-center justify-center">
+        <span className="ml-auto text-xs font-medium text-white bg-gray-400 rounded-full w-5 h-5 flex items-center justify-center">
           {companies.length}
         </span>
       </div>
@@ -42,11 +39,11 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver }:
       {/* Cards area */}
       <div
         ref={setNodeRef}
-        className={`flex-1 overflow-y-auto custom-scrollbar px-1 pb-4 rounded-lg transition-colors duration-200 min-h-[80px] ${isOver ? 'bg-[var(--color-navy-50)]' : ''}`}
+        className={`flex-1 overflow-y-auto custom-scrollbar px-1 pb-4 rounded-lg transition-colors duration-200 min-h-[80px] ${isOver ? 'bg-primary-50' : ''}`}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {companies.length === 0 ? (
-            <div className="text-center py-8 text-xs text-[var(--color-navy-400)]">
+            <div className="text-center py-8 text-xs text-gray-400">
               まだありません
             </div>
           ) : (

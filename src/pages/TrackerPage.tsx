@@ -70,13 +70,13 @@ export default function TrackerPage() {
   return (
     <>
       {/* Sub-header with stats + add button */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--color-navy-100)] bg-[var(--color-paper)] flex-shrink-0">
-        <span className="text-sm text-[var(--color-navy-500)]">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white flex-shrink-0">
+        <span className="text-sm text-gray-500">
           {activeCount}社 選考中 / {companies.length}社 合計
         </span>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-primary text-sm py-2 px-4 rounded"
+          className="btn-primary text-sm py-2 px-4"
         >
           + 応募を追加
         </button>
@@ -106,7 +106,7 @@ export default function TrackerPage() {
             title="まだ企業が登録されていません"
             description="「+ 応募を追加」から企業を追加して、選考管理を始めましょう。"
             action={
-              <button onClick={() => setShowAddModal(true)} className="btn-primary text-sm py-2 px-4 rounded">
+              <button onClick={() => setShowAddModal(true)} className="btn-primary text-sm py-2 px-4">
                 + 応募を追加
               </button>
             }
