@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom';
 import MobileNav from './MobileNav';
+import { URLS } from '../../constants/urls';
 
 export default function Header() {
   return (
     <header className="h-14 border-b border-gray-200 bg-white px-6 flex items-center justify-between flex-shrink-0">
       <div className="flex items-center gap-3">
         <MobileNav />
-        <div className="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
-          <span className="text-white text-base font-semibold">S</span>
-        </div>
-        <h1 className="text-base font-semibold text-gray-900 tracking-wide">
-          Simplify Japan
-        </h1>
+        <a href={URLS.LP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
+            <span className="text-white text-base font-semibold">S</span>
+          </div>
+          <h1 className="text-base font-semibold text-gray-900 tracking-wide">
+            Simplify Japan
+          </h1>
+        </a>
       </div>
       <Link
         to="/settings"
