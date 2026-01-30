@@ -1,55 +1,56 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Company, SelectionStatus } from '../shared/types';
-import { getStorageAdapter } from '../shared/storage/storageAdapter';
-import { MOCK_COMPANIES } from '../mockData';
-
-const adapter = getStorageAdapter();
+import { useAuth } from '../shared/hooks/useAuth';
+import * as repo from '../shared/repositories/applicationRepository';
 
 export function useCompanies() {
-  const [companies, setCompanies] = useState<Company[]>(MOCK_COMPANIES);
+  const { user } = useAuth();
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // Load from storage on mount
+  // Load from Supabase when user changes
   useEffect(() => {
-    adapter.getCompanies().then((stored) => {
-      if (stored.length > 0) {
-        setCompanies(stored);
-      }
+    setLoaded(false);
+    repo.getCompanies().then((data) => {
+      setCompanies(data);
+      setLoaded(true);
+    }).catch((err) => {
+      console.error('Failed to load companies:', err);
       setLoaded(true);
     });
-  }, []);
+  }, [user?.id]);
 
-  // Persist whenever companies change (after initial load)
-  useEffect(() => {
-    if (loaded) {
-      adapter.setCompanies(companies);
-    }
-  }, [companies, loaded]);
-
-  const updateStatus = useCallback((id: string, status: SelectionStatus) => {
+  const updateStatus = useCallback(async (id: string, status: SelectionStatus) => {
     setCompanies((prev) =>
       prev.map((c) =>
         c.id === id ? { ...c, status, updatedAt: new Date().toISOString() } : c
       )
     );
-  }, []);
+    const company = companies.find((c) => c.id === id);
+    if (company) {
+      await repo.updateCompany({ ...company, status, updatedAt: new Date().toISOString() }).catch(console.error);
+    }
+  }, [companies]);
 
   const reorder = useCallback((newCompanies: Company[]) => {
     setCompanies(newCompanies);
   }, []);
 
-  const addCompany = useCallback((company: Company) => {
+  const addCompany = useCallback(async (company: Company) => {
     setCompanies((prev) => [company, ...prev]);
+    await repo.addCompany(company).catch(console.error);
   }, []);
 
-  const updateCompany = useCallback((company: Company) => {
+  const updateCompany = useCallback(async (company: Company) => {
     setCompanies((prev) =>
       prev.map((c) => (c.id === company.id ? company : c))
     );
+    await repo.updateCompany(company).catch(console.error);
   }, []);
 
-  const deleteCompany = useCallback((id: string) => {
+  const deleteCompany = useCallback(async (id: string) => {
     setCompanies((prev) => prev.filter((c) => c.id !== id));
+    await repo.deleteCompany(id).catch(console.error);
   }, []);
 
   return { companies, loaded, updateStatus, reorder, addCompany, updateCompany, deleteCompany };

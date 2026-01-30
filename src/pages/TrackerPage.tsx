@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Company } from '../shared/types';
 import { useCompanies } from '../hooks/useCompanies';
+import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
@@ -11,6 +12,33 @@ import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
 export default function TrackerPage() {
+  const { user, loading: authLoading, signIn } = useAuth();
+
+  if (authLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl font-semibold text-gray-700">ログインが必要です</h2>
+          <p className="text-sm text-gray-500">Googleアカウントでログインして、選考管理を始めましょう。</p>
+          <button
+            onClick={signIn}
+            className="btn-primary text-sm py-2 px-6"
+          >
+            Googleでログイン
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <TrackerContent />;
+}
+
+function TrackerContent() {
   const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany } = useCompanies();
   const { showToast } = useToast();
 
