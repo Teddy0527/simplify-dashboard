@@ -5,17 +5,41 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 let supabaseInstance: SupabaseClient | null = null;
 
+function isChromeExtension(): boolean {
+  try {
+    return typeof chrome !== 'undefined' && !!chrome?.storage?.local;
+  } catch {
+    return false;
+  }
+}
+
 export function getSupabase(): SupabaseClient {
   if (!supabaseInstance) {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('Supabase URL and Anon Key must be set in environment variables');
     }
+
+    const storage = isChromeExtension()
+      ? {
+          getItem: async (key: string): Promise<string | null> => {
+            const result = await chrome.storage.local.get(key);
+            return (result[key] as string) ?? null;
+          },
+          setItem: async (key: string, value: string) => {
+            await chrome.storage.local.set({ [key]: value });
+          },
+          removeItem: async (key: string) => {
+            await chrome.storage.local.remove(key);
+          },
+        }
+      : localStorage;
+
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        storage: localStorage,
+        storage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: !isChromeExtension(),
       },
     });
   }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Profile, DEFAULT_PROFILE, Qualification } from '../shared/types';
-import { getProfile, saveProfile } from '../shared/repositories/profileRepository';
-import { hiraganaToKatakana } from '../shared/utils/formatters';
+import { Profile, DEFAULT_PROFILE, Qualification } from '@simplify/shared';
+import { getProfile, saveProfile } from '@simplify/shared';
+import { hiraganaToKatakana } from '@simplify/shared';
 
 /**
  * Extract hiragana characters from a string
@@ -74,6 +74,7 @@ export default function ProfilePage() {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [savedRecently, setSavedRecently] = useState(false);
   const [postalLoading, setPostalLoading] = useState(false);
+  const [holidayPostalLoading, setHolidayPostalLoading] = useState(false);
 
   const lastNameIME = useIMEFurigana(setProfile, 'lastNameHiragana');
   const firstNameIME = useIMEFurigana(setProfile, 'firstNameHiragana');
@@ -102,6 +103,27 @@ export default function ProfilePage() {
       .finally(() => { if (!cancelled) setPostalLoading(false); });
     return () => { cancelled = true; };
   }, [profile.postalCode]);
+
+  useEffect(() => {
+    if (profile.holidayPostalCode?.length !== 7) return;
+    let cancelled = false;
+    setHolidayPostalLoading(true);
+    fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${profile.holidayPostalCode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled || !data.results?.[0]) return;
+        const r = data.results[0];
+        setProfile(prev => ({
+          ...prev,
+          holidayPrefecture: r.address1 || prev.holidayPrefecture,
+          holidayCity: r.address2 || prev.holidayCity,
+          holidayAddress1: r.address3 || prev.holidayAddress1,
+        }));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setHolidayPostalLoading(false); });
+    return () => { cancelled = true; };
+  }, [profile.holidayPostalCode]);
 
   async function loadProfile() {
     const savedProfile = await getProfile();
@@ -405,6 +427,90 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* 休暇中連絡先 */}
+        <section className="paper-card p-6 animate-in" style={{ animationDelay: '0.12s' }}>
+          <h3 className="section-heading">休暇中連絡先（任意）</h3>
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className="input-label">郵便番号</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={profile.holidayPostalCode || ''}
+                  onChange={(e) => handleChange('holidayPostalCode', e.target.value.replace(/\D/g, ''))}
+                  maxLength={7}
+                  className="input-field"
+                  placeholder="1234567"
+                />
+                {holidayPostalLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="animate-spin h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="input-label">都道府県</label>
+              <input
+                type="text"
+                list="holiday-prefecture-list"
+                value={profile.holidayPrefecture || ''}
+                onChange={(e) => handleChange('holidayPrefecture', e.target.value)}
+                className="input-field"
+                placeholder="東京都"
+              />
+              <datalist id="holiday-prefecture-list">
+                {PREFECTURES.map((pref) => (
+                  <option key={pref} value={pref} />
+                ))}
+              </datalist>
+            </div>
+            <div className="col-span-2">
+              <label className="input-label">市区町村</label>
+              <input
+                type="text"
+                value={profile.holidayCity || ''}
+                onChange={(e) => handleChange('holidayCity', e.target.value)}
+                className="input-field"
+                placeholder="渋谷区"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="input-label">町名・番地</label>
+              <input
+                type="text"
+                value={profile.holidayAddress1 || ''}
+                onChange={(e) => handleChange('holidayAddress1', e.target.value)}
+                className="input-field"
+                placeholder="道玄坂1-2-3"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="input-label">建物名・部屋番号</label>
+              <input
+                type="text"
+                value={profile.holidayAddress2 || ''}
+                onChange={(e) => handleChange('holidayAddress2', e.target.value)}
+                className="input-field"
+                placeholder="○○マンション101号室"
+              />
+            </div>
+            <div>
+              <label className="input-label">電話番号</label>
+              <input
+                type="tel"
+                value={profile.holidayPhoneNumber || ''}
+                onChange={(e) => handleChange('holidayPhoneNumber', e.target.value.replace(/\D/g, ''))}
+                className="input-field"
+                placeholder="09012345678"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* 学歴 */}
         <section className="paper-card p-6 animate-in" style={{ animationDelay: '0.15s' }}>
           <h3 className="section-heading">学歴</h3>
@@ -440,6 +546,30 @@ export default function ProfilePage() {
               />
             </div>
             <div>
+              <label className="input-label">入学年</label>
+              <input
+                type="number"
+                value={profile.entranceYear || ''}
+                onChange={(e) => handleChange('entranceYear', parseInt(e.target.value) || 0)}
+                className="input-field"
+                placeholder="2022"
+              />
+            </div>
+            <div>
+              <label className="input-label">入学月</label>
+              <select
+                value={profile.entranceMonth || 4}
+                onChange={(e) => handleChange('entranceMonth', parseInt(e.target.value))}
+                className="select-field"
+              >
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}月
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="input-label">卒業予定年</label>
               <input
                 type="number"
@@ -472,6 +602,30 @@ export default function ProfilePage() {
                 className="input-field"
                 placeholder="○○高等学校"
               />
+            </div>
+            <div>
+              <label className="input-label">高校卒業年（任意）</label>
+              <input
+                type="number"
+                value={profile.highSchoolGradYear || ''}
+                onChange={(e) => handleChange('highSchoolGradYear', parseInt(e.target.value) || 0)}
+                className="input-field"
+                placeholder="2022"
+              />
+            </div>
+            <div>
+              <label className="input-label">高校卒業月（任意）</label>
+              <select
+                value={profile.highSchoolGradMonth || 3}
+                onChange={(e) => handleChange('highSchoolGradMonth', parseInt(e.target.value))}
+                className="select-field"
+              >
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}月
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="input-label">ゼミ・研究室（任意）</label>
@@ -521,6 +675,19 @@ export default function ProfilePage() {
                 className="input-field"
               />
             </div>
+            <div>
+              <label className="input-label">TOEFLスコア（任意）</label>
+              <input
+                type="number"
+                value={profile.toeflScore || ''}
+                onChange={(e) => handleChange('toeflScore', parseInt(e.target.value) || 0)}
+                className="input-field"
+                placeholder="100"
+                min={0}
+                max={120}
+              />
+            </div>
+            <div /> {/* spacer */}
             <div className="col-span-2">
               <label className="input-label">運転免許（任意）</label>
               <input

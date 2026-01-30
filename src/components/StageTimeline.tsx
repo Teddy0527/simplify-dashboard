@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SelectionStage, SelectionStatus, STATUS_LABELS } from '../shared/types';
+import { SelectionStage, SelectionStatus, STATUS_LABELS } from '@simplify/shared';
 
 interface StageTimelineProps {
   stages: SelectionStage[];

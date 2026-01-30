@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getProfile, saveProfile } from '../repositories/profileRepository';
-import type { Profile } from '../types/profile';
-import { DEFAULT_PROFILE } from '../types/profile';
+import { getProfile, saveProfile } from '@simplify/shared';
+import type { Profile } from '@simplify/shared';
+import { DEFAULT_PROFILE } from '@simplify/shared';
 import { useAuth } from './useAuth';
 
 export function useProfile() {

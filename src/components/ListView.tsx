@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company, STATUS_LABELS } from '../shared/types';
+import { Company, STATUS_LABELS } from '@simplify/shared';
 
 type SortKey = 'name' | 'industry' | 'status' | 'deadline' | 'updatedAt';
 type SortDir = 'asc' | 'desc';

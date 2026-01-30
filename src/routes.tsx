@@ -1,16 +1,14 @@
 import { RouteObject, Navigate } from 'react-router-dom';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import TrackerPage from './pages/TrackerPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
 
 export const routes: RouteObject[] = [
   {
     element: <DashboardLayout />,
     children: [
       { index: true, element: <TrackerPage /> },
-      { path: 'analytics', element: <AnalyticsPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: 'profile', element: <ProfilePage /> },
     ],
   },
   {

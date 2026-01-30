@@ -14,7 +14,7 @@ import {
   CollisionDetection,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Company, SelectionStatus } from '../shared/types';
+import { Company, SelectionStatus } from '@simplify/shared';
 import KanbanColumn, { ColumnDef } from './KanbanColumn';
 import KanbanCard from './KanbanCard';
 
@@ -22,35 +22,35 @@ const COLUMNS: ColumnDef[] = [
   {
     id: 'interested',
     label: '興味あり',
-    icon: '💡',
+    icon: '◇',
     color: 'var(--color-primary-500)',
     statuses: ['interested'],
   },
   {
     id: 'applied',
     label: 'ES / 応募',
-    icon: '📝',
+    icon: '→',
     color: 'var(--color-success-600)',
     statuses: ['applied', 'es_submitted'],
   },
   {
     id: 'selection',
     label: '選考中',
-    icon: '🔄',
+    icon: '⟳',
     color: 'var(--color-warning-600)',
     statuses: ['webtest', 'gd', 'interview_1', 'interview_2', 'interview_3', 'interview_final'],
   },
   {
     id: 'offer',
     label: '内定',
-    icon: '🎉',
+    icon: '✓',
     color: 'var(--color-success-600)',
     statuses: ['offer'],
   },
   {
     id: 'closed',
     label: '不合格 / 辞退',
-    icon: '📁',
+    icon: '—',
     color: 'var(--color-gray-400)',
     statuses: ['rejected', 'declined'],
   },
@@ -206,7 +206,7 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4 px-6 flex-1 custom-scrollbar">
+      <div className="flex gap-4 pb-4 px-6 flex-1">
         {COLUMNS.map((col) => {
           const filtered = companies.filter((c) => col.statuses.includes(c.status));
           return (

@@ -25,17 +25,6 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </div>
-      <div className="px-4 pt-2 border-t border-gray-200">
-        <NavLink
-          to="/?add=true"
-          className="flex items-center justify-center gap-1.5 w-full py-2 text-sm font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 transition-colors rounded-lg"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          応募を追加
-        </NavLink>
-      </div>
     </nav>
   );
 }

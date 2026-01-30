@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Company, STATUS_LABELS } from '../shared/types';
+import { Company, STATUS_LABELS } from '@simplify/shared';
 
 interface KanbanCardProps {
   company: Company;

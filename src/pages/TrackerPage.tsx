@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company } from '../shared/types';
+import { Company } from '@simplify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -71,10 +71,6 @@ function TrackerContent() {
     return result;
   }, [companies, searchQuery, industryFilter, deadlineOnly]);
 
-  const activeCount = companies.filter(
-    (c) => !['rejected', 'declined'].includes(c.status)
-  ).length;
-
   function handleCardClick(company: Company) {
     setDrawerCompany(company);
   }
@@ -97,19 +93,6 @@ function TrackerContent() {
 
   return (
     <>
-      {/* Sub-header with stats + add button */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white flex-shrink-0">
-        <span className="text-sm text-gray-500">
-          {activeCount}社 選考中 / {companies.length}社 合計
-        </span>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="btn-primary text-sm py-2 px-4"
-        >
-          + 応募を追加
-        </button>
-      </div>
-
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -120,6 +103,7 @@ function TrackerContent() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         industries={industries}
+        onAddClick={() => setShowAddModal(true)}
       />
 
       {/* View */}

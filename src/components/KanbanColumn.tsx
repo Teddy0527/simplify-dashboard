@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useMemo } from 'react';
-import { Company, SelectionStatus } from '../shared/types';
+import { Company, SelectionStatus } from '@simplify/shared';
 import KanbanCard from './KanbanCard';
 
 export interface ColumnDef {
@@ -24,7 +24,7 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver }:
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
   return (
-    <div className="flex flex-col w-72 flex-shrink-0">
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-3 mb-2">
         <span>{column.icon}</span>

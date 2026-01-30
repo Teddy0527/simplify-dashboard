@@ -1,4 +1,4 @@
-import { getSupabase } from '../lib/supabase';
+import { getSupabase } from '@simplify/shared';
 import type { Session, User } from '@supabase/supabase-js';
 
 export async function signInWithGoogle(): Promise<void> {

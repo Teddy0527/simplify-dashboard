@@ -4,8 +4,8 @@ import {
   addCompany as addRepo,
   updateCompany as updateRepo,
   deleteCompany as deleteRepo,
-} from '../repositories/applicationRepository';
-import type { Company } from '../types/company';
+} from '@simplify/shared';
+import type { Company } from '@simplify/shared';
 import { useAuth } from './useAuth';
 
 export function useApplications() {

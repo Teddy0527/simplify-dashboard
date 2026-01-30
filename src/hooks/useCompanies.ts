@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Company, SelectionStatus } from '../shared/types';
+import { Company, SelectionStatus } from '@simplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
-import * as repo from '../shared/repositories/applicationRepository';
+import {
+  getCompanies as fetchCompanies,
+  addCompany as addCompanyRepo,
+  updateCompany as updateCompanyRepo,
+  deleteCompany as deleteCompanyRepo,
+} from '@simplify/shared';
 
 export function useCompanies() {
   const { user } = useAuth();
@@ -11,7 +16,7 @@ export function useCompanies() {
   // Load from Supabase when user changes
   useEffect(() => {
     setLoaded(false);
-    repo.getCompanies().then((data) => {
+    fetchCompanies().then((data) => {
       setCompanies(data);
       setLoaded(true);
     }).catch((err) => {
@@ -28,7 +33,7 @@ export function useCompanies() {
     );
     const company = companies.find((c) => c.id === id);
     if (company) {
-      await repo.updateCompany({ ...company, status, updatedAt: new Date().toISOString() }).catch(console.error);
+      await updateCompanyRepo({ ...company, status, updatedAt: new Date().toISOString() }).catch(console.error);
     }
   }, [companies]);
 
@@ -38,19 +43,19 @@ export function useCompanies() {
 
   const addCompany = useCallback(async (company: Company) => {
     setCompanies((prev) => [company, ...prev]);
-    await repo.addCompany(company).catch(console.error);
+    await addCompanyRepo(company).catch(console.error);
   }, []);
 
   const updateCompany = useCallback(async (company: Company) => {
     setCompanies((prev) =>
       prev.map((c) => (c.id === company.id ? company : c))
     );
-    await repo.updateCompany(company).catch(console.error);
+    await updateCompanyRepo(company).catch(console.error);
   }, []);
 
   const deleteCompany = useCallback(async (id: string) => {
     setCompanies((prev) => prev.filter((c) => c.id !== id));
-    await repo.deleteCompany(id).catch(console.error);
+    await deleteCompanyRepo(id).catch(console.error);
   }, []);
 
   return { companies, loaded, updateStatus, reorder, addCompany, updateCompany, deleteCompany };

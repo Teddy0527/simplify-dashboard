@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, createCompany } from '../shared/types';
+import { Company, SelectionStatus, STATUS_LABELS, createCompany } from '@simplify/shared';
 
 interface AddCompanyModalProps {
   company?: Company | null;

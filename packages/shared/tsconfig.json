@@ -17,11 +17,9 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@simplify/shared": ["./packages/shared/src/index.ts"],
-      "@simplify/shared/*": ["./packages/shared/src/*"]
+      "@simplify/shared": ["src/index.ts"],
+      "@simplify/shared/*": ["src/*"]
     }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src"]
 }

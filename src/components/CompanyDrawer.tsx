@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, SelectionStage, STATUS_LABELS } from '../shared/types';
+import { Company, SelectionStatus, SelectionStage, STATUS_LABELS } from '@simplify/shared';
 import StageTimeline from './StageTimeline';
 import ConfirmDialog from './Common/ConfirmDialog';
 
@@ -95,7 +95,7 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
 
       {/* Drawer panel */}
       <div
-        className={`relative w-full max-w-lg bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`relative w-full max-w-2xl bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center gap-4">
