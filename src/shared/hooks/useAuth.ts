@@ -25,7 +25,7 @@ export function useAuthProvider(): AuthState {
 
   useEffect(() => {
     // 起動時にセッション取得
-    chrome.runtime.sendMessage({ type: 'GET_SESSION' }, (response) => {
+    chrome.runtime.sendMessage({ type: 'GET_SESSION' }, (response: any) => {
       if (response?.session) {
         setSession(response.session);
         setUser(response.session.user);

@@ -28,7 +28,7 @@ export async function signInWithGoogle(): Promise<{ user: User; session: Session
   const responseUrl = await new Promise<string>((resolve, reject) => {
     chrome.identity.launchWebAuthFlow(
       { url: authUrl, interactive: true },
-      (callbackUrl) => {
+      (callbackUrl: string | undefined) => {
         if (chrome.runtime.lastError || !callbackUrl) {
           reject(new Error(chrome.runtime.lastError?.message || 'Auth flow failed'));
           return;

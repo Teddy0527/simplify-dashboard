@@ -1,4 +1,4 @@
-import { Company } from '../shared/types';
+import { Company } from './shared/types';
 
 export const MOCK_COMPANIES: Company[] = [
   {

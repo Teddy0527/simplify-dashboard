@@ -15,7 +15,7 @@ export function getSupabase(): SupabaseClient {
         storage: {
           getItem: async (key: string) => {
             const result = await chrome.storage.local.get(key);
-            return result[key] ?? null;
+            return (result[key] as string) ?? null;
           },
           setItem: async (key: string, value: string) => {
             await chrome.storage.local.set({ [key]: value });

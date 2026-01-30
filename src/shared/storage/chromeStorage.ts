@@ -10,7 +10,7 @@ const STORAGE_KEYS = {
 // Profile
 export async function getProfile(): Promise<Profile> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.PROFILE);
-  return result[STORAGE_KEYS.PROFILE] || DEFAULT_PROFILE;
+  return (result[STORAGE_KEYS.PROFILE] as Profile) || DEFAULT_PROFILE;
 }
 
 export async function saveProfile(profile: Profile): Promise<void> {
@@ -20,7 +20,7 @@ export async function saveProfile(profile: Profile): Promise<void> {
 // Templates
 export async function getTemplates(): Promise<Template[]> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.TEMPLATES);
-  return result[STORAGE_KEYS.TEMPLATES] || [];
+  return (result[STORAGE_KEYS.TEMPLATES] as Template[]) || [];
 }
 
 export async function saveTemplates(templates: Template[]): Promise<void> {
@@ -50,7 +50,7 @@ export async function deleteTemplate(id: string): Promise<void> {
 // Companies
 export async function getCompanies(): Promise<Company[]> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.COMPANIES);
-  return result[STORAGE_KEYS.COMPANIES] || [];
+  return (result[STORAGE_KEYS.COMPANIES] as Company[]) || [];
 }
 
 export async function saveCompanies(companies: Company[]): Promise<void> {
@@ -80,7 +80,7 @@ export async function deleteCompany(id: string): Promise<void> {
 // Settings
 export async function getSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-  return result[STORAGE_KEYS.SETTINGS] || DEFAULT_SETTINGS;
+  return (result[STORAGE_KEYS.SETTINGS] as Settings) || DEFAULT_SETTINGS;
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
