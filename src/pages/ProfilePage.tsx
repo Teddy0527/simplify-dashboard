@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Profile, DEFAULT_PROFILE, Qualification } from '@simplify/shared';
 import { getProfile, saveProfile } from '@simplify/shared';
 import { hiraganaToKatakana } from '@simplify/shared';
+import { URLS } from '../constants/urls';
 
 /**
  * Extract hiragana characters from a string
@@ -193,6 +194,34 @@ export default function ProfilePage() {
         <p className="mt-1 text-sm" style={{ color: 'var(--color-gray-500)' }}>
           自動入力に使用される基本情報を管理します
         </p>
+      </div>
+
+      {/* Chrome extension CTA banner */}
+      <div
+        className="mb-6 flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 animate-in"
+        style={{ backgroundColor: 'var(--color-primary-50)', borderColor: 'var(--color-primary-700)' }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M12 2H8.5C7.12 2 6 3.12 6 4.5S7.12 7 8.5 7H9v3H4.5C3.12 10 2 11.12 2 12.5S3.12 15 4.5 15H6v5a2 2 0 0 0 2 2h5v-1.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5V22h3a2 2 0 0 0 2-2v-5h1.5c1.38 0 2.5-1.12 2.5-2.5S22.88 10 21.5 10H20V8a2 2 0 0 0-2-2h-3V4.5C15 3.12 13.88 2 12.5 2H12z" />
+        </svg>
+        <p className="flex-1 text-sm" style={{ color: 'var(--color-primary-800)' }}>
+          ここで入力したプロフィールは、<a
+            href={URLS.CHROME_STORE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-medium hover:opacity-80"
+            style={{ color: 'var(--color-primary-700)' }}
+          >Chrome拡張機能</a>でエントリーシートに自動入力できます
+        </p>
+        <a
+          href={URLS.CHROME_STORE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-sm font-medium hover:opacity-80 whitespace-nowrap"
+          style={{ color: 'var(--color-primary-700)' }}
+        >
+          インストール →
+        </a>
       </div>
 
       {/* Toast notification */}
