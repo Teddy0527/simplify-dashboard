@@ -1,6 +1,7 @@
 export * from './profile';
 export * from './template';
 export * from './company';
+export * from './companySearch';
 
 export interface StorageData {
   profile: import('./profile').Profile;

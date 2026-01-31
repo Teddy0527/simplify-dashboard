@@ -62,3 +62,4 @@ export {
 
 // Services
 export { migrateLocalToCloud } from './services/dataMigration';
+export { searchCompanies, searchCompaniesDebounced } from './services/companySearchService';

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:job.simplify.jobs)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:www.houjin-bangou.nta.go.jp)",
+      "WebFetch(domain:www.invoice-kohyo.nta.go.jp)"
+    ]
+  }
+}

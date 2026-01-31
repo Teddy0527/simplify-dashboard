@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, createCompany } from '@simplify/shared';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Company, SelectionStatus, STATUS_LABELS, createCompany, CompanySearchResult, searchCompaniesDebounced } from '@simplify/shared';
 
 interface AddCompanyModalProps {
   company?: Company | null;
@@ -23,6 +23,8 @@ const STATUS_ORDER: SelectionStatus[] = [
   'declined',
 ];
 
+const HOUJIN_APP_ID = import.meta.env.VITE_HOUJIN_APP_ID || '';
+
 export default function AddCompanyModal({ company, onSave, onDelete, onClose }: AddCompanyModalProps) {
   const [name, setName] = useState(company?.name || '');
   const [industry, setIndustry] = useState(company?.industry || '');
@@ -31,7 +33,63 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
   const [memo, setMemo] = useState(company?.memo || '');
   const [loginUrl, setLoginUrl] = useState(company?.loginUrl || '');
 
+  const [suggestions, setSuggestions] = useState<CompanySearchResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cancelRef = useRef<(() => void) | null>(null);
+
   const isEditing = !!company;
+
+  const handleNameChange = useCallback((value: string) => {
+    setName(value);
+    setSelectedIndex(-1);
+
+    if (!HOUJIN_APP_ID || value.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    if (cancelRef.current) cancelRef.current();
+
+    cancelRef.current = searchCompaniesDebounced(
+      value,
+      HOUJIN_APP_ID,
+      (results) => {
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+        setIsSearching(false);
+      },
+    );
+  }, []);
+
+  const handleSelectSuggestion = useCallback((result: CompanySearchResult) => {
+    setName(result.name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleSelectSuggestion(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  }, [showSuggestions, suggestions, selectedIndex, handleSelectSuggestion]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,6 +128,28 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    return () => {
+      if (cancelRef.current) cancelRef.current();
+    };
+  }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
@@ -91,19 +171,54 @@ export default function AddCompanyModal({ company, onSave, onDelete, onClose }: 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white">
-          <div>
+          <div className="relative">
             <label className="input-label">
               企業名 <span className="text-error-500">*</span>
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field"
-              placeholder="株式会社〇〇"
-              required
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                className="input-field"
+                placeholder="株式会社〇〇"
+                required
+                autoFocus
+                autoComplete="off"
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-primary-500 rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <ul
+                ref={suggestionsRef}
+                className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+              >
+                {suggestions.map((result, index) => (
+                  <li
+                    key={result.corporateNumber}
+                    className={`px-4 py-3 cursor-pointer transition-colors ${
+                      index === selectedIndex
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onMouseDown={() => handleSelectSuggestion(result)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                  >
+                    <div className="text-sm font-medium text-gray-900">{result.name}</div>
+                    {result.address && (
+                      <div className="text-xs text-gray-500 mt-0.5">{result.address}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div>
