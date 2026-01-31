@@ -205,23 +205,14 @@ export default function ProfilePage() {
           <path d="M12 2H8.5C7.12 2 6 3.12 6 4.5S7.12 7 8.5 7H9v3H4.5C3.12 10 2 11.12 2 12.5S3.12 15 4.5 15H6v5a2 2 0 0 0 2 2h5v-1.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5V22h3a2 2 0 0 0 2-2v-5h1.5c1.38 0 2.5-1.12 2.5-2.5S22.88 10 21.5 10H20V8a2 2 0 0 0-2-2h-3V4.5C15 3.12 13.88 2 12.5 2H12z" />
         </svg>
         <p className="flex-1 text-sm" style={{ color: 'var(--color-primary-800)' }}>
-          ここで入力したプロフィールは、<a
-            href={URLS.CHROME_STORE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline font-medium hover:opacity-80"
-            style={{ color: 'var(--color-primary-700)' }}
-          >Chrome拡張機能</a>でエントリーシートに自動入力できます
+          ここで入力したプロフィールは、Chrome拡張機能でエントリーシートに自動入力できます（拡張機能は現在公開準備中です）
         </p>
-        <a
-          href={URLS.CHROME_STORE}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 text-sm font-medium hover:opacity-80 whitespace-nowrap"
-          style={{ color: 'var(--color-primary-700)' }}
+        <span
+          className="shrink-0 text-xs font-medium whitespace-nowrap rounded-full px-2 py-0.5"
+          style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
         >
-          インストール →
-        </a>
+          公開準備中
+        </span>
       </div>
 
       {/* Toast notification */}
