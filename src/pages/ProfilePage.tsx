@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Profile, DEFAULT_PROFILE, Qualification } from '@simplify/shared';
 import { getProfile, saveProfile } from '@simplify/shared';
 import { hiraganaToKatakana } from '@simplify/shared';
-import { URLS } from '../constants/urls';
+
 
 /**
  * Extract hiragana characters from a string
