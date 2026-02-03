@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Company, STATUS_LABELS } from '@simplify/shared';
+import { CompanyLogo } from './ui/CompanyLogo';
 
 type SortKey = 'name' | 'industry' | 'status' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
@@ -91,6 +92,12 @@ export default function ListView({ companies, onCardClick }: ListViewProps) {
             className="flex items-center gap-2 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
           >
             <div className="flex-[2] min-w-[160px] flex items-center gap-2">
+              <CompanyLogo
+                name={company.name}
+                logoUrl={company.logoUrl}
+                websiteDomain={company.websiteDomain}
+                size="sm"
+              />
               <span className="text-sm font-medium text-gray-900 truncate">{company.name}</span>
             </div>
             <div className="flex-1 min-w-[100px] text-sm text-gray-600">

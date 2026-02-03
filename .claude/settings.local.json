@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nMigrate design system from editorial Japanese to modern clean per DESIGN_PROTOCOL.md\n\nReplace serif/display fonts with Inter + Noto Sans JP, swap vermillion/gold/sage/paper/ink\ncolors for gray + semantic \\(success/warning/error\\), add rounded corners to all components,\nremove decorative elements \\(paper texture, vertical bars, grid pattern\\), set white background.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)",
+      "Bash(gh pr create:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(git status:*)"
+    ]
+  }
+}

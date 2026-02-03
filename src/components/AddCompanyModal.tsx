@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany } from '@simplify/shared';
+import { useState, useEffect, useCallback } from 'react';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult } from '@simplify/shared';
+import { CompanyAutocomplete } from './CompanyAutocomplete';
+import { normalizeWebsiteDomain } from '../utils/url';
 
 interface AddCompanyDrawerProps {
   onSave: (company: Company) => void;
@@ -28,10 +30,32 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   const [memo, setMemo] = useState('');
   const [loginUrl, setLoginUrl] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [websiteDomain, setWebsiteDomain] = useState('');
+  const [recruitUrl, setRecruitUrl] = useState('');
   const [visible, setVisible] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  // 企業選択時のハンドラー
+  const handleCompanySelect = useCallback((company: CompanySearchResult) => {
+    setSelectedCompanyId(company.id);
+    // 業種を自動入力（マスターにある場合）
+    if (company.industry && (INDUSTRY_OPTIONS as readonly string[]).includes(company.industry)) {
+      setIndustry(company.industry);
+    }
+    // websiteDomainを自動入力（ロゴ表示用）
+    const normalizedDomain = normalizeWebsiteDomain(company.websiteDomain || company.websiteUrl);
+    if (normalizedDomain) {
+      setWebsiteDomain(normalizedDomain);
+    }
+    // 採用ページURLを自動入力
+    if (company.recruitUrl) {
+      setRecruitUrl(company.recruitUrl);
+    }
+    // マイページURLは自動入力しない（マスターデータが古い・間違っている可能性があるため）
   }, []);
 
   useEffect(() => {
@@ -58,6 +82,8 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       memo: memo.trim() || undefined,
       loginUrl: loginUrl.trim() || undefined,
       loginPassword: loginPassword.trim() || undefined,
+      websiteDomain: normalizeWebsiteDomain(websiteDomain),
+      recruitUrl: recruitUrl.trim() || undefined,
     };
 
     onSave(updatedCompany);
@@ -96,15 +122,19 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
             <label className="input-label">
               企業名 <span className="text-error-500">*</span>
             </label>
-            <input
-              type="text"
+            <CompanyAutocomplete
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field"
-              placeholder="株式会社〇〇"
-              required
+              onChange={setName}
+              onSelect={handleCompanySelect}
+              placeholder="企業名を入力（候補から選択可能）"
               autoFocus
+              required
             />
+            {selectedCompanyId && (
+              <p className="mt-1 text-xs text-success-600">
+                マスターデータから選択しました
+              </p>
+            )}
           </div>
 
           <div>

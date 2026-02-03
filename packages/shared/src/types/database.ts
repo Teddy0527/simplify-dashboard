@@ -81,6 +81,9 @@ export interface Database {
           industry: string | null;
           login_url: string | null;
           login_password: string | null;
+          logo_url: string | null;
+          website_domain: string | null;
+          recruit_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -91,12 +94,18 @@ export interface Database {
           industry?: string | null;
           login_url?: string | null;
           login_password?: string | null;
+          logo_url?: string | null;
+          website_domain?: string | null;
+          recruit_url?: string | null;
         };
         Update: {
           name?: string;
           industry?: string | null;
           login_url?: string | null;
           login_password?: string | null;
+          logo_url?: string | null;
+          website_domain?: string | null;
+          recruit_url?: string | null;
         };
       };
       applications: {
@@ -177,6 +186,9 @@ export function dbToCompany(
     memo: application.memo ?? undefined,
     loginUrl: company.login_url ?? undefined,
     loginPassword: company.login_password ?? undefined,
+    logoUrl: company.logo_url ?? undefined,
+    websiteDomain: company.website_domain ?? undefined,
+    recruitUrl: company.recruit_url ?? undefined,
     createdAt: company.created_at,
     updatedAt: application.updated_at,
   };

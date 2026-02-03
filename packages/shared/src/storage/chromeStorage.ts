@@ -5,7 +5,10 @@ const STORAGE_KEYS = {
   TEMPLATES: 'templates',
   COMPANIES: 'companies',
   SETTINGS: 'settings',
+  AUTOFILL_LOGS: 'autofill_logs',
 } as const;
+
+const MAX_AUTOFILL_LOGS = 50;
 
 function isChromeStorageAvailable(): boolean {
   try {
@@ -106,6 +109,26 @@ export async function getSettings(): Promise<Settings> {
 
 export async function saveSettings(settings: Settings): Promise<void> {
   await setItem(STORAGE_KEYS.SETTINGS, settings);
+}
+
+// Autofill Logs
+export async function getAutofillLogs(): Promise<unknown[]> {
+  return getItem(STORAGE_KEYS.AUTOFILL_LOGS, []);
+}
+
+export async function saveAutofillLog(log: unknown): Promise<void> {
+  const logs = await getAutofillLogs();
+  logs.push(log);
+  // 古いログを削除して最大件数を維持
+  while (logs.length > MAX_AUTOFILL_LOGS) {
+    logs.shift();
+  }
+  await setItem(STORAGE_KEYS.AUTOFILL_LOGS, logs);
+}
+
+export async function exportAutofillLogs(): Promise<string> {
+  const logs = await getAutofillLogs();
+  return JSON.stringify(logs, null, 2);
 }
 
 // Export all data (for backup)

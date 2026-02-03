@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, SelectionStage, STATUS_LABELS, INDUSTRY_OPTIONS } from '@simplify/shared';
+import { Company, SelectionStatus, SelectionStage, STATUS_LABELS } from '@simplify/shared';
 import StageTimeline from './StageTimeline';
 import ConfirmDialog from './Common/ConfirmDialog';
+import { CompanyLogo } from './ui/CompanyLogo';
+import { normalizeWebsiteDomain } from '../utils/url';
 
 interface CompanyDrawerProps {
   company: Company;
@@ -16,28 +18,13 @@ const ALL_STATUSES: SelectionStatus[] = [
   'offer', 'rejected', 'declined',
 ];
 
-function getInitialColor(name: string): string {
-  const colors = [
-    'bg-primary-800',
-    'bg-primary-600',
-    'bg-success-600',
-    'bg-warning-600',
-    'bg-primary-700',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
 export default function CompanyDrawer({ company, onSave, onDelete, onClose }: CompanyDrawerProps) {
   const [name, setName] = useState(company.name);
-  const [industry, setIndustry] = useState(company.industry || '');
   const [status, setStatus] = useState<SelectionStatus>(company.status);
   const [memo, setMemo] = useState(company.memo || '');
   const [loginUrl, setLoginUrl] = useState(company.loginUrl || '');
   const [loginPassword, setLoginPassword] = useState(company.loginPassword || '');
+  const [websiteDomain, setWebsiteDomain] = useState(company.websiteDomain || '');
   const [stages, setStages] = useState<SelectionStage[]>(company.stages ?? []);
   const [visible, setVisible] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -64,11 +51,11 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
     onSave({
       ...company,
       name: name.trim(),
-      industry: industry || undefined,
       status,
       memo: memo.trim() || undefined,
       loginUrl: loginUrl.trim() || undefined,
       loginPassword: loginPassword.trim() || undefined,
+      websiteDomain: normalizeWebsiteDomain(websiteDomain),
       stages,
       updatedAt: new Date().toISOString(),
     });
@@ -99,15 +86,28 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-lg ${getInitialColor(company.name)} flex items-center justify-center flex-shrink-0`}>
-            <span className="text-white text-base font-semibold">{company.name[0]}</span>
-          </div>
+          <CompanyLogo
+            name={company.name}
+            logoUrl={company.logoUrl}
+            websiteDomain={normalizeWebsiteDomain(websiteDomain) || company.websiteDomain}
+            size="lg"
+          />
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 truncate">
               {company.name}
             </h2>
             {company.industry && (
               <p className="text-xs text-gray-500">{company.industry}</p>
+            )}
+            {company.recruitUrl && (
+              <a
+                href={company.recruitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                採用ページ →
+              </a>
             )}
           </div>
           <button
@@ -133,18 +133,23 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
             />
           </div>
 
+          {company.industry && (
+            <div>
+              <label className="input-label">業界</label>
+              <p className="text-sm text-gray-700 py-2">{company.industry}</p>
+            </div>
+          )}
+
           <div>
-            <label className="input-label">業界</label>
-            <select
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              className="select-field"
-            >
-              <option value="">選択してください</option>
-              {INDUSTRY_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
+            <label className="input-label">企業サイトドメイン</label>
+            <input
+              type="text"
+              value={websiteDomain}
+              onChange={(e) => setWebsiteDomain(e.target.value)}
+              className="input-field"
+              placeholder="example.co.jp"
+            />
+            <p className="text-xs text-gray-400 mt-1">ロゴ表示に使用されます</p>
           </div>
 
           <div>

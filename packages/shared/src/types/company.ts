@@ -4,9 +4,13 @@ export interface Company {
   industry?: string;
   status: SelectionStatus;
   stages: SelectionStage[];
+  deadline?: string;
   memo?: string;
   loginUrl?: string;
   loginPassword?: string;
+  logoUrl?: string;
+  websiteDomain?: string;
+  recruitUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

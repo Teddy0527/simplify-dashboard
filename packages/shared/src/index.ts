@@ -38,6 +38,9 @@ export {
   saveSettings,
   exportAllData,
   importAllData,
+  getAutofillLogs,
+  saveAutofillLog,
+  exportAutofillLogs,
 } from './storage/chromeStorage';
 export { getStorageAdapter } from './storage/storageAdapter';
 export type { StorageAdapter } from './storage/storageAdapter';
