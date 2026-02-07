@@ -1,4 +1,4 @@
-import { Profile, Template, Company, Settings, DEFAULT_PROFILE, DEFAULT_SETTINGS } from '../types';
+import { Profile, Template, Company, Settings, DEFAULT_PROFILE, DEFAULT_SETTINGS, EntrySheet } from '../types';
 
 const STORAGE_KEYS = {
   PROFILE: 'profile',
@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   COMPANIES: 'companies',
   SETTINGS: 'settings',
   AUTOFILL_LOGS: 'autofill_logs',
+  ENTRY_SHEETS: 'entry_sheets',
 } as const;
 
 const MAX_AUTOFILL_LOGS = 50;
@@ -100,6 +101,35 @@ export async function updateCompany(company: Company): Promise<void> {
 export async function deleteCompany(id: string): Promise<void> {
   const companies = await getCompanies();
   await saveCompanies(companies.filter(c => c.id !== id));
+}
+
+// Entry Sheets
+export async function getEntrySheets(): Promise<EntrySheet[]> {
+  return getItem(STORAGE_KEYS.ENTRY_SHEETS, []);
+}
+
+export async function saveEntrySheets(entrySheets: EntrySheet[]): Promise<void> {
+  await setItem(STORAGE_KEYS.ENTRY_SHEETS, entrySheets);
+}
+
+export async function addEntrySheet(entrySheet: EntrySheet): Promise<void> {
+  const entrySheets = await getEntrySheets();
+  entrySheets.push(entrySheet);
+  await saveEntrySheets(entrySheets);
+}
+
+export async function updateEntrySheet(entrySheet: EntrySheet): Promise<void> {
+  const entrySheets = await getEntrySheets();
+  const index = entrySheets.findIndex(es => es.id === entrySheet.id);
+  if (index !== -1) {
+    entrySheets[index] = { ...entrySheet, updatedAt: new Date().toISOString() };
+    await saveEntrySheets(entrySheets);
+  }
+}
+
+export async function deleteEntrySheet(id: string): Promise<void> {
+  const entrySheets = await getEntrySheets();
+  await saveEntrySheets(entrySheets.filter(es => es.id !== id));
 }
 
 // Settings

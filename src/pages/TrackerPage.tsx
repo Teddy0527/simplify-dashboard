@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Company, INDUSTRY_OPTIONS } from '@simplify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { useEntrySheetContext } from '../contexts/EntrySheetContext';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
@@ -40,7 +42,9 @@ export default function TrackerPage() {
 
 function TrackerContent() {
   const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany } = useCompanies();
+  const { entrySheets } = useEntrySheetContext();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
@@ -63,6 +67,17 @@ function TrackerContent() {
     return result;
   }, [companies, searchQuery, industryFilter]);
 
+  // ES count per company
+  const esCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const es of entrySheets) {
+      if (es.companyId) {
+        map.set(es.companyId, (map.get(es.companyId) || 0) + 1);
+      }
+    }
+    return map;
+  }, [entrySheets]);
+
   function handleCardClick(company: Company) {
     setDrawerCompany(company);
   }
@@ -77,6 +92,10 @@ function TrackerContent() {
     deleteCompany(id);
     setDrawerCompany(null);
     showToast('削除しました');
+  }
+
+  function handleESClick(companyId: string) {
+    navigate(`/es?company=${companyId}`);
   }
 
   if (!loaded) {
@@ -118,6 +137,8 @@ function TrackerContent() {
             companies={filtered}
             onReorder={reorder}
             onCardClick={handleCardClick}
+            esCountMap={esCountMap}
+            onESClick={handleESClick}
           />
         ) : (
           <ListView

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Company, SelectionStatus, SelectionStage, STATUS_LABELS } from '@simplify/shared';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Company, SelectionStatus, SelectionStage, STATUS_LABELS, INDUSTRY_OPTIONS } from '@simplify/shared';
 import StageTimeline from './StageTimeline';
 import ConfirmDialog from './Common/ConfirmDialog';
 import { CompanyLogo } from './ui/CompanyLogo';
-import { normalizeWebsiteDomain } from '../utils/url';
+import { useEntrySheetContext } from '../contexts/EntrySheetContext';
 
 interface CompanyDrawerProps {
   company: Company;
@@ -19,15 +20,26 @@ const ALL_STATUSES: SelectionStatus[] = [
 ];
 
 export default function CompanyDrawer({ company, onSave, onDelete, onClose }: CompanyDrawerProps) {
+  const navigate = useNavigate();
+  const { entrySheets } = useEntrySheetContext();
   const [name, setName] = useState(company.name);
   const [status, setStatus] = useState<SelectionStatus>(company.status);
   const [memo, setMemo] = useState(company.memo || '');
   const [loginUrl, setLoginUrl] = useState(company.loginUrl || '');
   const [loginPassword, setLoginPassword] = useState(company.loginPassword || '');
-  const [websiteDomain, setWebsiteDomain] = useState(company.websiteDomain || '');
+  const [industry, setIndustry] = useState(company.industry || '');
   const [stages, setStages] = useState<SelectionStage[]>(company.stages ?? []);
   const [visible, setVisible] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const companyES = useMemo(
+    () => entrySheets.filter(es => es.companyId === company.id).slice(0, 3),
+    [entrySheets, company.id],
+  );
+  const totalESCount = useMemo(
+    () => entrySheets.filter(es => es.companyId === company.id).length,
+    [entrySheets, company.id],
+  );
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -55,7 +67,8 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
       memo: memo.trim() || undefined,
       loginUrl: loginUrl.trim() || undefined,
       loginPassword: loginPassword.trim() || undefined,
-      websiteDomain: normalizeWebsiteDomain(websiteDomain),
+      websiteDomain: company.websiteDomain,
+      industry: industry || undefined,
       stages,
       updatedAt: new Date().toISOString(),
     });
@@ -89,16 +102,13 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
           <CompanyLogo
             name={company.name}
             logoUrl={company.logoUrl}
-            websiteDomain={normalizeWebsiteDomain(websiteDomain) || company.websiteDomain}
+            websiteDomain={company.websiteDomain}
             size="lg"
           />
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 truncate">
               {company.name}
             </h2>
-            {company.industry && (
-              <p className="text-xs text-gray-500">{company.industry}</p>
-            )}
             {company.recruitUrl && (
               <a
                 href={company.recruitUrl}
@@ -133,23 +143,18 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
             />
           </div>
 
-          {company.industry && (
-            <div>
-              <label className="input-label">業界</label>
-              <p className="text-sm text-gray-700 py-2">{company.industry}</p>
-            </div>
-          )}
-
           <div>
-            <label className="input-label">企業サイトドメイン</label>
-            <input
-              type="text"
-              value={websiteDomain}
-              onChange={(e) => setWebsiteDomain(e.target.value)}
-              className="input-field"
-              placeholder="example.co.jp"
-            />
-            <p className="text-xs text-gray-400 mt-1">ロゴ表示に使用されます</p>
+            <label className="input-label">業界</label>
+            <select
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="select-field"
+            >
+              <option value="">選択してください</option>
+              {INDUSTRY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -194,6 +199,72 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
               currentStatus={status}
               onStagesChange={setStages}
             />
+          </div>
+
+          {/* ES Section */}
+          <div className="border-t border-gray-200 pt-4">
+            <label className="input-label flex items-center justify-between">
+              <span>エントリーシート</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(`/es?company=${company.id}&action=create`)}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-normal flex items-center gap-0.5"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  ES作成
+                </button>
+                {totalESCount > 0 && (
+                  <button
+                    onClick={() => navigate(`/es?company=${company.id}`)}
+                    className="text-xs text-primary-600 hover:text-primary-700 font-normal"
+                  >
+                    すべて表示 ({totalESCount})
+                  </button>
+                )}
+              </div>
+            </label>
+            {companyES.length === 0 ? (
+              <p className="text-xs text-gray-400 mt-1">ESはまだありません</p>
+            ) : (
+              <div className="space-y-2 mt-2">
+                {companyES.map(es => {
+                  const answered = es.questions.filter(q => q.answer?.trim()).length;
+                  const total = es.questions.length;
+                  const hasFreeform = !!es.freeformContent && es.freeformContent.replace(/<[^>]*>/g, '').trim().length > 0;
+                  const hasLinks = !!es.externalLinks && es.externalLinks.length > 0;
+                  return (
+                    <div
+                      key={es.id}
+                      onClick={() => navigate(`/es?company=${company.id}`)}
+                      className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900 truncate">{es.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {total > 0 && (
+                          <span className="text-xs text-gray-500">{answered}/{total}設問</span>
+                        )}
+                        {hasFreeform && (
+                          <span className="text-xs text-gray-400">
+                            <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </span>
+                        )}
+                        {hasLinks && (
+                          <span className="text-xs text-gray-400">
+                            <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div>

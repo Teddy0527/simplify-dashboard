@@ -13,7 +13,9 @@
       "Bash(tree:*)",
       "Bash(pnpm --version:*)",
       "Bash(npm --version:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue close:*)"
     ]
   }
 }

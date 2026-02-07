@@ -98,9 +98,11 @@ interface KanbanBoardProps {
   companies: Company[];
   onReorder: (companies: Company[]) => void;
   onCardClick: (company: Company) => void;
+  esCountMap?: Map<string, number>;
+  onESClick?: (companyId: string) => void;
 }
 
-export default function KanbanBoard({ companies, onReorder, onCardClick }: KanbanBoardProps) {
+export default function KanbanBoard({ companies, onReorder, onCardClick, esCountMap, onESClick }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const lastOverId = useRef<string | null>(null);
@@ -289,6 +291,8 @@ export default function KanbanBoard({ companies, onReorder, onCardClick }: Kanba
               companies={filtered}
               onCardClick={onCardClick}
               isOver={overColumnId === col.id}
+              esCountMap={esCountMap}
+              onESClick={onESClick}
             />
           );
         })}

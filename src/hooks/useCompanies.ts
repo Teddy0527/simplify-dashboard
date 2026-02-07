@@ -37,9 +37,25 @@ export function useCompanies() {
     }
   }, [companies]);
 
-  const reorder = useCallback((newCompanies: Company[]) => {
+  const reorder = useCallback(async (newCompanies: Company[]) => {
+    // ステータスが変更されたカードを検出
+    const statusChanges = newCompanies.filter((newCompany) => {
+      const oldCompany = companies.find((c) => c.id === newCompany.id);
+      return oldCompany && oldCompany.status !== newCompany.status;
+    });
+
+    // 即座にローカルステートを更新（楽観的更新）
     setCompanies(newCompanies);
-  }, []);
+
+    // ステータス変更をデータベースに保存
+    for (const company of statusChanges) {
+      try {
+        await updateCompanyRepo(company);
+      } catch (error) {
+        console.error('Failed to persist status change:', error);
+      }
+    }
+  }, [companies]);
 
   const addCompany = useCallback(async (company: Company) => {
     setCompanies((prev) => [company, ...prev]);

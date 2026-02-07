@@ -2,6 +2,7 @@ export * from './profile';
 export * from './template';
 export * from './company';
 export * from './companyMaster';
+export * from './entrySheet';
 
 export interface StorageData {
   profile: import('./profile').Profile;

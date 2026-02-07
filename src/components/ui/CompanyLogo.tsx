@@ -22,19 +22,16 @@ const textSizeClasses = {
 } as const;
 
 function getFaviconUrl(domain: string): string {
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
-}
-
-function getDuckDuckGoIconUrl(domain: string): string {
-  return `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
-}
-
-function getClearbitLogoUrl(domain: string): string {
-  return `https://logo.clearbit.com/${encodeURIComponent(domain)}`;
+  // Googleは高確率で200を返し、レスポンスも軽量
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
 }
 
 function getDirectFaviconUrl(domain: string): string {
   return `https://${domain}/favicon.ico`;
+}
+
+function getDirectHttpFaviconUrl(domain: string): string {
+  return `http://${domain}/favicon.ico`;
 }
 
 function buildDomainVariants(domain: string): string[] {
@@ -53,10 +50,12 @@ function buildDomainVariants(domain: string): string[] {
 
 function buildFaviconSources(domain: string): string[] {
   return [
+    // 1. Google Favicon（最も安定、軽量）
     getFaviconUrl(domain),
-    getDuckDuckGoIconUrl(domain),
-    getClearbitLogoUrl(domain),
+    // 2. 直接favicon.ico（https）
     getDirectFaviconUrl(domain),
+    // 3. 直接favicon.ico（http: SSL不一致時の救済）
+    getDirectHttpFaviconUrl(domain),
   ];
 }
 
@@ -117,8 +116,9 @@ function getInitialColor(name: string): string {
  *
  * フォールバックチェーン:
  * 1. logoUrl（DB保存済み）
- * 2. Google Favicon API（信頼性重視、sz=128）
- * 3. 首文字カラーバッジ
+ * 2. Google Favicon（最安定）
+ * 3. 直接favicon.ico（https → http）
+ * 4. 首文字カラーバッジ
  */
 export function CompanyLogo({
   name,
@@ -132,7 +132,7 @@ export function CompanyLogo({
   const faviconDomain = useMemo(() => extractHostname(websiteDomain), [websiteDomain]);
   const normalizedLogoUrl = useMemo(() => normalizeLogoUrl(logoUrl), [logoUrl]);
 
-  // ロゴURLの優先順位を計算
+  // ロゴURLの候補を計算（ユニーク順序集合）
   const logoSources = useMemo(() => {
     const sources = new Set<string>();
 
@@ -141,7 +141,7 @@ export function CompanyLogo({
       sources.add(normalizedLogoUrl);
     }
 
-    // 2. Google Favicon API（信頼性重視）
+    // 2. 各種Favicon API（Google → 直接 https → http）
     if (faviconDomain) {
       buildDomainVariants(faviconDomain).forEach((domain) => {
         buildFaviconSources(domain).forEach((url) => sources.add(url));
@@ -151,27 +151,87 @@ export function CompanyLogo({
     return Array.from(sources);
   }, [normalizedLogoUrl, faviconDomain]);
 
-  // logoSourcesが変更されたら初期ソースを設定
+  // 画像を並列プリフェッチして最初に成功したものを採用
   useEffect(() => {
-    if (logoSources.length > 0) {
-      setCurrentSrc(logoSources[0]);
-      setImageState('initial');
-    } else {
-      setImageState('fallback');
-    }
-  }, [logoSources]);
-
-  // 画像読み込みエラー時のフォールバック処理
-  const handleError = () => {
-    const currentIndex = currentSrc ? logoSources.indexOf(currentSrc) : -1;
-    const nextIndex = currentIndex + 1;
-
-    if (nextIndex < logoSources.length) {
-      setCurrentSrc(logoSources[nextIndex]);
-      setImageState('favicon');
-    } else {
+    if (logoSources.length === 0) {
       setCurrentSrc(null);
       setImageState('fallback');
+      return;
+    }
+
+    let resolved = false;
+    let cancelled = false;
+    let remaining = logoSources.length;
+    const timers: NodeJS.Timeout[] = [];
+
+    const markFailed = () => {
+      remaining -= 1;
+      if (!resolved && remaining <= 0 && !cancelled) {
+        setCurrentSrc(null);
+        setImageState('fallback');
+      }
+    };
+
+    const loaders = logoSources.map((src) => {
+      const img = new Image();
+      img.decoding = 'async';
+
+      const timeout = setTimeout(() => {
+        img.onload = null;
+        img.onerror = null;
+        markFailed();
+      }, 2000);
+      timers.push(timeout);
+
+      img.onload = () => {
+        if (cancelled) return;
+        if (resolved) {
+          clearTimeout(timeout);
+          return;
+        }
+
+        // 16x16以下は「ほぼデフォルト」判定で次を待つ
+        if (img.naturalWidth <= 16 && img.naturalHeight <= 16) {
+          clearTimeout(timeout);
+          markFailed();
+          return;
+        }
+
+        resolved = true;
+        clearTimeout(timeout);
+        setCurrentSrc(src);
+        setImageState('favicon');
+      };
+
+      img.onerror = () => {
+        if (cancelled) return;
+        clearTimeout(timeout);
+        if (!resolved) markFailed();
+      };
+
+      img.src = src;
+      return img;
+    });
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+      loaders.forEach((img) => {
+        img.onload = null;
+        img.onerror = null;
+      });
+    };
+  }, [logoSources]);
+
+  const handleImgError = () => {
+    setCurrentSrc(null);
+    setImageState('fallback');
+  };
+
+  const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth <= 16 && img.naturalHeight <= 16) {
+      handleImgError();
     }
   };
 
@@ -217,7 +277,8 @@ export function CompanyLogo({
         src={currentSrc}
         alt={`${name} logo`}
         className="w-full h-full object-contain"
-        onError={handleError}
+        onLoad={handleImgLoad}
+        onError={handleImgError}
         loading="lazy"
       />
     </div>
