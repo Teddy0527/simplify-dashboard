@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult } from '@simplify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry } from '@simplify/shared';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
 import { normalizeWebsiteDomain } from '../utils/url';
 
@@ -42,9 +42,12 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   // 企業選択時のハンドラー
   const handleCompanySelect = useCallback((company: CompanySearchResult) => {
     setSelectedCompanyId(company.id);
-    // 業種を自動入力（マスターにある場合）
-    if (company.industry && (INDUSTRY_OPTIONS as readonly string[]).includes(company.industry)) {
-      setIndustry(company.industry);
+    // 業種を自動入力（マスターの業界値をINDUSTRY_OPTIONSにマッピング）
+    if (company.industry) {
+      const mapped = mapMasterIndustry(company.industry);
+      if (mapped) {
+        setIndustry(mapped);
+      }
     }
     // websiteDomainを自動入力（ロゴ表示用）
     const normalizedDomain = normalizeWebsiteDomain(company.websiteDomain || company.websiteUrl);
