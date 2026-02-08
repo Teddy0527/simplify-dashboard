@@ -23,7 +23,7 @@ export const MOCK_COMPANIES: Company[] = [
     id: '3',
     name: '三菱商事',
     industry: '商社（総合）',
-    status: 'applied',
+    status: 'es_submitted',
     stages: [],
     loginUrl: 'https://mypage.mitsubishicorp.com',
     createdAt: '2026-01-05T00:00:00Z',

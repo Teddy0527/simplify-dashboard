@@ -27,11 +27,11 @@ const COLUMNS: ColumnDef[] = [
     statuses: ['interested'],
   },
   {
-    id: 'applied',
-    label: 'ES / 応募',
+    id: 'es_submitted',
+    label: 'ES提出',
     icon: '→',
     color: 'var(--color-success-600)',
-    statuses: ['applied', 'es_submitted'],
+    statuses: ['es_submitted'],
   },
   {
     id: 'selection',
@@ -58,7 +58,7 @@ const COLUMNS: ColumnDef[] = [
 
 const COLUMN_DEFAULT_STATUS: Record<string, SelectionStatus> = {
   interested: 'interested',
-  applied: 'applied',
+  es_submitted: 'es_submitted',
   selection: 'webtest',
   offer: 'offer',
   closed: 'rejected',

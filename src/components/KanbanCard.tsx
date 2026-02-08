@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Company, STATUS_LABELS } from '@simplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
+import { getNearestDeadline, getDeadlineUrgency, formatDeadlineShort, getNextSelectionStep } from '../utils/deadlineHelpers';
 
 interface KanbanCardProps {
   company: Company;
@@ -98,10 +99,46 @@ export default function KanbanCard({ company, onClick, isDragOverlay, esCount, o
         )}
       </div>
 
+      {/* Nearest deadline */}
+      {(() => {
+        const nearest = getNearestDeadline(company.deadlines ?? []);
+        if (!nearest) return null;
+        const urgency = getDeadlineUrgency(nearest.date);
+        const textColor =
+          urgency === 'overdue' || urgency === 'urgent' ? 'text-red-600'
+            : urgency === 'soon' ? 'text-amber-600'
+            : 'text-gray-500';
+        return (
+          <div className={`mt-2 flex items-center gap-1 ${textColor}`}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span className="text-xs font-medium truncate">{nearest.label}</span>
+            <span className="text-xs">{formatDeadlineShort(nearest.date)}</span>
+          </div>
+        );
+      })()}
+
       <div className="mt-2 flex items-center justify-end">
-        <span className="text-xs py-0.5 px-2 border border-gray-200 rounded-full text-gray-600 bg-white">
-          {STATUS_LABELS[company.status]}
-        </span>
+        {(() => {
+          const next = getNextSelectionStep(company.stages ?? []);
+          if (next) {
+            const dateDisplay = next.date
+              ? `${new Date(next.date).getMonth() + 1}/${new Date(next.date).getDate()}${next.time ? ` ${next.time}` : ''}`
+              : '';
+            return (
+              <span className="text-xs py-0.5 px-2 border border-primary-200 rounded-full text-primary-700 bg-primary-50 truncate">
+                {next.label}{dateDisplay ? ` : ${dateDisplay}` : ''}
+              </span>
+            );
+          }
+          return (
+            <span className="text-xs py-0.5 px-2 border border-gray-200 rounded-full text-gray-600 bg-white">
+              {STATUS_LABELS[company.status]}
+            </span>
+          );
+        })()}
       </div>
     </div>
   );

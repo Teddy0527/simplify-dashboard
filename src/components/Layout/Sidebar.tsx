@@ -1,12 +1,20 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from './navItems';
 import { URLS } from '../../constants/urls';
+import { checkIsAdmin } from '@simplify/shared';
 
 export default function Sidebar() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkIsAdmin().then(setIsAdmin);
+  }, []);
+
   return (
     <nav className="w-48 bg-white border-r border-gray-200 hidden md:flex flex-col py-4 flex-shrink-0">
       <div className="flex-1">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter(item => !item.adminOnly || isAdmin).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

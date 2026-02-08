@@ -8,6 +8,7 @@ import { useEntrySheetContext } from '../contexts/EntrySheetContext';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
+import DeadlineCalendarView from '../components/DeadlineCalendarView';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
 import EmptyState from '../components/Common/EmptyState';
@@ -51,7 +52,12 @@ function TrackerContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [drawerCompany, setDrawerCompany] = useState<Company | null>(null);
+  const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
+
+  const drawerCompany = useMemo(
+    () => drawerCompanyId ? companies.find(c => c.id === drawerCompanyId) ?? null : null,
+    [companies, drawerCompanyId],
+  );
 
   const industries = INDUSTRY_OPTIONS as unknown as string[];
 
@@ -79,18 +85,18 @@ function TrackerContent() {
   }, [entrySheets]);
 
   function handleCardClick(company: Company) {
-    setDrawerCompany(company);
+    setDrawerCompanyId(company.id);
   }
 
   function handleDrawerSave(company: Company) {
     updateCompany(company);
-    setDrawerCompany(null);
+    setDrawerCompanyId(null);
     showToast('保存しました');
   }
 
   function handleDrawerDelete(id: string) {
     deleteCompany(id);
-    setDrawerCompany(null);
+    setDrawerCompanyId(null);
     showToast('削除しました');
   }
 
@@ -140,8 +146,13 @@ function TrackerContent() {
             esCountMap={esCountMap}
             onESClick={handleESClick}
           />
-        ) : (
+        ) : viewMode === 'list' ? (
           <ListView
+            companies={filtered}
+            onCardClick={handleCardClick}
+          />
+        ) : (
+          <DeadlineCalendarView
             companies={filtered}
             onCardClick={handleCardClick}
           />
@@ -164,7 +175,7 @@ function TrackerContent() {
           company={drawerCompany}
           onSave={handleDrawerSave}
           onDelete={handleDrawerDelete}
-          onClose={() => setDrawerCompany(null)}
+          onClose={() => setDrawerCompanyId(null)}
         />
       )}
     </>

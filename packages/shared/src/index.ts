@@ -15,6 +15,8 @@ export {
   toHalfWidth,
   toFullWidth,
 } from './utils/formatters';
+export { getCurrentRecruitmentYear } from './utils/recruitmentYear';
+export { normalizeLabelKey } from './utils/labelNormalizer';
 
 // Constants
 export { FIELD_MATCHERS, SKIP_PATTERNS, shouldSkipField, findMatchingField } from './constants/fieldMatchers';
@@ -78,6 +80,21 @@ export {
   deleteESQuestion,
   reorderESQuestions,
 } from './repositories/entrySheetRepository';
+export {
+  getPresetsByMasterId,
+  searchDeadlinePresets,
+} from './repositories/deadlinePresetRepository';
+export {
+  contributeDeadlineSignal,
+  getMyContributions,
+} from './repositories/deadlineContributionRepository';
+export {
+  checkIsAdmin,
+  getPendingContributionsSummary,
+  verifyContribution,
+  rejectContributions,
+  recalculateContributorCounts,
+} from './repositories/adminRepository';
 
 // Services
 export { migrateLocalToCloud } from './services/dataMigration';

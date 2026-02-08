@@ -11,9 +11,9 @@ interface ListViewProps {
 }
 
 const STATUS_ORDER: Record<string, number> = {
-  interested: 0, applied: 1, es_submitted: 2, webtest: 3, gd: 4,
-  interview_1: 5, interview_2: 6, interview_3: 7, interview_final: 8,
-  offer: 9, rejected: 10, declined: 11,
+  interested: 0, es_submitted: 1, webtest: 2, gd: 3,
+  interview_1: 4, interview_2: 5, interview_3: 6, interview_final: 7,
+  offer: 8, rejected: 9, declined: 10,
 };
 
 export default function ListView({ companies, onCardClick }: ListViewProps) {

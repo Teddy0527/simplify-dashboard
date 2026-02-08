@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Company, SelectionStatus, SelectionStage, STATUS_LABELS, INDUSTRY_OPTIONS } from '@simplify/shared';
-import StageTimeline from './StageTimeline';
+import { Company } from '@simplify/shared';
 import ConfirmDialog from './Common/ConfirmDialog';
 import { CompanyLogo } from './ui/CompanyLogo';
 import { useEntrySheetContext } from '../contexts/EntrySheetContext';
+import type { DraftCompany, OnFieldChange, DrawerTab } from './drawer/types';
+import DrawerTabNav from './drawer/DrawerTabNav';
+import DrawerOverviewTab from './drawer/DrawerOverviewTab';
+import DrawerDocumentsTab from './drawer/DrawerDocumentsTab';
 
 interface CompanyDrawerProps {
   company: Company;
@@ -13,31 +15,30 @@ interface CompanyDrawerProps {
   onClose: () => void;
 }
 
-const ALL_STATUSES: SelectionStatus[] = [
-  'interested', 'applied', 'es_submitted', 'webtest', 'gd',
-  'interview_1', 'interview_2', 'interview_3', 'interview_final',
-  'offer', 'rejected', 'declined',
-];
-
 export default function CompanyDrawer({ company, onSave, onDelete, onClose }: CompanyDrawerProps) {
-  const navigate = useNavigate();
   const { entrySheets } = useEntrySheetContext();
-  const [name, setName] = useState(company.name);
-  const [status, setStatus] = useState<SelectionStatus>(company.status);
-  const [memo, setMemo] = useState(company.memo || '');
-  const [loginUrl, setLoginUrl] = useState(company.loginUrl || '');
-  const [loginPassword, setLoginPassword] = useState(company.loginPassword || '');
-  const [industry, setIndustry] = useState(company.industry || '');
-  const [stages, setStages] = useState<SelectionStage[]>(company.stages ?? []);
+  const [activeTab, setActiveTab] = useState<DrawerTab>('overview');
   const [visible, setVisible] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const companyES = useMemo(
-    () => entrySheets.filter(es => es.companyId === company.id).slice(0, 3),
-    [entrySheets, company.id],
-  );
-  const totalESCount = useMemo(
-    () => entrySheets.filter(es => es.companyId === company.id).length,
+  const [draft, setDraft] = useState<DraftCompany>(() => ({
+    name: company.name,
+    status: company.status,
+    industry: company.industry || '',
+    memo: company.memo || '',
+    loginUrl: company.loginUrl || '',
+    myPageId: company.myPageId || '',
+    loginPassword: company.loginPassword || '',
+    stages: company.stages ?? [],
+    deadlines: company.deadlines ?? [],
+  }));
+
+  const onFieldChange: OnFieldChange = (key, value) => {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const esCount = useMemo(
+    () => entrySheets.filter((es) => es.companyId === company.id).length,
     [entrySheets, company.id],
   );
 
@@ -59,17 +60,19 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
   }
 
   function handleSave() {
-    if (!name.trim()) return;
+    if (!draft.name.trim()) return;
     onSave({
       ...company,
-      name: name.trim(),
-      status,
-      memo: memo.trim() || undefined,
-      loginUrl: loginUrl.trim() || undefined,
-      loginPassword: loginPassword.trim() || undefined,
+      name: draft.name.trim(),
+      status: draft.status,
+      memo: draft.memo.trim() || undefined,
+      loginUrl: draft.loginUrl.trim() || undefined,
+      myPageId: draft.myPageId.trim() || undefined,
+      loginPassword: draft.loginPassword.trim() || undefined,
       websiteDomain: company.websiteDomain,
-      industry: industry || undefined,
-      stages,
+      industry: draft.industry || undefined,
+      stages: draft.stages,
+      deadlines: draft.deadlines,
       updatedAt: new Date().toISOString(),
     });
     handleClose();
@@ -95,7 +98,7 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
 
       {/* Drawer panel */}
       <div
-        className={`relative w-full max-w-2xl bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`relative w-full lg:w-2/3 bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center gap-4">
@@ -106,9 +109,16 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
             size="lg"
           />
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 truncate">
-              {company.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 truncate">
+                {company.name}
+              </h2>
+              {company.industry && (
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded flex-shrink-0">
+                  {company.industry}
+                </span>
+              )}
+            </div>
             {company.recruitUrl && (
               <a
                 href={company.recruitUrl}
@@ -116,182 +126,70 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
               >
-                採用ページ →
+                採用ページ
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
               </a>
             )}
           </div>
-          <button
-            onClick={handleClose}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
-          <div>
-            <label className="input-label">企業名</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div>
-            <label className="input-label">業界</label>
-            <select
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              className="select-field"
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleDelete}
+              className="w-8 h-8 flex items-center justify-center hover:bg-error-50 rounded-lg transition-colors text-gray-400 hover:text-error-500"
+              title="削除"
             >
-              <option value="">選択してください</option>
-              {INDUSTRY_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="input-label">ステータス</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as SelectionStatus)}
-              className="select-field"
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
+            <button
+              onClick={handleClose}
+              className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg transition-colors"
             >
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="input-label">マイページURL</label>
-            <input
-              type="url"
-              value={loginUrl}
-              onChange={(e) => setLoginUrl(e.target.value)}
-              className="input-field"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div>
-            <label className="input-label">マイページパスワード</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              className="input-field"
-              placeholder="パスワード"
-            />
-          </div>
-
-          {/* Stage Timeline */}
-          <div className="border-t border-gray-200 pt-4">
-            <StageTimeline
-              stages={stages}
-              currentStatus={status}
-              onStagesChange={setStages}
-            />
-          </div>
-
-          {/* ES Section */}
-          <div className="border-t border-gray-200 pt-4">
-            <label className="input-label flex items-center justify-between">
-              <span>エントリーシート</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate(`/es?company=${company.id}&action=create`)}
-                  className="text-xs text-primary-600 hover:text-primary-700 font-normal flex items-center gap-0.5"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  ES作成
-                </button>
-                {totalESCount > 0 && (
-                  <button
-                    onClick={() => navigate(`/es?company=${company.id}`)}
-                    className="text-xs text-primary-600 hover:text-primary-700 font-normal"
-                  >
-                    すべて表示 ({totalESCount})
-                  </button>
-                )}
-              </div>
-            </label>
-            {companyES.length === 0 ? (
-              <p className="text-xs text-gray-400 mt-1">ESはまだありません</p>
-            ) : (
-              <div className="space-y-2 mt-2">
-                {companyES.map(es => {
-                  const answered = es.questions.filter(q => q.answer?.trim()).length;
-                  const total = es.questions.length;
-                  const hasFreeform = !!es.freeformContent && es.freeformContent.replace(/<[^>]*>/g, '').trim().length > 0;
-                  const hasLinks = !!es.externalLinks && es.externalLinks.length > 0;
-                  return (
-                    <div
-                      key={es.id}
-                      onClick={() => navigate(`/es?company=${company.id}`)}
-                      className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    >
-                      <p className="text-sm font-medium text-gray-900 truncate">{es.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {total > 0 && (
-                          <span className="text-xs text-gray-500">{answered}/{total}設問</span>
-                        )}
-                        {hasFreeform && (
-                          <span className="text-xs text-gray-400">
-                            <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </span>
-                        )}
-                        {hasLinks && (
-                          <span className="text-xs text-gray-400">
-                            <svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="input-label">メモ</label>
-            <textarea
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              rows={4}
-              className="input-field resize-none"
-              placeholder="選考に関するメモ..."
-            />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-gray-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between">
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2 text-sm font-medium text-error-600 hover:text-error-700 hover:bg-error-50 rounded-lg transition-colors"
-          >
-            削除
-          </button>
-          <div className="flex gap-2">
+        {/* Tab navigation */}
+        <DrawerTabNav activeTab={activeTab} onTabChange={setActiveTab} esCount={esCount} />
+
+        {/* Tab content */}
+        <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+          className="flex-1 overflow-y-auto custom-scrollbar p-6"
+        >
+          {activeTab === 'overview' && (
+            <DrawerOverviewTab
+              company={company}
+              draft={draft}
+              onFieldChange={onFieldChange}
+            />
+          )}
+          {activeTab === 'documents' && (
+            <DrawerDocumentsTab
+              companyId={company.id}
+              companyName={company.name}
+            />
+          )}
+        </div>
+
+        {/* Footer - hide on documents tab */}
+        {activeTab !== 'documents' && (
+          <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
             <button onClick={handleClose} className="btn-secondary">キャンセル</button>
             <button onClick={handleSave} className="btn-primary">保存</button>
           </div>
-        </div>
+        )}
       </div>
 
       <ConfirmDialog

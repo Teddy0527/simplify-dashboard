@@ -10,6 +10,7 @@ export interface CompanyDeadline {
   time?: string;        // HH:mm（24h）
   memo?: string;
   createdAt: string;
+  isPreset?: boolean;
 }
 
 export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
@@ -45,18 +46,19 @@ export interface Company {
   deadlines?: CompanyDeadline[];
   memo?: string;
   loginUrl?: string;
+  myPageId?: string;
   loginPassword?: string;
   logoUrl?: string;
   websiteDomain?: string;
   recruitUrl?: string;
+  companyMasterId?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export type SelectionStatus =
   | 'interested'      // 興味あり
-  | 'applied'         // エントリー済
-  | 'es_submitted'    // ES提出済
+  | 'es_submitted'    // ES提出
   | 'webtest'         // Webテスト
   | 'gd'              // グループディスカッション
   | 'interview_1'     // 1次面接
@@ -70,14 +72,15 @@ export type SelectionStatus =
 export interface SelectionStage {
   type: SelectionStatus;
   date?: string;
+  time?: string;
   result?: 'pending' | 'passed' | 'failed';
   memo?: string;
+  customLabel?: string;
 }
 
 export const STATUS_LABELS: Record<SelectionStatus, string> = {
   interested: '興味あり',
-  applied: 'エントリー済',
-  es_submitted: 'ES提出済',
+  es_submitted: 'ES提出',
   webtest: 'Webテスト',
   gd: 'GD',
   interview_1: '1次面接',
@@ -141,13 +144,22 @@ export function mapMasterIndustry(masterIndustry: string): string | undefined {
   return undefined;
 }
 
+const DEFAULT_STAGES: SelectionStage[] = [
+  { type: 'es_submitted' },
+  { type: 'webtest' },
+  { type: 'gd' },
+  { type: 'interview_1' },
+  { type: 'interview_2' },
+  { type: 'interview_final' },
+];
+
 export function createCompany(name: string): Company {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
     name,
     status: 'interested',
-    stages: [],
+    stages: DEFAULT_STAGES.map((s) => ({ ...s })),
     deadlines: [],
     createdAt: now,
     updatedAt: now,

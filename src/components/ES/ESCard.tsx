@@ -53,13 +53,6 @@ export default function ESCard({ entrySheet, version, onClick, onCopy, onUseAsCo
 
   const relativeTime = formatRelativeTime(entrySheet.updatedAt);
 
-  const hasFreeform = !!entrySheet.freeformContent && entrySheet.freeformContent.replace(/<[^>]*>/g, '').trim().length > 0;
-  const freeformCharCount = hasFreeform
-    ? entrySheet.freeformContent!.replace(/<[^>]*>/g, '').trim().length
-    : 0;
-  const hasLinks = !!entrySheet.externalLinks && entrySheet.externalLinks.length > 0;
-  const linkCount = entrySheet.externalLinks?.length ?? 0;
-
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onCopy();
@@ -111,22 +104,6 @@ export default function ESCard({ entrySheet, version, onClick, onCopy, onUseAsCo
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {answeredCount}/{questionCount}
-          </span>
-        )}
-        {hasFreeform && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            {freeformCharCount}字
-          </span>
-        )}
-        {hasLinks && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            {linkCount}
           </span>
         )}
       </div>

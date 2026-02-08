@@ -37,6 +37,12 @@ export function useAuthProvider(): AuthState {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.provider_token) {
+        localStorage.setItem('simplify:gcal-token', JSON.stringify({
+          token: session.provider_token,
+          expiresAt: Date.now() + 3600 * 1000,
+        }));
+      }
     });
 
     return () => subscription.unsubscribe();

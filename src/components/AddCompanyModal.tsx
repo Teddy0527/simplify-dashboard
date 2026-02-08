@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry } from '@simplify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@simplify/shared';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
 import { normalizeWebsiteDomain } from '../utils/url';
 
@@ -10,7 +10,6 @@ interface AddCompanyDrawerProps {
 
 const STATUS_ORDER: SelectionStatus[] = [
   'interested',
-  'applied',
   'es_submitted',
   'webtest',
   'gd',
@@ -28,19 +27,19 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   const [industry, setIndustry] = useState('');
   const [status, setStatus] = useState<SelectionStatus>('interested');
   const [memo, setMemo] = useState('');
-  const [loginUrl, setLoginUrl] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
   const [websiteDomain, setWebsiteDomain] = useState('');
   const [recruitUrl, setRecruitUrl] = useState('');
   const [visible, setVisible] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [presetDeadlines, setPresetDeadlines] = useState<CompanyDeadline[]>([]);
+  const [loadingPresets, setLoadingPresets] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
   // 企業選択時のハンドラー
-  const handleCompanySelect = useCallback((company: CompanySearchResult) => {
+  const handleCompanySelect = useCallback(async (company: CompanySearchResult) => {
     setSelectedCompanyId(company.id);
     // 業種を自動入力（マスターの業界値をINDUSTRY_OPTIONSにマッピング）
     if (company.industry) {
@@ -58,7 +57,19 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
     if (company.recruitUrl) {
       setRecruitUrl(company.recruitUrl);
     }
-    // マイページURLは自動入力しない（マスターデータが古い・間違っている可能性があるため）
+    // プリセット締切を取得
+    setLoadingPresets(true);
+    try {
+      const presets = await getPresetsByMasterId(company.id);
+      const deadlines = presets.map(p =>
+        ({ ...createDeadline(p.deadlineType, p.label, p.deadlineDate, p.deadlineTime, p.memo), isPreset: true })
+      );
+      setPresetDeadlines(deadlines);
+    } catch {
+      setPresetDeadlines([]);
+    } finally {
+      setLoadingPresets(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -83,10 +94,10 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       industry: industry || undefined,
       status,
       memo: memo.trim() || undefined,
-      loginUrl: loginUrl.trim() || undefined,
-      loginPassword: loginPassword.trim() || undefined,
       websiteDomain: normalizeWebsiteDomain(websiteDomain),
       recruitUrl: recruitUrl.trim() || undefined,
+      companyMasterId: selectedCompanyId || undefined,
+      deadlines: presetDeadlines.length > 0 ? presetDeadlines : [],
     };
 
     onSave(updatedCompany);
@@ -138,6 +149,14 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
                 マスターデータから選択しました
               </p>
             )}
+            {loadingPresets && (
+              <p className="mt-1 text-xs text-gray-500">締切情報を取得中...</p>
+            )}
+            {!loadingPresets && presetDeadlines.length > 0 && (
+              <p className="mt-1 text-xs text-primary-600">
+                {presetDeadlines.length}件の締切が自動登録されます
+              </p>
+            )}
           </div>
 
           <div>
@@ -167,28 +186,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label className="input-label">マイページURL</label>
-            <input
-              type="url"
-              value={loginUrl}
-              onChange={(e) => setLoginUrl(e.target.value)}
-              className="input-field"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div>
-            <label className="input-label">マイページパスワード</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              className="input-field"
-              placeholder="パスワード"
-            />
           </div>
 
           <div>

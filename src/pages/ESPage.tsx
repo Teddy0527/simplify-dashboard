@@ -9,7 +9,7 @@ import ESFileManagerSidebar, { type SelectedCategory } from '../components/ES/ES
 import ESFileManagerContent from '../components/ES/ESFileManagerContent';
 import ESDrawer from '../components/ES/ESDrawer';
 import ESCopyModal from '../components/ES/ESCopyModal';
-import TemplateCreateModal, { type TemplateQuestionResult } from '../components/ES/TemplateCreateModal';
+import TemplateCreateModal from '../components/ES/TemplateCreateModal';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
@@ -112,21 +112,11 @@ function ESContent() {
     setIsCreating(true);
   };
 
-  const handleCreateTemplate = async (title: string, questions: TemplateQuestionResult[]) => {
+  const handleCreateTemplate = async (title: string) => {
     const newES = createEntrySheet(title);
-    newES.questions = questions.map((q, i) => ({
-      id: crypto.randomUUID(),
-      entrySheetId: newES.id,
-      questionOrder: i,
-      questionText: q.text,
-      charLimit: q.charLimit,
-      createdAt: newES.createdAt,
-      updatedAt: newES.updatedAt,
-    }));
     setShowTemplateCreateModal(false);
     setDrawerEntrySheet(newES);
     setIsCreating(true);
-    // Switch to template view
     handleSelectCategory({ type: 'template' });
   };
 
