@@ -1,14 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { INDUSTRY_OPTIONS, DEADLINE_TYPE_LABELS, DeadlineType, DeadlinePresetWithCompany } from '@simplify/shared';
-import { useDeadlinePresets, CompanyGroup } from '../hooks/useDeadlinePresets';
-import { getDeadlineUrgency, formatDeadlineShort } from '../utils/deadlineHelpers';
+import { useDeadlinePresets } from '../hooks/useDeadlinePresets';
 
 // ── Constants ───────────────────────────────────────────────────────────
 
-const YEAR_OPTIONS = [
-  { value: 2027, label: '27卒' },
-  { value: 2028, label: '28卒' },
-];
+const FIXED_YEAR = 2028;
 
 const GCAL_TYPE_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
   es_submission:  { bg: '#039BE5', text: '#ffffff', border: '#028ACE', dot: '#039BE5' },
@@ -33,24 +29,6 @@ function getTypeColor(type: string) {
   return GCAL_TYPE_COLORS[type] || GCAL_TYPE_COLORS.other;
 }
 
-const URGENCY_COLORS: Record<string, string> = {
-  overdue: 'bg-red-100 text-red-700 border-red-200',
-  urgent: 'bg-red-50 text-red-600 border-red-200',
-  soon: 'bg-amber-50 text-amber-700 border-amber-200',
-  normal: 'bg-gray-50 text-gray-700 border-gray-200',
-};
-
-const TYPE_BADGE_COLORS: Record<string, string> = {
-  es_submission: 'bg-blue-100 text-blue-700',
-  internship: 'bg-green-100 text-green-700',
-  webtest: 'bg-purple-100 text-purple-700',
-  interview: 'bg-orange-100 text-orange-700',
-  offer_response: 'bg-pink-100 text-pink-700',
-  document: 'bg-gray-100 text-gray-700',
-  event: 'bg-teal-100 text-teal-700',
-  other: 'bg-gray-100 text-gray-600',
-};
-
 const MAX_VISIBLE_EVENTS = 3;
 
 const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -62,7 +40,6 @@ function getMonthDays(year: number, month: number) {
   const startDow = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // Previous month fill
   const prevDays = new Date(year, month, 0).getDate();
   const cells: Array<{ date: Date; currentMonth: boolean }> = [];
 
@@ -72,7 +49,6 @@ function getMonthDays(year: number, month: number) {
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ date: new Date(year, month, d), currentMonth: true });
   }
-  // Next month fill to complete 6 rows
   const remaining = 42 - cells.length;
   for (let d = 1; d <= remaining; d++) {
     cells.push({ date: new Date(year, month + 1, d), currentMonth: false });
@@ -95,29 +71,30 @@ function isSameDay(a: Date, b: Date) {
 
 export default function DeadlinePresetsPage() {
   const [query, setQuery] = useState('');
-  const [year, setYear] = useState(2027);
   const [industry, setIndustry] = useState('');
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
-  const { grouped, byDate, loading } = useDeadlinePresets(query, year, industry || undefined);
+  const { byDate, loading } = useDeadlinePresets(query, FIXED_YEAR, industry || undefined);
 
   return (
     <div className="max-w-full">
       {/* Header */}
       <div className="mb-5 flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">ES締切データベース</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-gray-900">ES締切データベース</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700">
+              28卒
+            </span>
+          </div>
           <p className="text-sm text-gray-500 mt-1">主要企業のES締切・選考スケジュールを一覧で確認できます</p>
         </div>
-        <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+        <InlineLegend />
       </div>
 
       {/* Filters */}
       <DeadlineFilters
         query={query}
         onQueryChange={setQuery}
-        year={year}
-        onYearChange={setYear}
         industry={industry}
         onIndustryChange={setIndustry}
       />
@@ -128,50 +105,27 @@ export default function DeadlinePresetsPage() {
           <div className="inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
           <p className="text-sm">読み込み中...</p>
         </div>
-      ) : viewMode === 'calendar' ? (
-        <CalendarLayout byDate={byDate} />
       ) : (
-        <ListView grouped={grouped} query={query} />
+        <CalendarView byDate={byDate} />
       )}
     </div>
   );
 }
 
-// ── ViewToggle ──────────────────────────────────────────────────────────
+// ── InlineLegend ────────────────────────────────────────────────────────
 
-function ViewToggle({ viewMode, onChange }: { viewMode: 'calendar' | 'list'; onChange: (v: 'calendar' | 'list') => void }) {
+function InlineLegend() {
   return (
-    <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
-      <button
-        onClick={() => onChange('calendar')}
-        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-          viewMode === 'calendar' ? 'bg-primary-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-        }`}
-      >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        カレンダー
-      </button>
-      <button
-        onClick={() => onChange('list')}
-        className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 border-l border-gray-200 ${
-          viewMode === 'list' ? 'bg-primary-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-        }`}
-      >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6" />
-          <line x1="8" y1="12" x2="21" y2="12" />
-          <line x1="8" y1="18" x2="21" y2="18" />
-          <line x1="3" y1="6" x2="3.01" y2="6" />
-          <line x1="3" y1="12" x2="3.01" y2="12" />
-          <line x1="3" y1="18" x2="3.01" y2="18" />
-        </svg>
-        リスト
-      </button>
+    <div className="flex flex-wrap items-center gap-3">
+      {VISUAL_CATEGORIES.map((cat) => (
+        <div key={cat.label} className="flex items-center gap-1.5">
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: cat.color }}
+          />
+          <span className="text-xs text-gray-500 font-medium">{cat.label}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -179,37 +133,33 @@ function ViewToggle({ viewMode, onChange }: { viewMode: 'calendar' | 'list'; onC
 // ── DeadlineFilters ─────────────────────────────────────────────────────
 
 function DeadlineFilters({
-  query, onQueryChange, year, onYearChange, industry, onIndustryChange,
+  query, onQueryChange, industry, onIndustryChange,
 }: {
   query: string; onQueryChange: (v: string) => void;
-  year: number; onYearChange: (v: number) => void;
   industry: string; onIndustryChange: (v: string) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-3 mb-5">
-      <div className="flex-1 min-w-[200px]">
+      <div className="flex-1 min-w-[200px] relative">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="input-field !py-2"
+          className="input-field !py-2 !pl-9"
           placeholder="企業名で検索..."
         />
-      </div>
-      <div className="flex gap-1.5">
-        {YEAR_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => onYearChange(opt.value)}
-            className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
-              year === opt.value
-                ? 'bg-primary-700 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
       </div>
       <select
         value={industry}
@@ -225,17 +175,13 @@ function DeadlineFilters({
   );
 }
 
-// ── CalendarLayout ──────────────────────────────────────────────────────
+// ── CalendarView ────────────────────────────────────────────────────────
 
-function CalendarLayout({ byDate }: { byDate: Map<string, DeadlinePresetWithCompany[]> }) {
+function CalendarView({ byDate }: { byDate: Map<string, DeadlinePresetWithCompany[]> }) {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [popover, setPopover] = useState<{ date: Date; entries: DeadlinePresetWithCompany[]; x: number; y: number } | null>(null);
   const [eventDetail, setEventDetail] = useState<{ entry: DeadlinePresetWithCompany; x: number; y: number } | null>(null);
-
-  const goToMonth = useCallback((date: Date) => {
-    setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
-  }, []);
 
   const prevMonth = useCallback(() => {
     setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -261,39 +207,26 @@ function CalendarLayout({ byDate }: { byDate: Map<string, DeadlinePresetWithComp
     setPopover(null);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = Math.min(rect.right + 4, window.innerWidth - 300);
-    const y = Math.min(rect.top, window.innerHeight - 250);
+    const y = Math.min(rect.top, window.innerHeight - 300);
     setEventDetail({ entry, x: Math.max(8, x), y: Math.max(8, y) });
   }, []);
 
   return (
-    <div className="flex gap-5">
-      {/* Sidebar */}
-      <div className="w-[240px] flex-shrink-0 hidden lg:block">
-        <MiniCalendar
-          currentDate={currentDate}
-          byDate={byDate}
-          onSelectDate={goToMonth}
-        />
-        <DeadlineTypeLegend />
-      </div>
-
-      {/* Main calendar */}
-      <div className="flex-1 min-w-0">
-        <CalendarNavHeader
-          currentDate={currentDate}
-          onPrev={prevMonth}
-          onNext={nextMonth}
-          onToday={goToday}
-        />
-        <WeekdayHeaders />
-        <MonthGrid
-          currentDate={currentDate}
-          byDate={byDate}
-          today={today}
-          onShowDayPopover={handleDayPopover}
-          onShowEventDetail={handleEventDetail}
-        />
-      </div>
+    <div className="gcal-container">
+      <CalendarNavHeader
+        currentDate={currentDate}
+        onPrev={prevMonth}
+        onNext={nextMonth}
+        onToday={goToday}
+      />
+      <WeekdayHeaders />
+      <MonthGrid
+        currentDate={currentDate}
+        byDate={byDate}
+        today={today}
+        onShowDayPopover={handleDayPopover}
+        onShowEventDetail={handleEventDetail}
+      />
 
       {popover && (
         <DayDetailPopover
@@ -325,16 +258,16 @@ function CalendarNavHeader({
 }) {
   const title = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
   return (
-    <div className="flex items-center gap-3 mb-3">
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--gcal-grid-border)]">
       <button
         onClick={onToday}
-        className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        className="px-3.5 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
       >
         今日
       </button>
       <button
         onClick={onPrev}
-        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -342,13 +275,13 @@ function CalendarNavHeader({
       </button>
       <button
         onClick={onNext}
-        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 6 15 12 9 18" />
         </svg>
       </button>
-      <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
     </div>
   );
 }
@@ -361,7 +294,7 @@ function WeekdayHeaders() {
       {WEEKDAY_LABELS.map((label, i) => (
         <div
           key={label}
-          className={`text-center text-xs font-medium py-1.5 ${
+          className={`text-center text-xs font-medium py-2 ${
             i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'
           }`}
         >
@@ -397,7 +330,7 @@ function MonthGrid({
         const isToday = isSameDay(cell.date, today);
         const isWeekend = dow === 0 || dow === 6;
 
-        let cellClass = 'gcal-cell gcal-cell-no-click';
+        let cellClass = 'gcal-cell';
         if (!cell.currentMonth) cellClass += ' gcal-cell-other-month';
         else if (isToday) cellClass += ' gcal-cell-today';
         else if (isWeekend) cellClass += ' gcal-cell-weekend';
@@ -454,17 +387,22 @@ function EventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; onCli
   const tooltip = `${entry.companyName} · ${categoryLabel} · ${entry.label}`;
 
   return (
-    <div
+    <button
       className="gcal-event-chip"
-      style={{ backgroundColor: color.bg, color: color.text }}
+      style={{
+        borderLeftColor: color.bg,
+        backgroundColor: `${color.bg}15`,
+        color: color.border,
+      }}
       title={tooltip}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
       }}
     >
-      {companyShort}
-    </div>
+      <span className="gcal-event-chip-dot" style={{ backgroundColor: color.dot }} />
+      <span className="truncate">{companyShort}</span>
+    </button>
   );
 }
 
@@ -527,6 +465,22 @@ function DayDetailPopover({
                     {entry.memo && <span>{entry.memo}</span>}
                   </div>
                 )}
+                {entry.sourceUrl && (
+                  <a
+                    href={entry.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline mt-0.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ソースを確認
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                  </a>
+                )}
               </div>
             </div>
           );
@@ -560,7 +514,6 @@ function EventDetailPopover({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [onClose]);
 
-  // Adjust position to stay within viewport
   useEffect(() => {
     if (!ref.current) return;
     const el = ref.current;
@@ -576,265 +529,96 @@ function EventDetailPopover({
   const deadlineDate = new Date(entry.deadlineDate + 'T00:00:00');
   const dateLabel = `${deadlineDate.getMonth() + 1}月${deadlineDate.getDate()}日（${WEEKDAY_LABELS[deadlineDate.getDay()]}）${entry.deadlineTime || ''}`;
 
+  const logoUrl = entry.companyWebsiteDomain
+    ? `https://logo.clearbit.com/${entry.companyWebsiteDomain}`
+    : undefined;
+
   return (
     <div ref={ref} className="gcal-popover" style={{ left: x, top: y }}>
-      <div className="px-4 pt-3 pb-0 flex items-start justify-between">
-        <div className="flex-1 min-w-0" />
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5 flex-shrink-0">
+      {/* Color strip */}
+      <div className="h-2 rounded-t-xl" style={{ backgroundColor: color.bg }} />
+
+      {/* Close button */}
+      <div className="flex justify-end px-4 pt-2">
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
+
       <div className="px-4 pb-4">
-        {/* Company name with color dot */}
-        <div className="flex items-center gap-2.5 mb-1">
-          <span
-            className="w-3 h-3 rounded flex-shrink-0"
-            style={{ backgroundColor: color.dot }}
-          />
-          <span className="text-base font-medium text-gray-900 truncate">{entry.companyName}</span>
-        </div>
-        {/* Date */}
-        <div className="text-sm text-gray-600 ml-[22px] mb-3">{dateLabel}</div>
-        {/* Details */}
-        <div className="space-y-1.5 ml-[22px] text-sm">
-          <div className="text-gray-600">
-            <span className="text-gray-400">カテゴリ: </span>{categoryLabel}
-          </div>
-          <div className="text-gray-600">
-            <span className="text-gray-400">ラベル: </span>{entry.label}
-          </div>
-          {entry.memo && (
-            <div className="text-gray-600">
-              <span className="text-gray-400">メモ: </span>{entry.memo}
-            </div>
-          )}
-          {entry.contributorCount > 0 && (
-            <div className="text-xs text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded mt-1">
-              {entry.contributorCount}人が報告
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── MiniCalendar ────────────────────────────────────────────────────────
-
-function MiniCalendar({
-  currentDate, byDate, onSelectDate,
-}: {
-  currentDate: Date;
-  byDate: Map<string, DeadlinePresetWithCompany[]>;
-  onSelectDate: (d: Date) => void;
-}) {
-  const today = new Date();
-  const [miniDate, setMiniDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
-
-  // Sync mini calendar when main calendar changes
-  useEffect(() => {
-    setMiniDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
-  }, [currentDate]);
-
-  const cells = useMemo(
-    () => getMonthDays(miniDate.getFullYear(), miniDate.getMonth()),
-    [miniDate]
-  );
-
-  const miniTitle = `${miniDate.getFullYear()}年${miniDate.getMonth() + 1}月`;
-
-  return (
-    <div className="mb-5">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-900">{miniTitle}</span>
-        <div className="flex gap-0.5">
-          <button
-            onClick={() => setMiniDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
-          >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setMiniDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
-          >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 6 15 12 9 18" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Mini weekday labels */}
-      <div className="grid grid-cols-7 mb-0.5">
-        {WEEKDAY_LABELS.map((label, i) => (
-          <div
-            key={label}
-            className={`text-center text-[10px] font-medium ${
-              i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-gray-400'
-            }`}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      {/* Mini grid */}
-      <div className="grid grid-cols-7">
-        {cells.map((cell, idx) => {
-          const key = formatDateKey(cell.date);
-          const hasDeadlines = byDate.has(key);
-          const isToday = isSameDay(cell.date, today);
-          const isSelected = cell.date.getFullYear() === currentDate.getFullYear()
-            && cell.date.getMonth() === currentDate.getMonth()
-            && cell.date.getDate() === currentDate.getDate();
-
-          return (
-            <div
-              key={idx}
-              className="gcal-mini-cell"
-              style={{
-                opacity: cell.currentMonth ? 1 : 0.3,
-                fontWeight: hasDeadlines ? 700 : 400,
-                backgroundColor: isToday ? 'var(--gcal-blue)' : isSelected ? 'var(--gcal-blue-light)' : undefined,
-                color: isToday ? 'white' : undefined,
-              }}
-              onClick={() => {
-                onSelectDate(cell.date);
-              }}
-            >
-              {cell.date.getDate()}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── DeadlineTypeLegend ──────────────────────────────────────────────────
-
-function DeadlineTypeLegend() {
-  return (
-    <div className="border-t border-gray-200 pt-4">
-      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">カテゴリ</h4>
-      <div className="space-y-2">
-        {VISUAL_CATEGORIES.map((cat) => (
-          <div key={cat.label} className="flex items-center gap-2.5">
-            <span
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: cat.color }}
+        {/* Company name with logo */}
+        <div className="flex items-center gap-2.5 mb-0.5">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt=""
+              className="w-8 h-8 rounded-md object-contain bg-white border border-gray-100 flex-shrink-0"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-            <span className="text-xs text-gray-700">{cat.label}</span>
+          ) : (
+            <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 text-sm font-medium flex-shrink-0">
+              {entry.companyName.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-base font-medium text-gray-900 truncate">{entry.companyName}</div>
+            {entry.companyIndustry && (
+              <div className="text-xs text-gray-500">{entry.companyIndustry}</div>
+            )}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+        </div>
 
-// ── ListView (existing card-based layout) ───────────────────────────────
-
-function ListView({ grouped, query }: { grouped: CompanyGroup[]; query: string }) {
-  if (grouped.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <svg className="mx-auto mb-3 w-12 h-12 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        <p className="text-sm">
-          {query ? '該当する企業が見つかりませんでした' : '締切データがまだありません'}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-gray-500">{grouped.length}社の締切情報</p>
-      {grouped.map((group) => (
-        <CompanyCard key={group.companyMasterId} group={group} />
-      ))}
-    </div>
-  );
-}
-
-// ── CompanyCard (unchanged) ─────────────────────────────────────────────
-
-function CompanyCard({ group }: { group: CompanyGroup }) {
-  const logoUrl = group.companyWebsiteDomain
-    ? `https://logo.clearbit.com/${group.companyWebsiteDomain}`
-    : undefined;
-
-  return (
-    <div className="card p-4">
-      {/* Company header */}
-      <div className="flex items-center gap-3 mb-3">
-        {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt=""
-            className="w-8 h-8 rounded object-contain bg-white border border-gray-100"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        ) : (
-          <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-sm font-medium">
-            {group.companyName.charAt(0)}
+        {/* Details */}
+        <div className="space-y-2 mt-3 text-sm">
+          <div className="flex items-center gap-2 text-gray-600">
+            <span className="text-base">📅</span>
+            <span>{dateLabel}</span>
           </div>
-        )}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">{group.companyName}</h3>
-          {group.companyIndustry && (
-            <span className="text-xs text-gray-500">{group.companyIndustry}</span>
+
+          <div className="flex items-center gap-2 text-gray-600">
+            <span className="text-base">🏷️</span>
+            <span>{categoryLabel} · {entry.label}</span>
+          </div>
+
+          {entry.memo && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <span className="text-base">📝</span>
+              <span>{entry.memo}</span>
+            </div>
+          )}
+
+          {entry.sourceUrl && (
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔗</span>
+              <a
+                href={entry.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+              >
+                ソースを確認
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+            </div>
+          )}
+
+          {entry.contributorCount > 0 && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <span className="text-base">👥</span>
+              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                {entry.contributorCount}人が報告
+              </span>
+            </div>
           )}
         </div>
       </div>
-
-      {/* Deadlines */}
-      <div className="space-y-2">
-        {group.deadlines.map((d) => {
-          const urgency = getDeadlineUrgency(d.deadlineDate);
-          return (
-            <div
-              key={d.id}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${URGENCY_COLORS[urgency]}`}
-            >
-              <span className={`text-xs px-2 py-0.5 rounded font-medium ${TYPE_BADGE_COLORS[d.deadlineType] || TYPE_BADGE_COLORS.other}`}>
-                {DEADLINE_TYPE_LABELS[d.deadlineType as DeadlineType] || d.deadlineType}
-              </span>
-              <span className="text-sm font-medium flex-1">{d.label}</span>
-              <span className="text-sm tabular-nums">{d.deadlineDate}</span>
-              {d.deadlineTime && (
-                <span className="text-xs text-gray-500">{d.deadlineTime}</span>
-              )}
-              {d.contributorCount > 0 && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
-                  {d.contributorCount}人が報告
-                </span>
-              )}
-              <span className={`text-xs font-medium ${
-                urgency === 'overdue' || urgency === 'urgent' ? 'text-red-600'
-                  : urgency === 'soon' ? 'text-amber-600'
-                  : 'text-gray-500'
-              }`}>
-                {formatDeadlineShort(d.deadlineDate)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {group.deadlines[0]?.memo && (
-        <p className="text-xs text-gray-500 mt-2">{group.deadlines[0].memo}</p>
-      )}
     </div>
   );
 }
