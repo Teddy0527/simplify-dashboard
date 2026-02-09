@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Company, INDUSTRY_OPTIONS } from '@simplify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
@@ -46,6 +46,7 @@ function TrackerContent() {
   const { entrySheets } = useEntrySheetContext();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
@@ -53,6 +54,15 @@ function TrackerContent() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
+
+  // Auto-open drawer from ?company=<id> query param
+  useEffect(() => {
+    const companyId = searchParams.get('company');
+    if (companyId && loaded && companies.some(c => c.id === companyId)) {
+      setDrawerCompanyId(companyId);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, loaded, companies, setSearchParams]);
 
   const drawerCompany = useMemo(
     () => drawerCompanyId ? companies.find(c => c.id === drawerCompanyId) ?? null : null,
@@ -164,6 +174,7 @@ function TrackerContent() {
           onSave={(company) => {
             addCompany(company);
             setShowAddModal(false);
+            setDrawerCompanyId(company.id);
             showToast('企業を追加しました');
           }}
           onClose={() => setShowAddModal(false)}
