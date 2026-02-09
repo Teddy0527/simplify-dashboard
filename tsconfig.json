@@ -18,8 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@entrify/shared": ["./packages/shared/src/index.ts"],
-      "@entrify/shared/*": ["./packages/shared/src/*"]
+      "@jobsimplify/shared": ["./packages/shared/src/index.ts"],
+      "@jobsimplify/shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": ["src"],

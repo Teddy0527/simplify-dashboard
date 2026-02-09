@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getProfile, saveProfile } from '@entrify/shared';
-import type { Profile } from '@entrify/shared';
-import { DEFAULT_PROFILE } from '@entrify/shared';
+import { getProfile, saveProfile } from '@jobsimplify/shared';
+import type { Profile } from '@jobsimplify/shared';
+import { DEFAULT_PROFILE } from '@jobsimplify/shared';
 import { useAuth } from './useAuth';
 
 export function useProfile() {

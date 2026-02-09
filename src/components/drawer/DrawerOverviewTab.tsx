@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@entrify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@jobsimplify/shared';
 import type { DraftCompany, OnFieldChange } from './types';
 import { buildTimeline } from './types';
 import ApplicationTimeline from './ApplicationTimeline';

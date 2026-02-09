@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import type { Company } from '@entrify/shared';
+import type { Company } from '@jobsimplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 import { getNearestDeadline, formatDeadlineShort, getDeadlineUrgency } from '../utils/deadlineHelpers';
 

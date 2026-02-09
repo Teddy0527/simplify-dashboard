@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@entrify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@jobsimplify/shared';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
 import { normalizeWebsiteDomain } from '../utils/url';
 

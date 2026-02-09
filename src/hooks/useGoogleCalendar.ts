@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getSupabase } from '@entrify/shared';
+import { getSupabase } from '@jobsimplify/shared';
 import { fetchCalendarEvents, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
 import type { CalendarEventDisplay, GoogleCalendarEvent } from '../types/googleCalendar';
 

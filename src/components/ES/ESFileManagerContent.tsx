@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EntrySheet } from '@entrify/shared';
+import { EntrySheet } from '@jobsimplify/shared';
 import ESCard from './ESCard';
 import type { SelectedCategory } from './ESFileManagerSidebar';
 

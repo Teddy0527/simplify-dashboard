@@ -1,4 +1,4 @@
-import { getSupabase } from '@entrify/shared';
+import { getSupabase } from '@jobsimplify/shared';
 import type { Session, User } from '@supabase/supabase-js';
 
 export async function signInWithGoogle(): Promise<void> {

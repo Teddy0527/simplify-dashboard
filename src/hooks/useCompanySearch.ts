@@ -4,7 +4,7 @@ import {
   CompanySearchResult,
   CompanySearchResultRow,
   toCompanySearchResult,
-} from '@entrify/shared';
+} from '@jobsimplify/shared';
 
 interface UseCompanySearchOptions {
   debounceMs?: number;

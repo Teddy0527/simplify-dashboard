@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EntrySheet } from '@entrify/shared';
+import { EntrySheet } from '@jobsimplify/shared';
 import { CompanyLogo } from '../ui/CompanyLogo';
 
 interface ESCardProps {

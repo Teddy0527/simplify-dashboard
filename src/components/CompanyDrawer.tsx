@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Company } from '@entrify/shared';
+import { Company } from '@jobsimplify/shared';
 import ConfirmDialog from './Common/ConfirmDialog';
 import { CompanyLogo } from './ui/CompanyLogo';
 import { useEntrySheetContext } from '../contexts/EntrySheetContext';

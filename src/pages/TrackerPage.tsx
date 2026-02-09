@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Company, INDUSTRY_OPTIONS } from '@entrify/shared';
+import { Company, INDUSTRY_OPTIONS } from '@jobsimplify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';

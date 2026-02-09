@@ -4,8 +4,8 @@ import {
   addCompany as addRepo,
   updateCompany as updateRepo,
   deleteCompany as deleteRepo,
-} from '@entrify/shared';
-import type { Company } from '@entrify/shared';
+} from '@jobsimplify/shared';
+import type { Company } from '@jobsimplify/shared';
 import { useAuth } from './useAuth';
 
 export function useApplications() {

@@ -14,7 +14,7 @@ import {
   CollisionDetection,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Company, SelectionStatus } from '@entrify/shared';
+import { Company, SelectionStatus } from '@jobsimplify/shared';
 import KanbanColumn, { ColumnDef } from './KanbanColumn';
 import KanbanCard from './KanbanCard';
 

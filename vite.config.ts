@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@entrify/shared': path.resolve(__dirname, './packages/shared/src'),
+      '@jobsimplify/shared': path.resolve(__dirname, './packages/shared/src'),
     },
   },
   server: {

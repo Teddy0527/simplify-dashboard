@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { SelectionStage, SelectionStatus, STATUS_LABELS } from '@entrify/shared';
+import { SelectionStage, SelectionStatus, STATUS_LABELS } from '@jobsimplify/shared';
 import {
   DndContext,
   DragEndEvent,

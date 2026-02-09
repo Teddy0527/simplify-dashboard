@@ -1,7 +1,7 @@
 {
-  "name": "entrify-dashboard",
+  "name": "jobsimplify-dashboard",
   "version": "0.1.0",
-  "description": "Entrify - 就活進捗管理ダッシュボード",
+  "description": "JobSimplify - 就活進捗管理ダッシュボード",
   "type": "module",
   "scripts": {
     "dev": "vite",

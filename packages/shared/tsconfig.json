@@ -17,8 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@entrify/shared": ["src/index.ts"],
-      "@entrify/shared/*": ["src/*"]
+      "@jobsimplify/shared": ["src/index.ts"],
+      "@jobsimplify/shared/*": ["src/*"]
     }
   },
   "include": ["src"]

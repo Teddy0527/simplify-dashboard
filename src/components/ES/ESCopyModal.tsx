@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { EntrySheet } from '@entrify/shared';
+import { EntrySheet } from '@jobsimplify/shared';
 import { useCompanies } from '../../hooks/useCompanies';
 
 interface ESCopyModalProps {

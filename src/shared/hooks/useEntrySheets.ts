@@ -8,8 +8,8 @@ import {
   addESQuestion as addQuestionRepo,
   updateESQuestion as updateQuestionRepo,
   deleteESQuestion as deleteQuestionRepo,
-} from '@entrify/shared';
-import type { EntrySheet, ESQuestion } from '@entrify/shared';
+} from '@jobsimplify/shared';
+import type { EntrySheet, ESQuestion } from '@jobsimplify/shared';
 import { useAuth } from './useAuth';
 
 export function useEntrySheets() {

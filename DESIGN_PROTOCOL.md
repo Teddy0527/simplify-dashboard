@@ -1,4 +1,4 @@
-# Entrify Design Protocol
+# JobSimplify Design Protocol
 
 > UI実装時の必須ルール。詳細は `docs/DESIGN_SYSTEM.md` を参照。
 

@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Company, STATUS_LABELS } from '@entrify/shared';
+import { Company, STATUS_LABELS } from '@jobsimplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 import { getNearestDeadline, getDeadlineUrgency, formatDeadlineShort, getNextSelectionStep } from '../utils/deadlineHelpers';
 

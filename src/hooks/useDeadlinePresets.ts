@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { searchDeadlinePresets, DeadlinePresetWithCompany } from '@entrify/shared';
+import { searchDeadlinePresets, DeadlinePresetWithCompany } from '@jobsimplify/shared';
 
 export interface CompanyGroup {
   companyMasterId: string;

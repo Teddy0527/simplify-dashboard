@@ -7,7 +7,7 @@ import {
   searchDeadlinePresets,
   DeadlinePresetWithCompany,
   PendingContributionSummary,
-} from '@entrify/shared';
+} from '@jobsimplify/shared';
 
 type Tab = 'review' | 'presets' | 'log';
 

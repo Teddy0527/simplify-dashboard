@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { checkIsAdmin } from '@entrify/shared';
+import { checkIsAdmin } from '@jobsimplify/shared';
 
 export function useAdminAuth() {
   const [isAdmin, setIsAdmin] = useState(false);

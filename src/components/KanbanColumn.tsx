@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useMemo } from 'react';
-import { Company, SelectionStatus } from '@entrify/shared';
+import { Company, SelectionStatus } from '@jobsimplify/shared';
 import KanbanCard from './KanbanCard';
 
 export interface ColumnDef {
