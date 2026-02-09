@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EntrySheet, Company } from '@simplify/shared';
+import { EntrySheet, Company } from '@entrify/shared';
 import { CompanyLogo } from '../ui/CompanyLogo';
 
 export type SelectedCategory =

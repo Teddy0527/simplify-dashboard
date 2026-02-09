@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Company, SelectionStatus } from '@simplify/shared';
+import { Company, SelectionStatus } from '@entrify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import {
   getCompanies as fetchCompanies,
   addCompany as addCompanyRepo,
   updateCompany as updateCompanyRepo,
   deleteCompany as deleteCompanyRepo,
-} from '@simplify/shared';
+} from '@entrify/shared';
 
 export function useCompanies() {
   const { user } = useAuth();

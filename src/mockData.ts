@@ -1,4 +1,4 @@
-import { Company } from '@simplify/shared';
+import { Company } from '@entrify/shared';
 
 export const MOCK_COMPANIES: Company[] = [
   {

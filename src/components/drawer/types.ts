@@ -1,4 +1,4 @@
-import { SelectionStatus, SelectionStage, CompanyDeadline, STATUS_LABELS } from '@simplify/shared';
+import { SelectionStatus, SelectionStage, CompanyDeadline, STATUS_LABELS } from '@entrify/shared';
 
 // ── Shell → Tab data contract ──
 export type DraftCompany = {

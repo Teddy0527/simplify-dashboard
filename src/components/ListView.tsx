@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company, STATUS_LABELS } from '@simplify/shared';
+import { Company, STATUS_LABELS } from '@entrify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 
 type SortKey = 'name' | 'industry' | 'status' | 'updatedAt';

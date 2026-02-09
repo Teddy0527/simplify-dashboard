@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { getSupabase, migrateLocalToCloud } from '@simplify/shared';
+import { getSupabase, migrateLocalToCloud } from '@entrify/shared';
 
 interface AuthState {
   user: User | null;

@@ -4,7 +4,7 @@ import {
   CompanySearchResult,
   CompanySearchResultRow,
   toCompanySearchResult,
-} from '@simplify/shared';
+} from '@entrify/shared';
 
 interface UseCompanySearchOptions {
   debounceMs?: number;

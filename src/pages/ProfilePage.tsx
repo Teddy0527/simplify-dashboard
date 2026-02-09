@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Profile, DEFAULT_PROFILE, Qualification } from '@simplify/shared';
-import { getProfile, saveProfile } from '@simplify/shared';
-import { hiraganaToKatakana } from '@simplify/shared';
+import { Profile, DEFAULT_PROFILE, Qualification } from '@entrify/shared';
+import { getProfile, saveProfile } from '@entrify/shared';
+import { hiraganaToKatakana } from '@entrify/shared';
 
 
 /**

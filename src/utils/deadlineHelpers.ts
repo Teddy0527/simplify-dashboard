@@ -1,5 +1,5 @@
-import type { CompanyDeadline, SelectionStage } from '@simplify/shared';
-import { STATUS_LABELS } from '@simplify/shared';
+import type { CompanyDeadline, SelectionStage } from '@entrify/shared';
+import { STATUS_LABELS } from '@entrify/shared';
 
 /** 未来の締切のうち最も近いものを返す。なければ直近の過去（overdue）を返す */
 export function getNearestDeadline(deadlines: CompanyDeadline[]): CompanyDeadline | null {

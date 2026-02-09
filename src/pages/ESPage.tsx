@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { EntrySheet, Company, createEntrySheet } from '@simplify/shared';
+import { EntrySheet, Company, createEntrySheet } from '@entrify/shared';
 import { useEntrySheetContext } from '../contexts/EntrySheetContext';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';

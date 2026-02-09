@@ -4,7 +4,7 @@ import {
   DeadlineType,
   DEADLINE_TYPE_LABELS,
   createDeadline,
-} from '@simplify/shared';
+} from '@entrify/shared';
 import { getDeadlineUrgency, formatDeadlineShort } from '../utils/deadlineHelpers';
 import { buildGoogleCalendarUrl } from '../utils/googleCalendar';
 

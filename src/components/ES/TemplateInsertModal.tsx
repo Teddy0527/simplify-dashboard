@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { EntrySheet } from '@simplify/shared';
+import { EntrySheet } from '@entrify/shared';
 
 interface TemplateInsertModalProps {
   templates: EntrySheet[];

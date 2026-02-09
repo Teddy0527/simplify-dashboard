@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EntrySheet } from '@simplify/shared';
+import { EntrySheet } from '@entrify/shared';
 import ESCard from './ESCard';
 
 interface ESListProps {

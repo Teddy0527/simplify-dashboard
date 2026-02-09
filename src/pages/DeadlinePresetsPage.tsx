@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { INDUSTRY_OPTIONS, DEADLINE_TYPE_LABELS, DeadlineType, DeadlinePresetWithCompany, createCompany, createDeadline, mapMasterIndustry } from '@simplify/shared';
+import { INDUSTRY_OPTIONS, DEADLINE_TYPE_LABELS, DeadlineType, DeadlinePresetWithCompany, createCompany, createDeadline, mapMasterIndustry } from '@entrify/shared';
 import { useDeadlinePresets, CompanyGroup } from '../hooks/useDeadlinePresets';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';

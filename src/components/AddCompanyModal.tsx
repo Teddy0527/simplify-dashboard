@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@simplify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@entrify/shared';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
 import { normalizeWebsiteDomain } from '../utils/url';
 
@@ -26,7 +26,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   const [name, setName] = useState('');
   const [industry, setIndustry] = useState('');
   const [status, setStatus] = useState<SelectionStatus>('interested');
-  const [memo, setMemo] = useState('');
   const [websiteDomain, setWebsiteDomain] = useState('');
   const [recruitUrl, setRecruitUrl] = useState('');
   const [visible, setVisible] = useState(false);
@@ -93,7 +92,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       ...createCompany(name.trim()),
       industry: industry || undefined,
       status,
-      memo: memo.trim() || undefined,
       websiteDomain: normalizeWebsiteDomain(websiteDomain),
       recruitUrl: recruitUrl.trim() || undefined,
       companyMasterId: selectedCompanyId || undefined,
@@ -188,16 +186,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
             </select>
           </div>
 
-          <div>
-            <label className="input-label">メモ</label>
-            <textarea
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              rows={3}
-              className="input-field resize-none"
-              placeholder="選考に関するメモ..."
-            />
-          </div>
         </form>
 
         {/* Footer */}

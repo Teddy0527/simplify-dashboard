@@ -3,7 +3,7 @@ import {
   EntrySheet,
   ESQuestion,
   createESQuestion,
-} from '@simplify/shared';
+} from '@entrify/shared';
 import { useCompanies } from '../../hooks/useCompanies';
 import ESQuestionEditor from './ESQuestionEditor';
 import ConfirmDialog from '../Common/ConfirmDialog';

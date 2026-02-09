@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company, CompanyDeadline } from '@simplify/shared';
+import { Company, CompanyDeadline } from '@entrify/shared';
 import { getDeadlineUrgency } from '../utils/deadlineHelpers';
 import { useGoogleCalendar, useGoogleCalendarEventMap } from '../hooks/useGoogleCalendar';
 import type { CalendarEventDisplay } from '../types/googleCalendar';

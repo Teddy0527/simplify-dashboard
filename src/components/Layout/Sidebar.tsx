@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from './navItems';
 import { URLS } from '../../constants/urls';
-import { checkIsAdmin } from '@simplify/shared';
+import { checkIsAdmin } from '@entrify/shared';
 
 export default function Sidebar() {
   const [isAdmin, setIsAdmin] = useState(false);

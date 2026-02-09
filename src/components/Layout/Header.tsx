@@ -30,10 +30,10 @@ export default function Header() {
         <MobileNav />
         <a href={URLS.LP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary-700 rounded-lg flex items-center justify-center">
-            <span className="text-white text-base font-semibold">S</span>
+            <span className="text-white text-base font-semibold">E</span>
           </div>
           <h1 className="text-base font-semibold text-gray-900 tracking-wide">
-            就活Simplify
+            Entrify
           </h1>
         </a>
       </div>

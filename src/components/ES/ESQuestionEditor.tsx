@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ESQuestion } from '@simplify/shared';
+import { ESQuestion } from '@entrify/shared';
 
 interface ESQuestionEditorProps {
   question: ESQuestion;

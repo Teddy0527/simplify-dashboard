@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Company, INDUSTRY_OPTIONS } from '@simplify/shared';
+import { Company, INDUSTRY_OPTIONS } from '@entrify/shared';
 import { useCompanies } from '../hooks/useCompanies';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -129,6 +129,8 @@ function TrackerContent() {
         onViewModeChange={setViewMode}
         industries={industries}
         onAddClick={() => setShowAddModal(true)}
+        companies={companies}
+        onCompanyClick={handleCardClick}
       />
 
       {/* View */}

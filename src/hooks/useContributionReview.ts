@@ -5,7 +5,7 @@ import {
   rejectContributions,
   recalculateContributorCounts,
   PendingContributionSummary,
-} from '@simplify/shared';
+} from '@entrify/shared';
 
 export function useContributionReview() {
   const [summaries, setSummaries] = useState<PendingContributionSummary[]>([]);

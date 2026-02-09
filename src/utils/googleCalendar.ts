@@ -1,4 +1,4 @@
-import type { CompanyDeadline } from '@simplify/shared';
+import type { CompanyDeadline } from '@entrify/shared';
 
 export function buildGoogleCalendarUrl(companyName: string, deadline: CompanyDeadline): string {
   const title = `${companyName} - ${deadline.label}`;

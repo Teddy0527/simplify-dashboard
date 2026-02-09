@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCompanySearch } from '../hooks/useCompanySearch';
-import type { CompanySearchResult } from '@simplify/shared';
+import type { CompanySearchResult } from '@entrify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 
 interface CompanyAutocompleteProps {

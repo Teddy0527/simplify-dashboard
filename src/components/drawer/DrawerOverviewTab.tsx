@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@simplify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@entrify/shared';
 import type { DraftCompany, OnFieldChange } from './types';
 import { buildTimeline } from './types';
 import ApplicationTimeline from './ApplicationTimeline';
@@ -76,7 +76,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
         {/* Login info section */}
         <div>
           <h3 className="text-sm font-semibold text-gray-800 mb-3 tracking-wide">ログイン情報</h3>
-          <form autoComplete="off" className="space-y-4">
+          <div className="space-y-4">
             <div>
               <label className="input-label">マイページURL</label>
               <input
@@ -85,7 +85,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
                 onChange={(e) => onFieldChange('loginUrl', e.target.value)}
                 className="input-field"
                 placeholder="https://..."
-                autoComplete="off"
+                autoComplete="one-time-code"
                 data-1p-ignore
                 data-lpignore="true"
               />
@@ -98,7 +98,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
                 onChange={(e) => onFieldChange('myPageId', e.target.value)}
                 className="input-field"
                 placeholder="ID・メールアドレス"
-                autoComplete="off"
+                autoComplete="one-time-code"
                 data-1p-ignore
                 data-lpignore="true"
               />
@@ -107,14 +107,15 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
               <label className="input-label">マイページパスワード</label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="text"
                   value={draft.loginPassword}
                   onChange={(e) => onFieldChange('loginPassword', e.target.value)}
                   className="input-field pr-10"
                   placeholder="パスワード"
-                  autoComplete="new-password"
+                  autoComplete="one-time-code"
                   data-1p-ignore
                   data-lpignore="true"
+                  style={{ WebkitTextSecurity: showPassword ? 'none' : 'disc' } as React.CSSProperties}
                 />
                 <button
                   type="button"
@@ -135,7 +136,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
                 </button>
               </div>
             </div>
-          </form>
+          </div>
         </div>
 
         <div>

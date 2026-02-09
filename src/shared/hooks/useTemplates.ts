@@ -4,8 +4,8 @@ import {
   addTemplate as addRepo,
   updateTemplate as updateRepo,
   deleteTemplate as deleteRepo,
-} from '@simplify/shared';
-import type { Template } from '@simplify/shared';
+} from '@entrify/shared';
+import type { Template } from '@entrify/shared';
 import { useAuth } from './useAuth';
 
 export function useTemplates() {
