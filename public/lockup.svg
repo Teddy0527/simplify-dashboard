@@ -1,0 +1,24 @@
+<svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="160" fill="#ffffff" rx="16"/>
+  
+  <!-- Row 1 (4 dots) -->
+  <circle cx="60" cy="48" r="8" fill="#2d4059" opacity="0.2"/>
+  <circle cx="84" cy="48" r="8" fill="#2d4059" opacity="0.25"/>
+  <circle cx="108" cy="48" r="8" fill="#2d4059" opacity="0.3"/>
+  <circle cx="132" cy="48" r="8" fill="#2d4059" opacity="0.35"/>
+  
+  <!-- Row 2 (3 dots) -->
+  <circle cx="72" cy="74" r="9" fill="#2d4059" opacity="0.45"/>
+  <circle cx="96" cy="74" r="9" fill="#2d4059" opacity="0.55"/>
+  <circle cx="120" cy="74" r="9" fill="#2d4059" opacity="0.6"/>
+  
+  <!-- Row 3 (2 dots) -->
+  <circle cx="84" cy="100" r="10" fill="#2d4059" opacity="0.7"/>
+  <circle cx="108" cy="100" r="10" fill="#2d4059" opacity="0.8"/>
+  
+  <!-- Row 4 (1 dot) -->
+  <circle cx="96" cy="128" r="12" fill="#2d4059" opacity="1.0"/>
+  
+  <!-- Text -->
+  <text x="176" y="96" font-family="'Inter',-apple-system,sans-serif" font-size="52" font-weight="700" fill="#2d4059" letter-spacing="-1">Entrify</text>
+</svg>
