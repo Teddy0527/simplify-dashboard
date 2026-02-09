@@ -29,7 +29,7 @@ export default function Header() {
       <div className="flex items-center gap-3">
         <MobileNav />
         <a href={URLS.LP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
-          <img src="/lockup.svg" alt="Entrify" className="h-8" />
+          <img src="/lockup.svg" alt="Entrify" className="h-10" />
         </a>
       </div>
 
