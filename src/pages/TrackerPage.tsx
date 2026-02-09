@@ -11,6 +11,7 @@ import ListView from '../components/ListView';
 import DeadlineCalendarView from '../components/DeadlineCalendarView';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
+import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
@@ -54,6 +55,7 @@ function TrackerContent() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Auto-open drawer from ?company=<id> query param
   useEffect(() => {
@@ -110,6 +112,17 @@ function TrackerContent() {
     showToast('削除しました');
   }
 
+  function handleCardDelete(company: Company) {
+    setDeleteTarget({ id: company.id, name: company.name });
+  }
+
+  function confirmCardDelete() {
+    if (!deleteTarget) return;
+    deleteCompany(deleteTarget.id);
+    showToast('削除しました');
+    setDeleteTarget(null);
+  }
+
   function handleESClick(companyId: string) {
     navigate(`/es?company=${companyId}`);
   }
@@ -157,6 +170,7 @@ function TrackerContent() {
             onCardClick={handleCardClick}
             esCountMap={esCountMap}
             onESClick={handleESClick}
+            onCardDelete={handleCardDelete}
           />
         ) : viewMode === 'list' ? (
           <ListView
@@ -191,6 +205,14 @@ function TrackerContent() {
           onClose={() => setDrawerCompanyId(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="企業を削除"
+        message={`「${deleteTarget?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
+        onConfirm={confirmCardDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }

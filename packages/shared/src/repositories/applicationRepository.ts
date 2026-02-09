@@ -7,6 +7,7 @@ import type { Company } from '../types/company';
 import { dbToCompany } from '../types/database';
 import { contributeDeadlineSignal } from './deadlineContributionRepository';
 import { getCurrentRecruitmentYear } from '../utils/recruitmentYear';
+import { trackEventAsync } from './eventRepository';
 
 /**
  * Emit deadline signals for a company's non-preset deadlines.
@@ -114,6 +115,8 @@ export async function addCompany(company: Company): Promise<void> {
   if (appError) {
     throw new Error(`Failed to add application: ${appError.message}`);
   }
+
+  trackEventAsync('company.create', { companyId: company.id, name: company.name });
 }
 
 export async function updateCompany(company: Company): Promise<void> {
@@ -162,6 +165,8 @@ export async function updateCompany(company: Company): Promise<void> {
 
   // Emit deadline signals (fire-and-forget)
   emitDeadlineSignals(company).catch(() => {});
+
+  trackEventAsync('company.update', { companyId: company.id });
 }
 
 export async function deleteCompany(id: string): Promise<void> {
@@ -179,4 +184,6 @@ export async function deleteCompany(id: string): Promise<void> {
   if (error) {
     throw new Error(`Failed to delete company: ${error.message}`);
   }
+
+  trackEventAsync('company.delete', { companyId: id });
 }

@@ -100,9 +100,10 @@ interface KanbanBoardProps {
   onCardClick: (company: Company) => void;
   esCountMap?: Map<string, number>;
   onESClick?: (companyId: string) => void;
+  onCardDelete?: (company: Company) => void;
 }
 
-export default function KanbanBoard({ companies, onReorder, onCardClick, esCountMap, onESClick }: KanbanBoardProps) {
+export default function KanbanBoard({ companies, onReorder, onCardClick, esCountMap, onESClick, onCardDelete }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const lastOverId = useRef<string | null>(null);
@@ -293,6 +294,7 @@ export default function KanbanBoard({ companies, onReorder, onCardClick, esCount
               isOver={overColumnId === col.id}
               esCountMap={esCountMap}
               onESClick={onESClick}
+              onCardDelete={onCardDelete}
             />
           );
         })}

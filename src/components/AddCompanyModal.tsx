@@ -88,17 +88,16 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
     e.preventDefault();
     if (!name.trim()) return;
 
-    const updatedCompany: Company = {
-      ...createCompany(name.trim()),
+    const base = createCompany(name.trim());
+    onSave({
+      ...base,
       industry: industry || undefined,
       status,
       websiteDomain: normalizeWebsiteDomain(websiteDomain),
       recruitUrl: recruitUrl.trim() || undefined,
       companyMasterId: selectedCompanyId || undefined,
       deadlines: presetDeadlines.length > 0 ? presetDeadlines : [],
-    };
-
-    onSave(updatedCompany);
+    });
     handleClose();
   }
 
@@ -116,7 +115,9 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">企業を追加</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            企業を追加
+          </h2>
           <button
             onClick={handleClose}
             className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg transition-colors"
@@ -185,7 +186,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
               ))}
             </select>
           </div>
-
         </form>
 
         {/* Footer */}

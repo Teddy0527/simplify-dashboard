@@ -79,6 +79,7 @@ export interface Database {
           id: string;
           user_id: string;
           name: string;
+          card_type: string | null;
           industry: string | null;
           login_url: string | null;
           login_password: string | null;
@@ -94,6 +95,7 @@ export interface Database {
           id?: string;
           user_id: string;
           name: string;
+          card_type?: string | null;
           industry?: string | null;
           login_url?: string | null;
           login_password?: string | null;
@@ -105,6 +107,7 @@ export interface Database {
         };
         Update: {
           name?: string;
+          card_type?: string | null;
           industry?: string | null;
           login_url?: string | null;
           login_password?: string | null;

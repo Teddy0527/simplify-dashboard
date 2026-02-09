@@ -19,9 +19,10 @@ interface KanbanColumnProps {
   isOver?: boolean;
   esCountMap?: Map<string, number>;
   onESClick?: (companyId: string) => void;
+  onCardDelete?: (company: Company) => void;
 }
 
-export default function KanbanColumn({ column, companies, onCardClick, isOver, esCountMap, onESClick }: KanbanColumnProps) {
+export default function KanbanColumn({ column, companies, onCardClick, isOver, esCountMap, onESClick, onCardDelete }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: column.id });
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
@@ -56,6 +57,7 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver, e
                 onClick={onCardClick}
                 esCount={esCountMap?.get(company.id)}
                 onESClick={onESClick}
+                onDelete={onCardDelete}
               />
             ))
           )}
