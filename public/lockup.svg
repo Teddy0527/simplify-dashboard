@@ -1,5 +1,5 @@
-<svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg">
-  <rect width="640" height="160" fill="#ffffff" rx="16"/>
+<svg viewBox="0 0 780 160" xmlns="http://www.w3.org/2000/svg">
+  <rect width="780" height="160" fill="#ffffff" rx="16"/>
   
   <!-- Row 1 (4 dots) -->
   <circle cx="60" cy="48" r="8" fill="#2d4059" opacity="0.2"/>
@@ -20,5 +20,5 @@
   <circle cx="96" cy="128" r="12" fill="#2d4059" opacity="1.0"/>
   
   <!-- Text -->
-  <text x="176" y="96" font-family="'Inter',-apple-system,sans-serif" font-size="52" font-weight="700" fill="#2d4059" letter-spacing="-1">Simplify</text>
+  <text x="176" y="96" font-family="'Inter',-apple-system,sans-serif" font-size="52" font-weight="700" fill="#2d4059" letter-spacing="-1">JobSimplify</text>
 </svg>
