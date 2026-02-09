@@ -43,10 +43,10 @@
   /* Google Calendar */
   --gcal-blue: #1a73e8;
   --gcal-blue-light: #e8f0fe;
-  --gcal-grid-border: #dadce0;
-  --gcal-weekend-bg: #f8f9fa;
-  --gcal-today-bg: #e8f0fe;
-  --gcal-hover-bg: #f1f3f4;
+  --gcal-grid-border: #e5e7eb;
+  --gcal-weekend-bg: #fafbfc;
+  --gcal-today-bg: #eff6ff;
+  --gcal-hover-bg: #f9fafb;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -443,29 +443,36 @@
     box-shadow: 0 0 0 3px rgba(51, 78, 104, 0.1);
   }
 
+  /* Google Calendar container */
+  .gcal-container {
+    background: white;
+    border: 1px solid var(--gcal-grid-border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
   /* Google Calendar grid */
   .gcal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    border-left: 1px solid var(--gcal-grid-border);
     border-top: 1px solid var(--gcal-grid-border);
   }
 
   .gcal-cell {
-    min-height: 110px;
+    min-height: 120px;
     border-right: 1px solid var(--gcal-grid-border);
     border-bottom: 1px solid var(--gcal-grid-border);
-    padding: 4px;
-    cursor: pointer;
+    padding: 6px;
+    cursor: default;
     transition: background-color 0.15s;
+  }
+
+  .gcal-cell:nth-child(7n) {
+    border-right: none;
   }
 
   .gcal-cell:hover {
     background-color: var(--gcal-hover-bg);
-  }
-
-  .gcal-cell-no-click {
-    cursor: default;
   }
 
   .gcal-cell-weekend {
@@ -508,8 +515,11 @@
   }
 
   .gcal-event-chip {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 1px 6px;
+    border-left: 3px solid transparent;
     border-radius: 4px;
     font-size: 11px;
     line-height: 18px;
@@ -519,35 +529,34 @@
     text-overflow: ellipsis;
     margin-bottom: 1px;
     cursor: pointer;
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.15s, filter 0.15s;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
   }
 
   .gcal-event-chip:hover {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    filter: brightness(0.95);
   }
 
-  .gcal-mini-cell {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .gcal-event-chip-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    font-size: 11px;
-    cursor: pointer;
-    transition: background-color 0.15s;
-  }
-
-  .gcal-mini-cell:hover {
-    background-color: var(--gcal-hover-bg);
+    flex-shrink: 0;
   }
 
   .gcal-popover {
     position: fixed;
     z-index: 50;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     min-width: 280px;
     max-width: 360px;
     max-height: 400px;
