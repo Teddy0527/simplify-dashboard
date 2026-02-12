@@ -8,13 +8,15 @@ import {
   DeadlinePresetWithCompany,
   PendingContributionSummary,
 } from '@jobsimplify/shared';
+import AnalyticsTab from '../components/admin/AnalyticsTab';
 
-type Tab = 'review' | 'presets' | 'log';
+type Tab = 'review' | 'presets' | 'log' | 'analytics';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'review', label: 'シグナルレビュー' },
   { key: 'presets', label: 'プリセット管理' },
   { key: 'log', label: '変更ログ' },
+  { key: 'analytics', label: 'ユーザー分析' },
 ];
 
 export default function AdminPage() {
@@ -30,10 +32,10 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto h-full overflow-y-auto p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">管理画面</h1>
-        <p className="text-sm text-gray-500 mt-1">締切シグナルのレビューとプリセット管理</p>
+        <p className="text-sm text-gray-500 mt-1">締切シグナルのレビュー・プリセット管理・ユーザー分析</p>
       </div>
 
       {/* Tab bar */}
@@ -56,6 +58,7 @@ export default function AdminPage() {
       {tab === 'review' && <SignalReviewTab />}
       {tab === 'presets' && <PresetManagementTab />}
       {tab === 'log' && <ChangeLogTab />}
+      {tab === 'analytics' && <AnalyticsTab />}
     </div>
   );
 }

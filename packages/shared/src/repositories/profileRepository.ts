@@ -2,6 +2,7 @@ import { getSupabase, isAuthenticated, getCurrentUser } from '../lib/supabase';
 import { getProfile as getLocalProfile, saveProfile as saveLocalProfile } from '../storage/chromeStorage';
 import type { Profile } from '../types/profile';
 import { DEFAULT_PROFILE } from '../types/profile';
+import { trackEventAsync } from './eventRepository';
 
 export async function getProfile(): Promise<Profile> {
   if (!(await isAuthenticated())) {
@@ -42,4 +43,6 @@ export async function saveProfile(profile: Profile): Promise<void> {
   if (error) {
     throw new Error(`Failed to save profile: ${error.message}`);
   }
+
+  trackEventAsync('profile.update');
 }

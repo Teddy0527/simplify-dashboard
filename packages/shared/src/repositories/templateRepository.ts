@@ -5,6 +5,7 @@ import {
 } from '../storage/chromeStorage';
 import type { Template } from '../types/template';
 import { dbTemplateToTemplate, templateToDbInsert } from '../types/database';
+import { trackEventAsync } from './eventRepository';
 
 export async function getTemplates(): Promise<Template[]> {
   if (!(await isAuthenticated())) {
@@ -44,6 +45,8 @@ export async function addTemplate(template: Template): Promise<void> {
   if (error) {
     throw new Error(`Failed to add template: ${error.message}`);
   }
+
+  trackEventAsync('template.create', { templateId: template.id });
 }
 
 export async function updateTemplate(template: Template): Promise<void> {
@@ -71,6 +74,8 @@ export async function updateTemplate(template: Template): Promise<void> {
   if (error) {
     throw new Error(`Failed to update template: ${error.message}`);
   }
+
+  trackEventAsync('template.update', { templateId: template.id });
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
@@ -87,4 +92,6 @@ export async function deleteTemplate(id: string): Promise<void> {
   if (error) {
     throw new Error(`Failed to delete template: ${error.message}`);
   }
+
+  trackEventAsync('template.delete', { templateId: id });
 }

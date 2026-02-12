@@ -3,8 +3,11 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import { ToastProvider } from '../../hooks/useToast';
 import { EntrySheetProvider } from '../../contexts/EntrySheetContext';
+import { usePageTracking } from '../../hooks/usePageTracking';
 
 export default function DashboardLayout() {
+  usePageTracking();
+
   return (
     <ToastProvider>
       <EntrySheetProvider>

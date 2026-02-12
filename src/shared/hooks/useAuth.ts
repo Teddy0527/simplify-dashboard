@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { getSupabase, migrateLocalToCloud } from '@jobsimplify/shared';
+import { getSupabase, migrateLocalToCloud, trackEventAsync } from '@jobsimplify/shared';
 
 interface AuthState {
   user: User | null;
@@ -37,6 +37,8 @@ export function useAuthProvider(): AuthState {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (_event === 'SIGNED_IN') trackEventAsync('auth.login');
+      if (_event === 'SIGNED_OUT') trackEventAsync('auth.logout');
       if (session?.provider_token) {
         localStorage.setItem('simplify:gcal-token', JSON.stringify({
           token: session.provider_token,

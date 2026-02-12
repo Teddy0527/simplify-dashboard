@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEntrySheetContext } from '../../contexts/EntrySheetContext';
+import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../Common/ConfirmDialog';
 
 interface DrawerDocumentsTabProps {
   companyId: string;
@@ -9,7 +11,9 @@ interface DrawerDocumentsTabProps {
 
 export default function DrawerDocumentsTab({ companyId }: DrawerDocumentsTabProps) {
   const navigate = useNavigate();
-  const { entrySheets } = useEntrySheetContext();
+  const { entrySheets, remove } = useEntrySheetContext();
+  const { showToast } = useToast();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   const companyES = useMemo(
     () => entrySheets.filter((es) => es.companyId === companyId),
@@ -65,9 +69,24 @@ export default function DrawerDocumentsTab({ companyId }: DrawerDocumentsTabProp
               <div
                 key={es.id}
                 onClick={() => navigate(`/es?company=${companyId}`)}
-                className="p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
+                className="group p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
               >
-                <p className="text-sm font-medium text-gray-900 truncate">{es.title}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">{es.title}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({ id: es.id, title: es.title });
+                    }}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-error-50 text-gray-400 hover:text-error-500 transition-all"
+                    title="削除"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
+                  </button>
+                </div>
                 <div className="flex items-center gap-2 mt-1.5">
                   {total > 0 && (
                     <span className="text-xs text-gray-500">
@@ -105,6 +124,23 @@ export default function DrawerDocumentsTab({ companyId }: DrawerDocumentsTabProp
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="ESを削除"
+        message={deleteTarget ? `「${deleteTarget.title}」を削除しますか？この操作は取り消せません。` : ''}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            await remove(deleteTarget.id);
+            showToast('ESを削除しました');
+          } catch {
+            showToast('削除に失敗しました', 'error');
+          }
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

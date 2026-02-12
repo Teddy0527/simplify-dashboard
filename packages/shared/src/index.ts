@@ -95,6 +95,15 @@ export {
   rejectContributions,
   recalculateContributorCounts,
 } from './repositories/adminRepository';
+export {
+  trackEvent,
+  trackEventAsync,
+} from './repositories/eventRepository';
+export {
+  getUserAnalyticsSummary,
+  getUserEventBreakdown,
+  getAggregateTrends,
+} from './repositories/analyticsRepository';
 
 // Services
 export { migrateLocalToCloud } from './services/dataMigration';

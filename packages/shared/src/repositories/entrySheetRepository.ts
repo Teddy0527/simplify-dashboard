@@ -10,6 +10,7 @@ import {
   entrySheetToDbInsert,
   esQuestionToDbInsert,
 } from '../types/database';
+import { trackEventAsync } from './eventRepository';
 
 export async function getEntrySheets(): Promise<EntrySheet[]> {
   if (!(await isAuthenticated())) {
@@ -141,6 +142,8 @@ export async function addEntrySheet(entrySheet: EntrySheet): Promise<void> {
       throw new Error(`Failed to add es questions: ${questionsError.message}`);
     }
   }
+
+  trackEventAsync('entry_sheet.create', { entrySheetId: entrySheet.id });
 }
 
 export async function updateEntrySheet(entrySheet: EntrySheet): Promise<void> {
@@ -168,6 +171,8 @@ export async function updateEntrySheet(entrySheet: EntrySheet): Promise<void> {
   if (error) {
     throw new Error(`Failed to update entry sheet: ${error.message}`);
   }
+
+  trackEventAsync('entry_sheet.update', { entrySheetId: entrySheet.id });
 }
 
 export async function deleteEntrySheet(id: string): Promise<void> {
@@ -185,6 +190,8 @@ export async function deleteEntrySheet(id: string): Promise<void> {
   if (error) {
     throw new Error(`Failed to delete entry sheet: ${error.message}`);
   }
+
+  trackEventAsync('entry_sheet.delete', { entrySheetId: id });
 }
 
 // Question operations
@@ -207,6 +214,8 @@ export async function addESQuestion(question: ESQuestion): Promise<void> {
   if (error) {
     throw new Error(`Failed to add es question: ${error.message}`);
   }
+
+  trackEventAsync('es_question.create', { questionId: question.id, entrySheetId: question.entrySheetId });
 }
 
 export async function updateESQuestion(question: ESQuestion): Promise<void> {
@@ -240,6 +249,8 @@ export async function updateESQuestion(question: ESQuestion): Promise<void> {
   if (error) {
     throw new Error(`Failed to update es question: ${error.message}`);
   }
+
+  trackEventAsync('es_question.update', { questionId: question.id });
 }
 
 export async function deleteESQuestion(questionId: string, entrySheetId: string): Promise<void> {
@@ -264,6 +275,8 @@ export async function deleteESQuestion(questionId: string, entrySheetId: string)
   if (error) {
     throw new Error(`Failed to delete es question: ${error.message}`);
   }
+
+  trackEventAsync('es_question.delete', { questionId: questionId, entrySheetId });
 }
 
 export async function reorderESQuestions(
@@ -303,4 +316,6 @@ export async function reorderESQuestions(
   if (error) {
     throw new Error(`Failed to reorder es questions: ${error.message}`);
   }
+
+  trackEventAsync('es_question.reorder', { entrySheetId });
 }

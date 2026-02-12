@@ -6,6 +6,8 @@ export * from './entrySheet';
 export * from './deadlinePreset';
 export * from './deadlineContribution';
 export * from './adminTypes';
+export * from './userEvent';
+export * from './analyticsTypes';
 
 export interface StorageData {
   profile: import('./profile').Profile;
