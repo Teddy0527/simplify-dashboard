@@ -1,6 +1,6 @@
+import { memo, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useMemo } from 'react';
 import { Company, SelectionStatus } from '@jobsimplify/shared';
 import KanbanCard from './KanbanCard';
 
@@ -22,7 +22,7 @@ interface KanbanColumnProps {
   onCardDelete?: (company: Company) => void;
 }
 
-export default function KanbanColumn({ column, companies, onCardClick, isOver, esCountMap, onESClick, onCardDelete }: KanbanColumnProps) {
+const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick, isOver, esCountMap, onESClick, onCardDelete }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: column.id });
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
@@ -65,4 +65,6 @@ export default function KanbanColumn({ column, companies, onCardClick, isOver, e
       </div>
     </div>
   );
-}
+});
+
+export default KanbanColumn;

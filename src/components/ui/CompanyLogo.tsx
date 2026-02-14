@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { memo, useState, useMemo, useEffect } from 'react';
 import { extractHostname, parseUrlSafe } from '../../utils/url';
 
 interface CompanyLogoProps {
@@ -120,7 +120,7 @@ function getInitialColor(name: string): string {
  * 3. 直接favicon.ico（https → http）
  * 4. 首文字カラーバッジ
  */
-export function CompanyLogo({
+export const CompanyLogo = memo(function CompanyLogo({
   name,
   logoUrl,
   websiteDomain,
@@ -283,4 +283,4 @@ export function CompanyLogo({
       />
     </div>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Company, STATUS_LABELS } from '@jobsimplify/shared';
@@ -13,8 +14,7 @@ interface KanbanCardProps {
   onDelete?: (company: Company) => void;
 }
 
-
-export default function KanbanCard({ company, onClick, isDragOverlay, esCount, onESClick, onDelete }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, esCount, onESClick, onDelete }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -157,4 +157,6 @@ export default function KanbanCard({ company, onClick, isDragOverlay, esCount, o
       </div>
     </div>
   );
-}
+});
+
+export default KanbanCard;

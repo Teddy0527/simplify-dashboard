@@ -1,10 +1,12 @@
+import { lazy } from 'react';
 import { RouteObject, Navigate } from 'react-router-dom';
 import DashboardLayout from './components/Layout/DashboardLayout';
-import TrackerPage from './pages/TrackerPage';
-import ProfilePage from './pages/ProfilePage';
-import ESPage from './pages/ESPage';
-import DeadlinePresetsPage from './pages/DeadlinePresetsPage';
-import AdminPage from './pages/AdminPage';
+
+const TrackerPage = lazy(() => import('./pages/TrackerPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ESPage = lazy(() => import('./pages/ESPage'));
+const DeadlinePresetsPage = lazy(() => import('./pages/DeadlinePresetsPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 export const routes: RouteObject[] = [
   {
