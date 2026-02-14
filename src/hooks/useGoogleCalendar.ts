@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getSupabase } from '@jobsimplify/shared';
 import { fetchCalendarEvents, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
 import type { CalendarEventDisplay, GoogleCalendarEvent } from '../types/googleCalendar';
+import { buildGoogleOAuthOptions } from '../constants/oauth';
 
 const STORAGE_KEY_ENABLED = 'simplify:gcal-enabled';
 const STORAGE_KEY_TOKEN = 'simplify:gcal-token';
@@ -11,7 +12,7 @@ interface StoredToken {
   expiresAt: number;
 }
 
-function getStoredToken(): string | null {
+export function getStoredToken(): string | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_TOKEN);
     if (!raw) return null;
@@ -74,10 +75,10 @@ export function useGoogleCalendar(year: number, month: number): UseGoogleCalenda
   const reconnect = useCallback(() => {
     getSupabase().auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.origin + window.location.pathname + window.location.search,
-        scopes: 'https://www.googleapis.com/auth/calendar.events.readonly',
-      },
+      options: buildGoogleOAuthOptions(
+        window.location.origin + window.location.pathname + window.location.search,
+        true,
+      ),
     });
   }, []);
 

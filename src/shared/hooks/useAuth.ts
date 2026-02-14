@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, migrateLocalToCloud, trackEventAsync } from '@jobsimplify/shared';
+import { buildGoogleOAuthOptions } from '../../constants/oauth';
 
 interface AuthState {
   user: User | null;
@@ -28,6 +29,12 @@ export function useAuthProvider(): AuthState {
 
     // 起動時にセッション取得
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.provider_token) {
+        localStorage.setItem('simplify:gcal-token', JSON.stringify({
+          token: session.provider_token,
+          expiresAt: Date.now() + 3600 * 1000,
+        }));
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -55,9 +62,7 @@ export function useAuthProvider(): AuthState {
     try {
       const { error } = await getSupabase().auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
+        options: buildGoogleOAuthOptions(window.location.origin),
       });
       if (error) throw error;
       // 初回ログイン時にローカルデータをクラウドに移行

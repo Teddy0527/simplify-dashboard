@@ -5,6 +5,23 @@ import { useDeadlinePresets, CompanyGroup } from '../hooks/useDeadlinePresets';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { getDeadlineUrgency, formatDeadlineShort } from '../utils/deadlineHelpers';
+import { buildPresetGoogleCalendarUrl, presetToCalendarEvent } from '../utils/googleCalendar';
+import { createCalendarEvent, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
+import { getStoredToken } from '../hooks/useGoogleCalendar';
+import { getSupabase } from '@jobsimplify/shared';
+import { buildGoogleOAuthOptions } from '../constants/oauth';
+import { useDeadlineReminders, type DeadlineReminder } from '../hooks/useDeadlineReminders';
+import { ReminderButton } from '../components/ReminderButton';
+
+// ── Reminder Props ──────────────────────────────────────────────────────
+
+interface ReminderProps {
+  reminders: DeadlineReminder[];
+  onAddReminder: (entry: DeadlinePresetWithCompany, daysBefore: number) => Promise<void>;
+  onCancelReminder: (reminderId: string) => Promise<void>;
+  hasCalendarToken: () => boolean;
+  onReconnectCalendar: () => void;
+}
 
 // ── Constants ───────────────────────────────────────────────────────────
 
@@ -124,6 +141,32 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+// ── GCalButton helper ────────────────────────────────────────────────────
+
+function GCalButton({ entry, size = 'sm' }: { entry: DeadlinePresetWithCompany; size?: 'sm' | 'xs' }) {
+  const url = buildPresetGoogleCalendarUrl(entry);
+  const iconSize = size === 'xs' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-gray-400 hover:text-green-600 transition-colors flex-shrink-0"
+      title="Googleカレンダーに追加"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <line x1="12" y1="14" x2="12" y2="18" />
+        <line x1="10" y1="16" x2="14" y2="16" />
+      </svg>
+    </a>
+  );
+}
+
 // ── Main Page ───────────────────────────────────────────────────────────
 
 export default function DeadlinePresetsPage() {
@@ -135,6 +178,17 @@ export default function DeadlinePresetsPage() {
   const { grouped, byDate, loading } = useDeadlinePresets(query, 2028, industry || undefined);
   const { companies, addCompany } = useCompanies();
   const { showToast } = useToast();
+  const { reminders, addReminder, cancelReminder, addBulkReminders, hasCalendarToken } = useDeadlineReminders();
+
+  const handleReconnectCalendar = useCallback(() => {
+    getSupabase().auth.signInWithOAuth({
+      provider: 'google',
+      options: buildGoogleOAuthOptions(
+        window.location.origin + window.location.pathname + window.location.search,
+        true,
+      ),
+    });
+  }, []);
 
   const trackedMasterIds = useMemo(
     () => new Set(companies.filter(c => c.companyMasterId).map(c => c.companyMasterId!)),
@@ -205,11 +259,11 @@ export default function DeadlinePresetsPage() {
             <p className="text-sm">読み込み中...</p>
           </div>
         ) : viewMode === 'calendar' ? (
-          <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
+          <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
         ) : viewMode === 'week' ? (
-          <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
+          <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
         ) : (
-          <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} />
+          <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} onAddBulkReminders={addBulkReminders} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
         )}
       </div>
     </div>
@@ -317,11 +371,11 @@ function DeadlineFilters({
 
 // ── CalendarLayout ──────────────────────────────────────────────────────
 
-function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
+function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...reminderProps }: {
   byDate: Map<string, DeadlinePresetWithCompany[]>;
   trackedMasterIds: Set<string>;
   onAddEntryToTracker: (entry: DeadlinePresetWithCompany) => void;
-}) {
+} & ReminderProps) {
   const CALENDAR_WEEKDAY_HEADER_HEIGHT = 28;
   const CALENDAR_SCALE = 0.92;
   const calendarAreaRef = useRef<HTMLDivElement>(null);
@@ -406,6 +460,7 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
           x={popover.x}
           y={popover.y}
           onClose={() => setPopover(null)}
+          {...reminderProps}
         />
       )}
       {eventDetail && (
@@ -416,6 +471,7 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
           onClose={() => setEventDetail(null)}
           isAlreadyTracked={trackedMasterIds.has(eventDetail.entry.companyMasterId)}
           onAddToTracker={() => onAddEntryToTracker(eventDetail.entry)}
+          {...reminderProps}
         />
       )}
     </div>
@@ -584,14 +640,14 @@ function EventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; onCli
 // ── DayDetailPopover ────────────────────────────────────────────────────
 
 function DayDetailPopover({
-  date, entries, x, y, onClose,
+  date, entries, x, y, onClose, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar,
 }: {
   date: Date;
   entries: DeadlinePresetWithCompany[];
   x: number;
   y: number;
   onClose: () => void;
-}) {
+} & ReminderProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -641,6 +697,8 @@ function DayDetailPopover({
                   </div>
                 )}
               </div>
+              <GCalButton entry={entry} size="xs" />
+              <ReminderButton entry={entry} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="xs" />
               {entry.sourceUrl && (
                 <a
                   href={entry.sourceUrl}
@@ -668,7 +726,7 @@ function DayDetailPopover({
 // ── EventDetailPopover ─────────────────────────────────────────────────
 
 function EventDetailPopover({
-  entry, x, y, onClose, isAlreadyTracked, onAddToTracker,
+  entry, x, y, onClose, isAlreadyTracked, onAddToTracker, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar,
 }: {
   entry: DeadlinePresetWithCompany;
   x: number;
@@ -676,7 +734,7 @@ function EventDetailPopover({
   onClose: () => void;
   isAlreadyTracked?: boolean;
   onAddToTracker?: () => void;
-}) {
+} & ReminderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const color = getTypeColor(entry.deadlineType);
   const categoryLabel = DEADLINE_TYPE_LABELS[entry.deadlineType as DeadlineType] || entry.deadlineType;
@@ -743,29 +801,31 @@ function EventDetailPopover({
               </span>
             </div>
           )}
-          {/* Source URL + Tracker button */}
-          {(entry.sourceUrl || onAddToTracker) && (
-            <div className="flex items-center gap-2 pt-2 mt-1 border-t border-gray-100">
-              {entry.sourceUrl && (
-                <a
-                  href={entry.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                  ソースを開く
-                </a>
-              )}
-              {entry.sourceUrl && onAddToTracker && <span className="text-gray-200">|</span>}
-              {onAddToTracker && (
+          {/* Source URL + GCal + Tracker button */}
+          <div className="flex items-center gap-3 pt-3 mt-2 border-t border-gray-100">
+            {entry.sourceUrl && (
+              <a
+                href={entry.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+                ソースを開く
+              </a>
+            )}
+            {entry.sourceUrl && <span className="text-gray-200">|</span>}
+            <GCalButton entry={entry} size="sm" />
+            <ReminderButton entry={entry} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="sm" dropUp />
+            {onAddToTracker && <span className="text-gray-200">|</span>}
+            {onAddToTracker && (
                 isAlreadyTracked ? (
-                  <span className="text-xs text-gray-400 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <span className="text-sm text-gray-400 flex items-center gap-1.5">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     追加済み
@@ -773,14 +833,13 @@ function EventDetailPopover({
                 ) : (
                   <button
                     onClick={onAddToTracker}
-                    className="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
                   >
                     + Trackerに追加
                   </button>
                 )
               )}
             </div>
-          )}
         </div>
       </div>
     </div>
@@ -807,11 +866,11 @@ function DeadlineTypeLegend() {
 
 // ── WeekLayout ──────────────────────────────────────────────────────────
 
-function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
+function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...reminderProps }: {
   byDate: Map<string, DeadlinePresetWithCompany[]>;
   trackedMasterIds: Set<string>;
   onAddEntryToTracker: (entry: DeadlinePresetWithCompany) => void;
-}) {
+} & ReminderProps) {
   const today = new Date();
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date(today);
@@ -893,6 +952,7 @@ function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
           onClose={() => setEventDetail(null)}
           isAlreadyTracked={trackedMasterIds.has(eventDetail.entry.companyMasterId)}
           onAddToTracker={() => onAddEntryToTracker(eventDetail.entry)}
+          {...reminderProps}
         />
       )}
     </div>
@@ -983,12 +1043,104 @@ function WeekEventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; o
 
 // ── ListView (existing card-based layout) ───────────────────────────────
 
-function ListView({ grouped, query, trackedMasterIds, onAddToTracker }: {
+function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders, onAddReminder, onCancelReminder, onAddBulkReminders, hasCalendarToken, onReconnectCalendar }: {
   grouped: CompanyGroup[];
   query: string;
   trackedMasterIds: Set<string>;
   onAddToTracker: (group: CompanyGroup) => void;
-}) {
+  onAddBulkReminders: (entries: DeadlinePresetWithCompany[], daysBefore: number) => Promise<number>;
+} & ReminderProps) {
+  const { showToast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [bulkReminderDays, setBulkReminderDays] = useState<number | null>(null);
+  const [bulkReminderAdding, setBulkReminderAdding] = useState(false);
+
+  const allDeadlines = useMemo(
+    () => grouped.flatMap(g => g.deadlines),
+    [grouped],
+  );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev =>
+      prev.size === allDeadlines.length ? new Set() : new Set(allDeadlines.map(d => d.id)),
+    );
+  }, [allDeadlines]);
+
+  const handleBulkAdd = useCallback(async () => {
+    const token = getStoredToken();
+    if (!token) {
+      getSupabase().auth.signInWithOAuth({
+        provider: 'google',
+        options: buildGoogleOAuthOptions(
+          window.location.origin + window.location.pathname + window.location.search,
+          true,
+        ),
+      });
+      return;
+    }
+
+    const selected = allDeadlines.filter(d => selectedIds.has(d.id));
+    if (selected.length === 0) return;
+
+    setBulkAdding(true);
+    setBulkProgress({ current: 0, total: selected.length });
+
+    let successCount = 0;
+    for (const entry of selected) {
+      try {
+        await createCalendarEvent(token, presetToCalendarEvent(entry));
+        successCount++;
+        setBulkProgress(prev => ({ ...prev, current: prev.current + 1 }));
+      } catch (err) {
+        if (err instanceof GoogleCalendarAuthError) {
+          showToast('認証が切れました。再ログインしてください', 'error');
+          setBulkAdding(false);
+          return;
+        }
+        // Continue with remaining entries
+      }
+    }
+
+    setBulkAdding(false);
+    setSelectedIds(new Set());
+    showToast(`${successCount}件のイベントをGoogleカレンダーに追加しました`, 'success');
+  }, [allDeadlines, selectedIds, showToast]);
+
+  const handleBulkReminder = useCallback(async (daysBefore: number) => {
+    if (!hasCalendarToken()) {
+      onReconnectCalendar();
+      return;
+    }
+
+    const selected = allDeadlines.filter(d => selectedIds.has(d.id));
+    if (selected.length === 0) return;
+
+    setBulkReminderAdding(true);
+    try {
+      const count = await onAddBulkReminders(
+        selected,
+        daysBefore,
+      );
+      showToast(`${count}件のリマインダーを設定しました`, 'success');
+      setBulkReminderDays(null);
+    } catch {
+      showToast('リマインダーの設定に失敗しました', 'error');
+    } finally {
+      setBulkReminderAdding(false);
+    }
+  }, [allDeadlines, selectedIds, hasCalendarToken, onReconnectCalendar, onAddBulkReminders, showToast]);
+
   if (grouped.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -1007,13 +1159,84 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker }: {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">{grouped.length}社の締切情報</p>
+      {/* Bulk add toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === allDeadlines.length && allDeadlines.length > 0}
+              onChange={toggleSelectAll}
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            すべて選択
+          </label>
+          <span className="text-xs text-gray-500">{grouped.length}社の締切情報</span>
+          {selectedIds.size > 0 && (
+            <span className="text-xs text-primary-600 font-medium">{selectedIds.size}件選択中</span>
+          )}
+        </div>
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkAdd}
+              disabled={bulkAdding}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-md transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+                <line x1="12" y1="14" x2="12" y2="18" />
+                <line x1="10" y1="16" x2="14" y2="16" />
+              </svg>
+              {bulkAdding
+                ? `${bulkProgress.current}/${bulkProgress.total}件追加中...`
+                : 'GCal一括追加'}
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setBulkReminderDays(prev => prev === null ? 0 : null)}
+                disabled={bulkReminderAdding}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 rounded-md transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {bulkReminderAdding ? '設定中...' : 'リマインダー一括設定'}
+              </button>
+              {bulkReminderDays !== null && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[120px]">
+                  {[1, 3, 7].map(days => (
+                    <button
+                      key={days}
+                      onClick={() => handleBulkReminder(days)}
+                      className="w-full px-3 py-1.5 text-sm text-left text-gray-700 hover:bg-gray-50"
+                    >
+                      {days}日前
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       {grouped.map((group) => (
         <CompanyCard
           key={group.companyMasterId}
           group={group}
           isAlreadyTracked={trackedMasterIds.has(group.companyMasterId)}
           onAddToTracker={onAddToTracker}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          reminders={reminders}
+          onAddReminder={onAddReminder}
+          onCancelReminder={onCancelReminder}
+          hasCalendarToken={hasCalendarToken}
+          onReconnectCalendar={onReconnectCalendar}
         />
       ))}
     </div>
@@ -1022,11 +1245,13 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker }: {
 
 // ── CompanyCard (unchanged) ─────────────────────────────────────────────
 
-function CompanyCard({ group, isAlreadyTracked, onAddToTracker }: {
+function CompanyCard({ group, isAlreadyTracked, onAddToTracker, selectedIds, onToggleSelect, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar }: {
   group: CompanyGroup;
   isAlreadyTracked: boolean;
   onAddToTracker: (group: CompanyGroup) => void;
-}) {
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+} & ReminderProps) {
   const logoUrl = group.companyWebsiteDomain
     ? `https://logo.clearbit.com/${group.companyWebsiteDomain}`
     : undefined;
@@ -1079,6 +1304,14 @@ function CompanyCard({ group, isAlreadyTracked, onAddToTracker }: {
               key={d.id}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${URGENCY_COLORS[urgency]}`}
             >
+              {onToggleSelect && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds?.has(d.id) ?? false}
+                  onChange={() => onToggleSelect(d.id)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0"
+                />
+              )}
               <span className={`text-xs px-2 py-0.5 rounded font-medium ${TYPE_BADGE_COLORS[d.deadlineType] || TYPE_BADGE_COLORS.other}`}>
                 {DEADLINE_TYPE_LABELS[d.deadlineType as DeadlineType] || d.deadlineType}
               </span>
@@ -1096,6 +1329,8 @@ function CompanyCard({ group, isAlreadyTracked, onAddToTracker }: {
                   </svg>
                 </button>
               )}
+              <GCalButton entry={d} size="xs" />
+              <ReminderButton entry={d} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="xs" />
               <span className="text-sm tabular-nums">{d.deadlineDate}</span>
               {d.deadlineTime && (
                 <span className="text-xs text-gray-500">{d.deadlineTime}</span>
