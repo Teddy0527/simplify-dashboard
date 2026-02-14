@@ -3,7 +3,6 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { ToastProvider } from '../../hooks/useToast';
-import { EntrySheetProvider } from '../../contexts/EntrySheetContext';
 import { usePageTracking } from '../../hooks/usePageTracking';
 
 function LoadingSpinner() {
@@ -19,7 +18,6 @@ export default function DashboardLayout() {
 
   return (
     <ToastProvider>
-      <EntrySheetProvider>
         <div className="h-screen flex flex-col bg-white">
           <Header />
           <div className="flex flex-1 overflow-hidden">
@@ -31,7 +29,6 @@ export default function DashboardLayout() {
             </main>
           </div>
         </div>
-      </EntrySheetProvider>
     </ToastProvider>
   );
 }

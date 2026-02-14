@@ -1,12 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Company } from '@jobsimplify/shared';
 import ConfirmDialog from './Common/ConfirmDialog';
 import { CompanyLogo } from './ui/CompanyLogo';
-import { useEntrySheetContext } from '../contexts/EntrySheetContext';
-import type { DraftCompany, OnFieldChange, DrawerTab } from './drawer/types';
-import DrawerTabNav from './drawer/DrawerTabNav';
+import type { DraftCompany, OnFieldChange } from './drawer/types';
 import DrawerOverviewTab from './drawer/DrawerOverviewTab';
-import DrawerDocumentsTab from './drawer/DrawerDocumentsTab';
 
 interface CompanyDrawerProps {
   company: Company;
@@ -16,8 +13,6 @@ interface CompanyDrawerProps {
 }
 
 export default function CompanyDrawer({ company, onSave, onDelete, onClose }: CompanyDrawerProps) {
-  const { entrySheets } = useEntrySheetContext();
-  const [activeTab, setActiveTab] = useState<DrawerTab>('overview');
   const [visible, setVisible] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -36,11 +31,6 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
   const onFieldChange: OnFieldChange = (key, value) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
-
-  const esCount = useMemo(
-    () => entrySheets.filter((es) => es.companyId === company.id).length,
-    [entrySheets, company.id],
-  );
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -158,38 +148,20 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
           </div>
         </div>
 
-        {/* Tab navigation */}
-        <DrawerTabNav activeTab={activeTab} onTabChange={setActiveTab} esCount={esCount} />
-
-        {/* Tab content */}
-        <div
-          role="tabpanel"
-          id={`tabpanel-${activeTab}`}
-          aria-labelledby={`tab-${activeTab}`}
-          className="flex-1 overflow-y-auto custom-scrollbar p-6"
-        >
-          {activeTab === 'overview' && (
-            <DrawerOverviewTab
-              company={company}
-              draft={draft}
-              onFieldChange={onFieldChange}
-            />
-          )}
-          {activeTab === 'documents' && (
-            <DrawerDocumentsTab
-              companyId={company.id}
-              companyName={company.name}
-            />
-          )}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+          <DrawerOverviewTab
+            company={company}
+            draft={draft}
+            onFieldChange={onFieldChange}
+          />
         </div>
 
-        {/* Footer - hide on documents tab */}
-        {activeTab !== 'documents' && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
-            <button onClick={handleClose} className="btn-secondary">キャンセル</button>
-            <button onClick={handleSave} className="btn-primary">保存</button>
-          </div>
-        )}
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
+          <button onClick={handleClose} className="btn-secondary">キャンセル</button>
+          <button onClick={handleSave} className="btn-primary">保存</button>
+        </div>
       </div>
 
       <ConfirmDialog

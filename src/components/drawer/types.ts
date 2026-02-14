@@ -112,4 +112,3 @@ export function buildTimeline(
   return entries;
 }
 
-export type DrawerTab = 'overview' | 'documents';

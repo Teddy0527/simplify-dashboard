@@ -36,11 +36,6 @@ export {
   addCompany as addLocalCompany,
   updateCompany as updateLocalCompany,
   deleteCompany as deleteLocalCompany,
-  getEntrySheets as getLocalEntrySheets,
-  saveEntrySheets as saveLocalEntrySheets,
-  addEntrySheet as addLocalEntrySheet,
-  updateEntrySheet as updateLocalEntrySheet,
-  deleteEntrySheet as deleteLocalEntrySheet,
   getSettings,
   saveSettings,
   exportAllData,
@@ -69,17 +64,6 @@ export {
   updateCompany,
   deleteCompany,
 } from './repositories/applicationRepository';
-export {
-  getEntrySheets,
-  getEntrySheet,
-  addEntrySheet,
-  updateEntrySheet,
-  deleteEntrySheet,
-  addESQuestion,
-  updateESQuestion,
-  deleteESQuestion,
-  reorderESQuestions,
-} from './repositories/entrySheetRepository';
 export {
   getPresetsByMasterId,
   searchDeadlinePresets,

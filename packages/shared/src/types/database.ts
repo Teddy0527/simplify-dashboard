@@ -1,8 +1,6 @@
 import type { Profile } from './profile';
 import type { Template, TemplateType } from './template';
 import type { Company, SelectionStatus, SelectionStage, CompanyDeadline } from './company';
-import type { EntrySheet, ESQuestion, ESExternalLink } from './entrySheet';
-
 // Supabase Database型定義
 export interface Database {
   public: {
@@ -146,61 +144,6 @@ export interface Database {
           memo?: string | null;
         };
       };
-      entry_sheets: {
-        Row: {
-          id: string;
-          user_id: string;
-          company_id: string | null;
-          title: string;
-          memo: string | null;
-          freeform_content: string | null;
-          external_links: ESExternalLink[] | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          company_id?: string | null;
-          title: string;
-          memo?: string | null;
-          freeform_content?: string | null;
-          external_links?: ESExternalLink[] | null;
-        };
-        Update: {
-          company_id?: string | null;
-          title?: string;
-          memo?: string | null;
-          freeform_content?: string | null;
-          external_links?: ESExternalLink[] | null;
-        };
-      };
-      es_questions: {
-        Row: {
-          id: string;
-          entry_sheet_id: string;
-          question_order: number;
-          question_text: string;
-          char_limit: number | null;
-          answer: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          entry_sheet_id: string;
-          question_order?: number;
-          question_text: string;
-          char_limit?: number | null;
-          answer?: string | null;
-        };
-        Update: {
-          question_order?: number;
-          question_text?: string;
-          char_limit?: number | null;
-          answer?: string | null;
-        };
-      };
     };
     Functions: Record<string, never>;
     Enums: Record<string, never>;
@@ -262,68 +205,3 @@ export function dbToCompany(
   };
 }
 
-// DB行 → EntrySheet型の変換
-export function dbEntrySheetToEntrySheet(
-  row: Database['public']['Tables']['entry_sheets']['Row'],
-  questions: Database['public']['Tables']['es_questions']['Row'][],
-  companyName?: string,
-): EntrySheet {
-  return {
-    id: row.id,
-    companyId: row.company_id ?? undefined,
-    companyName,
-    title: row.title,
-    memo: row.memo ?? undefined,
-    questions: questions.map(dbESQuestionToESQuestion),
-    freeformContent: row.freeform_content ?? undefined,
-    externalLinks: row.external_links && row.external_links.length > 0 ? row.external_links : undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-// DB行 → ESQuestion型の変換
-export function dbESQuestionToESQuestion(
-  row: Database['public']['Tables']['es_questions']['Row'],
-): ESQuestion {
-  return {
-    id: row.id,
-    entrySheetId: row.entry_sheet_id,
-    questionOrder: row.question_order,
-    questionText: row.question_text,
-    charLimit: row.char_limit ?? undefined,
-    answer: row.answer ?? undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-// EntrySheet → DB Insert型の変換
-export function entrySheetToDbInsert(
-  entrySheet: EntrySheet,
-  userId: string,
-): Database['public']['Tables']['entry_sheets']['Insert'] {
-  return {
-    id: entrySheet.id,
-    user_id: userId,
-    company_id: entrySheet.companyId ?? null,
-    title: entrySheet.title,
-    memo: entrySheet.memo ?? null,
-    freeform_content: entrySheet.freeformContent ?? null,
-    external_links: entrySheet.externalLinks && entrySheet.externalLinks.length > 0 ? entrySheet.externalLinks : null,
-  };
-}
-
-// ESQuestion → DB Insert型の変換
-export function esQuestionToDbInsert(
-  question: ESQuestion,
-): Database['public']['Tables']['es_questions']['Insert'] {
-  return {
-    id: question.id,
-    entry_sheet_id: question.entrySheetId,
-    question_order: question.questionOrder,
-    question_text: question.questionText,
-    char_limit: question.charLimit ?? null,
-    answer: question.answer ?? null,
-  };
-}
