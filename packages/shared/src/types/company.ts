@@ -24,6 +24,17 @@ export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
   other: 'その他',
 };
 
+export const DEADLINE_STAGE_MAP: Record<DeadlineType, SelectionStatus[]> = {
+  es_submission: ['es_submitted'],
+  webtest: ['webtest'],
+  interview: ['interview_1', 'interview_2', 'interview_3', 'interview_final'],
+  offer_response: ['offer'],
+  internship: [],
+  document: [],
+  event: [],
+  other: [],
+};
+
 export function createDeadline(type: DeadlineType, label: string, date: string, time?: string, memo?: string): CompanyDeadline {
   return {
     id: crypto.randomUUID(),

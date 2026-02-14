@@ -58,6 +58,7 @@ const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick
                 esCount={esCountMap?.get(company.id)}
                 onESClick={onESClick}
                 onDelete={onCardDelete}
+                isSelectionColumn={column.id === 'selection'}
               />
             ))
           )}

@@ -3,7 +3,7 @@ import type { Company } from '@jobsimplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 import { getNearestDeadline, formatDeadlineShort, getDeadlineUrgency } from '../utils/deadlineHelpers';
 
-export type ViewMode = 'kanban' | 'list' | 'calendar';
+export type ViewMode = 'kanban' | 'calendar';
 
 interface FilterBarProps {
   searchQuery: string;
@@ -213,34 +213,32 @@ export default function FilterBar({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* View toggle */}
-      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+      {/* View toggle - Segmented control */}
+      <div className="flex bg-gray-100 rounded-lg p-0.5">
         <button
           onClick={() => onViewModeChange('kanban')}
-          className={`px-2.5 py-1.5 text-sm transition-colors ${viewMode === 'kanban' ? 'bg-primary-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+            viewMode === 'kanban' ? 'bg-white text-primary-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
           </svg>
-        </button>
-        <button
-          onClick={() => onViewModeChange('list')}
-          className={`px-2.5 py-1.5 text-sm transition-colors ${viewMode === 'list' ? 'bg-primary-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-          </svg>
+          カンバン
         </button>
         <button
           onClick={() => onViewModeChange('calendar')}
-          className={`px-2.5 py-1.5 text-sm transition-colors ${viewMode === 'calendar' ? 'bg-primary-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+            viewMode === 'calendar' ? 'bg-white text-primary-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             <line x1="16" y1="2" x2="16" y2="6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             <line x1="8" y1="2" x2="8" y2="6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             <line x1="3" y1="10" x2="21" y2="10" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
+          カレンダー
         </button>
       </div>
 

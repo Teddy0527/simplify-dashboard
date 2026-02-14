@@ -49,8 +49,6 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
   other: 'bg-gray-100 text-gray-600',
 };
 
-const MAX_VISIBLE_EVENTS = 3;
-
 const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 
 // ── Helpers ─────────────────────────────────────────────────────────────
@@ -70,8 +68,8 @@ function getMonthDays(year: number, month: number) {
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ date: new Date(year, month, d), currentMonth: true });
   }
-  // Next month fill to complete 6 rows
-  const remaining = 42 - cells.length;
+  // Next month fill to complete current week row only (4-6 rows dynamic)
+  const remaining = (7 - (cells.length % 7)) % 7;
   for (let d = 1; d <= remaining; d++) {
     cells.push({ date: new Date(year, month + 1, d), currentMonth: false });
   }
@@ -177,15 +175,17 @@ export default function DeadlinePresetsPage() {
     }
   }, [grouped, handleAddToTracker]);
 
+  const isCalendarView = viewMode === 'calendar' && !loading;
+
   return (
-    <div className="flex-1 overflow-y-auto px-6 pt-6 pb-8">
+    <div className={`flex-1 ${isCalendarView ? 'px-4 pt-3 pb-3 overflow-hidden flex flex-col' : 'px-6 pt-6 pb-8 overflow-y-auto'}`}>
       {/* Header */}
-      <div className="mb-6 flex items-end justify-between flex-wrap gap-4">
+      <div className={`${isCalendarView ? 'mb-3' : 'mb-6'} flex items-end justify-between flex-wrap gap-3`}>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-gray-900">ES締切データベース</h1>
-          <p className="text-sm text-gray-500 mt-1.5">主要企業のES締切・選考スケジュールを一覧で確認できます</p>
+          <h1 className={`${isCalendarView ? 'text-lg' : 'text-xl'} font-semibold tracking-tight text-gray-900`}>ES締切データベース</h1>
+          {!isCalendarView && <p className="text-sm text-gray-500 mt-1.5">主要企業のES締切・選考スケジュールを一覧で確認できます</p>}
         </div>
-        <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+        <ViewToggle viewMode={viewMode} onChange={setViewMode} compact={isCalendarView} />
       </div>
 
       {/* Filters */}
@@ -194,28 +194,35 @@ export default function DeadlinePresetsPage() {
         onQueryChange={setQuery}
         industry={industry}
         onIndustryChange={setIndustry}
+        compact={isCalendarView}
       />
 
       {/* Content */}
-      {loading ? (
-        <div className="text-center py-12 text-gray-500">
-          <div className="inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
-          <p className="text-sm">読み込み中...</p>
-        </div>
-      ) : viewMode === 'calendar' ? (
-        <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
-      ) : viewMode === 'week' ? (
-        <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
-      ) : (
-        <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} />
-      )}
+      <div className={isCalendarView ? 'flex-1 min-h-0' : ''}>
+        {loading ? (
+          <div className="text-center py-12 text-gray-500">
+            <div className="inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
+            <p className="text-sm">読み込み中...</p>
+          </div>
+        ) : viewMode === 'calendar' ? (
+          <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
+        ) : viewMode === 'week' ? (
+          <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
+        ) : (
+          <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} />
+        )}
+      </div>
     </div>
   );
 }
 
 // ── ViewToggle ──────────────────────────────────────────────────────────
 
-function ViewToggle({ viewMode, onChange }: { viewMode: 'calendar' | 'week' | 'list'; onChange: (v: 'calendar' | 'week' | 'list') => void }) {
+function ViewToggle({ viewMode, onChange, compact = false }: {
+  viewMode: 'calendar' | 'week' | 'list';
+  onChange: (v: 'calendar' | 'week' | 'list') => void;
+  compact?: boolean;
+}) {
   const options: Array<{ key: 'calendar' | 'week' | 'list'; label: string; icon: React.ReactNode }> = [
     {
       key: 'calendar',
@@ -262,7 +269,7 @@ function ViewToggle({ viewMode, onChange }: { viewMode: 'calendar' | 'week' | 'l
         <button
           key={opt.key}
           onClick={() => onChange(opt.key)}
-          className={`px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+          className={`${compact ? 'px-2.5 py-1.5 text-sm gap-1' : 'px-3 py-1.5 text-sm gap-1.5'} font-medium transition-colors flex items-center ${
             i > 0 ? 'border-l border-gray-200' : ''
           } ${viewMode === opt.key ? 'bg-primary-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
         >
@@ -277,26 +284,27 @@ function ViewToggle({ viewMode, onChange }: { viewMode: 'calendar' | 'week' | 'l
 // ── DeadlineFilters ─────────────────────────────────────────────────────
 
 function DeadlineFilters({
-  query, onQueryChange, industry, onIndustryChange,
+  query, onQueryChange, industry, onIndustryChange, compact = false,
 }: {
   query: string; onQueryChange: (v: string) => void;
   industry: string; onIndustryChange: (v: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap gap-3 mb-6">
+    <div className={`flex flex-wrap gap-2 ${compact ? 'mb-3' : 'mb-6'}`}>
       <div className="flex-1 min-w-[200px]">
         <input
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="input-field !py-2"
+          className={`input-field ${compact ? '!py-1.5 text-sm' : '!py-2'}`}
           placeholder="企業名で検索..."
         />
       </div>
       <select
         value={industry}
         onChange={(e) => onIndustryChange(e.target.value)}
-        className="select-field w-auto !py-2"
+        className={`select-field w-auto ${compact ? '!py-1.5 text-sm min-w-[132px]' : '!py-2'}`}
       >
         <option value="">全業界</option>
         {INDUSTRY_OPTIONS.map((opt) => (
@@ -314,10 +322,18 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
   trackedMasterIds: Set<string>;
   onAddEntryToTracker: (entry: DeadlinePresetWithCompany) => void;
 }) {
+  const CALENDAR_WEEKDAY_HEADER_HEIGHT = 28;
+  const CALENDAR_SCALE = 0.92;
+  const calendarAreaRef = useRef<HTMLDivElement>(null);
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [popover, setPopover] = useState<{ date: Date; entries: DeadlinePresetWithCompany[]; x: number; y: number } | null>(null);
   const [eventDetail, setEventDetail] = useState<{ entry: DeadlinePresetWithCompany; x: number; y: number } | null>(null);
+  const [rowHeight, setRowHeight] = useState(0);
+  const rowCount = useMemo(
+    () => getMonthDays(currentDate.getFullYear(), currentDate.getMonth()).length / 7,
+    [currentDate]
+  );
 
   const prevMonth = useCallback(() => {
     setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -347,22 +363,41 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
     setEventDetail({ entry, x: Math.max(8, x), y: Math.max(8, y) });
   }, []);
 
+  useEffect(() => {
+    const area = calendarAreaRef.current;
+    if (!area) return;
+    const observer = new ResizeObserver((entries) => {
+      const { height } = entries[0].contentRect;
+      const availableHeight = Math.max(height - CALENDAR_WEEKDAY_HEADER_HEIGHT, 0);
+      const heightPerRow = Math.floor((availableHeight * CALENDAR_SCALE) / rowCount);
+      setRowHeight(Math.max(heightPerRow, 0));
+    });
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [rowCount]);
+
   return (
-    <div>
+    <div className="h-full flex flex-col min-h-0">
       <CalendarNavHeader
         currentDate={currentDate}
         onPrev={prevMonth}
         onNext={nextMonth}
         onToday={goToday}
+        compact
       />
-      <WeekdayHeaders />
-      <MonthGrid
-        currentDate={currentDate}
-        byDate={byDate}
-        today={today}
-        onShowDayPopover={handleDayPopover}
-        onShowEventDetail={handleEventDetail}
-      />
+      <div ref={calendarAreaRef} className="flex-1 min-h-0 overflow-hidden">
+        <div className="h-full w-full max-w-[1400px] mx-auto">
+          <WeekdayHeaders />
+          <MonthGrid
+            currentDate={currentDate}
+            byDate={byDate}
+            today={today}
+            rowHeight={rowHeight}
+            onShowDayPopover={handleDayPopover}
+            onShowEventDetail={handleEventDetail}
+          />
+        </div>
+      </div>
 
       {popover && (
         <DayDetailPopover
@@ -390,23 +425,23 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
 // ── CalendarNavHeader ───────────────────────────────────────────────────
 
 function CalendarNavHeader({
-  currentDate, onPrev, onNext, onToday,
+  currentDate, onPrev, onNext, onToday, compact = false,
 }: {
-  currentDate: Date; onPrev: () => void; onNext: () => void; onToday: () => void;
+  currentDate: Date; onPrev: () => void; onNext: () => void; onToday: () => void; compact?: boolean;
 }) {
   const title = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-3">
+    <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
+      <div className={`flex items-center ${compact ? 'gap-2' : 'gap-3'}`}>
         <button
           onClick={onToday}
-          className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          className={`${compact ? 'px-2.5 py-1 text-sm' : 'px-3 py-1.5 text-sm'} font-medium border border-gray-300 rounded-md hover:bg-gray-50 transition-colors`}
         >
           今日
         </button>
         <button
           onClick={onPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          className={`${compact ? 'w-7 h-7' : 'w-8 h-8'} flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600`}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
@@ -414,13 +449,13 @@ function CalendarNavHeader({
         </button>
         <button
           onClick={onNext}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          className={`${compact ? 'w-7 h-7' : 'w-8 h-8'} flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600`}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 6 15 12 9 18" />
           </svg>
         </button>
-        <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+        <h2 className={`${compact ? 'text-lg' : 'text-lg'} font-medium text-gray-900`}>{title}</h2>
       </div>
       <DeadlineTypeLegend />
     </div>
@@ -435,7 +470,7 @@ function WeekdayHeaders() {
       {WEEKDAY_LABELS.map((label, i) => (
         <div
           key={label}
-          className={`text-center text-xs font-medium py-1.5 ${
+          className={`text-center text-sm font-medium py-1.5 ${
             i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'
           }`}
         >
@@ -449,11 +484,12 @@ function WeekdayHeaders() {
 // ── MonthGrid ───────────────────────────────────────────────────────────
 
 function MonthGrid({
-  currentDate, byDate, today, onShowDayPopover, onShowEventDetail,
+  currentDate, byDate, today, rowHeight, onShowDayPopover, onShowEventDetail,
 }: {
   currentDate: Date;
   byDate: Map<string, DeadlinePresetWithCompany[]>;
   today: Date;
+  rowHeight: number;
   onShowDayPopover: (date: Date, entries: DeadlinePresetWithCompany[], e: React.MouseEvent) => void;
   onShowEventDetail: (entry: DeadlinePresetWithCompany, e: React.MouseEvent) => void;
 }) {
@@ -462,8 +498,14 @@ function MonthGrid({
     [currentDate]
   );
 
+  const gridStyle = rowHeight > 0 ? { gridAutoRows: `${rowHeight}px` } : undefined;
+  // Fit as many rows as possible in each day cell while leaving room for the date header.
+  const maxRowsPerCell = rowHeight > 0
+    ? Math.max(1, Math.min(8, Math.floor((rowHeight - 40) / 36)))
+    : 1;
+
   return (
-    <div className="gcal-grid">
+    <div className="gcal-grid gcal-grid-tight w-full" style={gridStyle}>
       {cells.map((cell, idx) => {
         const key = formatDateKey(cell.date);
         const entries = byDate.get(key) || [];
@@ -480,14 +522,14 @@ function MonthGrid({
           <div key={idx} className={cellClass}>
             <DayNumber date={cell.date} isToday={isToday} dow={dow} />
             <div className="space-y-px">
-              {entries.slice(0, MAX_VISIBLE_EVENTS).map((entry) => (
+              {entries.slice(0, entries.length > maxRowsPerCell ? maxRowsPerCell - 1 : maxRowsPerCell).map((entry) => (
                 <EventChip
                   key={entry.id}
                   entry={entry}
                   onClick={(e) => onShowEventDetail(entry, e)}
                 />
               ))}
-              {entries.length > MAX_VISIBLE_EVENTS && (
+              {entries.length > maxRowsPerCell && (
                 <button
                   className="text-[11px] text-gray-500 hover:text-gray-700 font-medium pl-1.5"
                   onClick={(e) => {
@@ -495,7 +537,7 @@ function MonthGrid({
                     onShowDayPopover(cell.date, entries, e);
                   }}
                 >
-                  +{entries.length - MAX_VISIBLE_EVENTS}件
+                  +{entries.length - (maxRowsPerCell - 1)}件
                 </button>
               )}
             </div>
@@ -521,23 +563,20 @@ function DayNumber({ date, isToday, dow }: { date: Date; isToday: boolean; dow: 
 
 function EventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; onClick?: (e: React.MouseEvent) => void }) {
   const color = getTypeColor(entry.deadlineType);
-  const companyShort = entry.companyName.length > 8
-    ? entry.companyName.slice(0, 8) + '…'
-    : entry.companyName;
   const categoryLabel = DEADLINE_TYPE_LABELS[entry.deadlineType as DeadlineType] || entry.deadlineType;
   const tooltip = `${entry.companyName} · ${categoryLabel} · ${entry.label}`;
 
   return (
     <div
-      className="gcal-event-chip"
-      style={{ backgroundColor: color.bg, color: color.text }}
+      className="gcal-event-chip w-full text-left"
       title={tooltip}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
       }}
     >
-      {companyShort}
+      <span className="gcal-event-dot" style={{ backgroundColor: color.dot }} />
+      <span className="gcal-event-text">{entry.companyName}</span>
     </div>
   );
 }
@@ -759,7 +798,7 @@ function DeadlineTypeLegend() {
             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: cat.color }}
           />
-          <span className="text-xs text-gray-500">{cat.label}</span>
+          <span className="text-sm text-gray-500">{cat.label}</span>
         </div>
       ))}
     </div>

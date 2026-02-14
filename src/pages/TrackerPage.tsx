@@ -7,7 +7,6 @@ import { useToast } from '../hooks/useToast';
 import { useEntrySheetContext } from '../contexts/EntrySheetContext';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
-import ListView from '../components/ListView';
 import DeadlineCalendarView from '../components/DeadlineCalendarView';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
@@ -147,7 +146,11 @@ function TrackerContent() {
       />
 
       {/* View */}
-      <div className="flex-1 overflow-hidden flex pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className={`flex-1 overflow-hidden flex ${
+        viewMode === 'calendar'
+          ? 'bg-white'
+          : 'pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]'
+      }`}>
         {companies.length === 0 ? (
           <EmptyState
             icon={
@@ -171,11 +174,6 @@ function TrackerContent() {
             esCountMap={esCountMap}
             onESClick={handleESClick}
             onCardDelete={handleCardDelete}
-          />
-        ) : viewMode === 'list' ? (
-          <ListView
-            companies={filtered}
-            onCardClick={handleCardClick}
           />
         ) : (
           <DeadlineCalendarView

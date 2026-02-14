@@ -15,7 +15,8 @@
       "Bash(npm --version:*)",
       "Bash(git status:*)",
       "Bash(gh issue list:*)",
-      "Bash(gh issue close:*)"
+      "Bash(gh issue close:*)",
+      "mcp__supabase__execute_sql"
     ]
   }
 }

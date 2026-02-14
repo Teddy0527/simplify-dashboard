@@ -1,5 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { SelectionStage, SelectionStatus, STATUS_LABELS } from '@jobsimplify/shared';
+import { useState, useRef, useMemo } from 'react';
+import {
+  SelectionStage,
+  SelectionStatus,
+  STATUS_LABELS,
+  CompanyDeadline,
+  DeadlineType,
+  DEADLINE_TYPE_LABELS,
+  createDeadline,
+} from '@jobsimplify/shared';
 import {
   DndContext,
   DragEndEvent,
@@ -16,13 +24,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { TimelineEntry, TimelineEntryState } from './types';
+import MiniCalendar from '../ui/MiniCalendar';
+import { bindDeadlinesToStages, getDeadlineUrgency, formatDeadlineShort } from '../../utils/deadlineHelpers';
+import { buildGoogleCalendarUrl } from '../../utils/googleCalendar';
 
 interface ApplicationTimelineProps {
   entries: TimelineEntry[];
   stages: SelectionStage[];
+  deadlines: CompanyDeadline[];
+  companyName: string;
   showAll: boolean;
   onToggleShowAll: () => void;
   onStagesChange: (stages: SelectionStage[]) => void;
+  onDeadlinesChange: (deadlines: CompanyDeadline[]) => void;
 }
 
 const RESULT_LABELS: Record<string, string> = {
@@ -50,52 +64,387 @@ const DOT_CLASSES: Record<TimelineEntryState, string> = {
   future: 'border-2 border-gray-300 bg-white',
 };
 
+const DEADLINE_TYPES: DeadlineType[] = [
+  'es_submission', 'internship', 'webtest', 'interview',
+  'offer_response', 'document', 'event', 'other',
+];
+
+const URGENCY_BORDER: Record<string, string> = {
+  overdue: 'border-l-red-500',
+  urgent: 'border-l-red-500',
+  soon: 'border-l-amber-500',
+  normal: 'border-l-gray-300',
+};
+
+// --- Three-dot menu button ---
+
+function MoreButton({ onClick, title }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-1 text-gray-400 hover:text-gray-600 transition-colors opacity-0 group-hover/dl:opacity-100 group-hover:opacity-100"
+      title={title || '詳細'}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="2.4" />
+        <circle cx="12" cy="12" r="2.4" />
+        <circle cx="12" cy="19" r="2.4" />
+      </svg>
+    </button>
+  );
+}
+
+// --- Deadline sub-item ---
+
+function DeadlineSubItem({
+  deadline,
+  onExpand,
+}: {
+  deadline: CompanyDeadline;
+  onExpand: () => void;
+}) {
+  const urgency = getDeadlineUrgency(deadline.date);
+
+  return (
+    <div className={`ml-2 pl-3 border-l-2 ${URGENCY_BORDER[urgency]} py-1 group/dl`}>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-gray-500">[締切]</span>
+        <span className="text-xs font-medium text-gray-700 truncate">{deadline.label}</span>
+        <span className="text-xs text-gray-400">
+          {deadline.date}{deadline.time ? ` ${deadline.time}` : ''}
+        </span>
+        <span className={`text-xs font-medium ${
+          urgency === 'overdue' || urgency === 'urgent' ? 'text-red-600'
+            : urgency === 'soon' ? 'text-amber-600'
+            : 'text-gray-500'
+        }`}>
+          {formatDeadlineShort(deadline.date)}
+        </span>
+        <div className="ml-auto flex-shrink-0">
+          <MoreButton onClick={onExpand} title="締切を編集" />
+        </div>
+      </div>
+      {deadline.memo && (
+        <p className="text-xs text-gray-400 mt-0.5 ml-[3.25rem] truncate">メモ: {deadline.memo}</p>
+      )}
+    </div>
+  );
+}
+
+// --- Deadline edit form (inline) ---
+
+function DeadlineEditForm({
+  mode,
+  initial,
+  onSave,
+  onCancel,
+  onGoogleCalendar,
+  onDelete,
+}: {
+  mode: 'add' | 'edit';
+  initial?: CompanyDeadline;
+  onSave: (type: DeadlineType, label: string, date: string, time: string, memo: string) => void;
+  onCancel: () => void;
+  onGoogleCalendar?: () => void;
+  onDelete?: () => void;
+}) {
+  const [dlType, setDlType] = useState<DeadlineType>(initial?.type || 'es_submission');
+  const [dlLabel, setDlLabel] = useState(initial?.label || DEADLINE_TYPE_LABELS[initial?.type || 'es_submission']);
+  const [dlDate, setDlDate] = useState(initial?.date || '');
+  const [dlTime, setDlTime] = useState(initial?.time || '');
+  const [dlMemo, setDlMemo] = useState(initial?.memo || '');
+  const [calOpen, setCalOpen] = useState(false);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+  const memoRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleTypeChange(type: DeadlineType) {
+    setDlType(type);
+    setDlLabel(DEADLINE_TYPE_LABELS[type]);
+  }
+
+  function handleMemoInput(e: React.FormEvent<HTMLTextAreaElement>) {
+    const el = e.currentTarget;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  function formatDateChip(date: string, time: string) {
+    const d = new Date(date);
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${month}/${day}${time ? ` ${time}` : ''}`;
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+        <input
+          type="text"
+          value={dlLabel}
+          onChange={e => setDlLabel(e.target.value)}
+          className="flex-1 text-sm font-medium text-gray-900 border-b border-gray-200 focus:border-primary-500 outline-none pb-1 bg-transparent placeholder:text-gray-400"
+          placeholder="締切の名前を入力..."
+        />
+        <button
+          onClick={() => { if (dlDate) onSave(dlType, dlLabel, dlDate, dlTime, dlMemo); }}
+          className="px-4 py-1.5 text-sm font-medium text-white bg-primary-700 rounded-full hover:bg-primary-800 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!dlDate}
+        >
+          {mode === 'add' ? '追加' : '保存'}
+        </button>
+      </div>
+
+      {/* Content rows */}
+      <div className="px-4 pb-3 space-y-2.5">
+        {/* Date/time */}
+        <div className="flex items-center gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <button
+            ref={dateTriggerRef}
+            type="button"
+            onClick={() => setCalOpen(true)}
+            className={`text-sm px-3 py-1 rounded-full transition-colors ${
+              dlDate
+                ? 'bg-primary-50 text-primary-700 hover:bg-primary-100'
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+            }`}
+          >
+            {dlDate ? formatDateChip(dlDate, dlTime) : '日付を選択'}
+          </button>
+          <MiniCalendar
+            value={dlDate}
+            onChange={(d) => setDlDate(d)}
+            showTime
+            timeValue={dlTime}
+            onTimeChange={(t) => setDlTime(t)}
+            anchorRef={dateTriggerRef}
+            open={calOpen}
+            onClose={() => setCalOpen(false)}
+          />
+        </div>
+
+        {/* Type */}
+        <div className="flex items-center gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+          <select
+            value={dlType}
+            onChange={e => handleTypeChange(e.target.value as DeadlineType)}
+            className="text-sm py-1 px-2 rounded bg-gray-50 border-0 text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors focus:ring-1 focus:ring-primary-400 outline-none"
+          >
+            {DEADLINE_TYPES.map(t => (
+              <option key={t} value={t}>{DEADLINE_TYPE_LABELS[t]}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Memo */}
+        <div className="flex items-start gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="17" y1="10" x2="3" y2="10" />
+            <line x1="21" y1="6" x2="3" y2="6" />
+            <line x1="21" y1="14" x2="3" y2="14" />
+            <line x1="17" y1="18" x2="3" y2="18" />
+          </svg>
+          <textarea
+            ref={memoRef}
+            value={dlMemo}
+            onChange={e => setDlMemo(e.target.value)}
+            onInput={handleMemoInput}
+            className="flex-1 text-sm text-gray-700 bg-transparent border-0 resize-none outline-none placeholder:text-gray-400 min-h-[2rem]"
+            rows={1}
+            placeholder="メモを追加..."
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center pt-1">
+          <div className="flex items-center gap-3">
+            {onGoogleCalendar && (
+              <button
+                onClick={onGoogleCalendar}
+                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Googleカレンダー
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="text-sm text-red-500 hover:text-red-700 transition-colors"
+              >
+                削除
+              </button>
+            )}
+          </div>
+          <button
+            onClick={onCancel}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors ml-auto"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Stage expanded edit panel ---
+
+function StageEditPanel({
+  stage,
+  onUpdate,
+  onRemove,
+  onClose,
+}: {
+  stage: SelectionStage;
+  onUpdate: (patch: Partial<SelectionStage>) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const [labelValue, setLabelValue] = useState(
+    stage.customLabel || (STATUS_LABELS[stage.type] ?? stage.type),
+  );
+  const [calOpen, setCalOpen] = useState(false);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+
+  function handleLabelBlur() {
+    const defaultLabel = STATUS_LABELS[stage.type] ?? stage.type;
+    const customLabel =
+      labelValue.trim() === '' || labelValue.trim() === defaultLabel
+        ? undefined
+        : labelValue.trim();
+    onUpdate({ customLabel });
+  }
+
+  function handleLabelKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
+  function formatDateChip(date: string, time?: string) {
+    const d = new Date(date);
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${month}/${day}${time ? ` ${time}` : ''}`;
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-3 space-y-2.5">
+        {/* Label */}
+        <div className="flex items-center gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          <input
+            type="text"
+            value={labelValue}
+            onChange={(e) => setLabelValue(e.target.value)}
+            onBlur={handleLabelBlur}
+            onKeyDown={handleLabelKeyDown}
+            className="flex-1 text-sm font-medium text-gray-900 border-b border-gray-200 focus:border-primary-500 outline-none pb-1 bg-transparent placeholder:text-gray-400"
+            placeholder="ステージ名..."
+          />
+        </div>
+
+        {/* Date */}
+        <div className="flex items-center gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <button
+            ref={dateTriggerRef}
+            type="button"
+            onClick={() => setCalOpen(true)}
+            className={`text-sm px-3 py-1 rounded-full transition-colors ${
+              stage.date
+                ? 'bg-primary-50 text-primary-700 hover:bg-primary-100'
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+            }`}
+          >
+            {stage.date ? formatDateChip(stage.date, stage.time) : '日付を選択'}
+          </button>
+          <MiniCalendar
+            value={stage.date || ''}
+            onChange={(d) => onUpdate({ date: d || undefined })}
+            anchorRef={dateTriggerRef}
+            open={calOpen}
+            onClose={() => setCalOpen(false)}
+          />
+        </div>
+
+        {/* Result */}
+        <div className="flex items-center gap-3">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+            <path d="M22 4L12 14.01l-3-3" />
+          </svg>
+          <select
+            value={stage.result || 'pending'}
+            onChange={(e) => onUpdate({ result: e.target.value as 'pending' | 'passed' | 'failed' })}
+            className="text-sm py-1 px-2 rounded bg-gray-50 border-0 text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors focus:ring-1 focus:ring-primary-400 outline-none"
+          >
+            {Object.entries(RESULT_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center pt-1">
+          <button
+            onClick={onRemove}
+            className="text-sm text-red-500 hover:text-red-700 transition-colors"
+          >
+            削除
+          </button>
+          <button
+            onClick={onClose}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors ml-auto"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Sortable timeline item ---
 
 interface SortableTimelineItemProps {
   id: string;
   entry: TimelineEntry;
-  isEditing: boolean;
-  isEditingLabel: boolean;
-  editLabelValue: string;
-  editResult: 'pending' | 'passed' | 'failed';
-  onStartEdit: () => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
+  stage?: SelectionStage;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onStageUpdate: (patch: Partial<SelectionStage>) => void;
   onRemoveStage: () => void;
-  onStartLabelEdit: () => void;
-  onLabelChange: (v: string) => void;
-  onLabelSave: () => void;
-  onEditResultChange: (v: 'pending' | 'passed' | 'failed') => void;
   isTerminal: boolean;
   onDotClick: () => void;
-  isEditingDate: boolean;
-  editDateValue: string;
-  onDateClick: () => void;
-  onDateSave: (value: string) => void;
 }
 
 function SortableTimelineItem({
   id,
   entry,
-  isEditing,
-  isEditingLabel,
-  editLabelValue,
-  editResult,
-  onStartEdit,
-  onSaveEdit,
-  onCancelEdit,
+  stage,
+  isExpanded,
+  onToggleExpand,
+  onStageUpdate,
   onRemoveStage,
-  onStartLabelEdit,
-  onLabelChange,
-  onLabelSave,
-  onEditResultChange,
   isTerminal,
   onDotClick,
-  isEditingDate,
-  editDateValue,
-  onDateClick,
-  onDateSave,
 }: SortableTimelineItemProps) {
   const {
     attributes,
@@ -106,29 +455,11 @@ function SortableTimelineItem({
     isDragging,
   } = useSortable({ id, disabled: isTerminal });
 
-  const labelInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditingLabel && labelInputRef.current) {
-      labelInputRef.current.focus();
-      labelInputRef.current.select();
-    }
-  }, [isEditingLabel]);
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
   };
-
-  function handleLabelKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      onLabelSave();
-    } else if (e.key === 'Escape') {
-      onLabelSave();
-    }
-  }
 
   return (
     <div
@@ -136,7 +467,7 @@ function SortableTimelineItem({
       style={style}
       className="relative flex items-start gap-3 mb-4 last:mb-0 group"
     >
-      {/* Drag handle — hover only, left of dot */}
+      {/* Drag handle */}
       {!isTerminal && entry.stageIndex !== undefined && (
         <div
           {...attributes}
@@ -169,59 +500,15 @@ function SortableTimelineItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {/* Label — click to edit */}
-          {isEditingLabel ? (
-            <input
-              ref={labelInputRef}
-              type="text"
-              value={editLabelValue}
-              onChange={(e) => onLabelChange(e.target.value)}
-              onBlur={onLabelSave}
-              onKeyDown={handleLabelKeyDown}
-              className="text-sm font-medium text-gray-900 bg-white border border-primary-300 rounded px-1 py-0 outline-none focus:ring-1 focus:ring-primary-400 w-24"
-            />
-          ) : (
-            <span
-              className={`text-sm font-medium text-gray-900 ${entry.stageIndex !== undefined ? 'cursor-pointer hover:text-primary-600' : ''}`}
-              onClick={() => {
-                if (entry.stageIndex !== undefined) onStartLabelEdit();
-              }}
-              title={entry.stageIndex !== undefined ? 'クリックで名前変更' : undefined}
-            >
-              {entry.label}
-            </span>
-          )}
-          {entry.stageIndex !== undefined && (
-            isEditingDate ? (
-              <input
-                type="date"
-                autoFocus
-                defaultValue={editDateValue}
-                onBlur={(e) => onDateSave(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    onDateSave((e.target as HTMLInputElement).value);
-                  }
-                }}
-                className="text-xs py-0 px-1 border border-primary-300 rounded bg-white outline-none focus:ring-1 focus:ring-primary-400"
-              />
-            ) : (
-              <span
-                className="text-xs text-gray-400 cursor-pointer hover:text-primary-500 transition-colors"
-                onClick={onDateClick}
-                title="クリックで日付入力"
-              >
-                {entry.date
-                  ? `${parseInt(entry.date.split('-')[1])}/${parseInt(entry.date.split('-')[2])}${entry.time ? ` ${entry.time}` : ''}`
-                  : '日付'}
-              </span>
-            )
-          )}
-          {entry.stageIndex === undefined && entry.date && (
+          {/* Label — display only */}
+          <span className="text-sm font-medium text-gray-900">
+            {entry.label}
+          </span>
+          {/* Date — display only */}
+          {entry.date && (
             <span className="text-xs text-gray-400">
-              {entry.date}
-              {entry.time && ` ${entry.time}`}
+              {`${parseInt(entry.date.split('-')[1])}/${parseInt(entry.date.split('-')[2])}`}
+              {entry.time ? ` ${entry.time}` : ''}
             </span>
           )}
           {entry.result && (
@@ -233,54 +520,22 @@ function SortableTimelineItem({
               {RESULT_LABELS[entry.result]}
             </span>
           )}
+          {/* More button */}
+          {!isTerminal && entry.stageIndex !== undefined && (
+            <div className="ml-auto flex-shrink-0">
+              <MoreButton onClick={onToggleExpand} title="ステージを編集" />
+            </div>
+          )}
         </div>
 
-        {isEditing && entry.stageIndex !== undefined && (
-          <div className="mt-2 p-2 bg-gray-50 rounded-lg space-y-2">
-            <div className="flex items-center gap-2">
-              <select
-                value={editResult}
-                onChange={(e) => onEditResultChange(e.target.value as 'pending' | 'passed' | 'failed')}
-                className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
-              >
-                {Object.entries(RESULT_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-              <button
-                onClick={onSaveEdit}
-                className="text-xs py-1 px-2 bg-primary-700 text-white rounded"
-              >
-                保存
-              </button>
-              <button
-                onClick={onCancelEdit}
-                className="text-xs py-1 px-2 text-gray-500 hover:text-gray-700"
-              >
-                取消
-              </button>
-              <button
-                onClick={onRemoveStage}
-                className="text-xs py-1 px-2 text-error-500 hover:text-error-700 ml-auto"
-              >
-                削除
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Edit icon */}
-        {!isEditing && entry.stageIndex !== undefined && (
-          <button
-            onClick={onStartEdit}
-            className="mt-0.5 text-gray-400 hover:text-primary-600 transition-colors"
-            title="編集"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
+        {/* Expanded edit panel */}
+        {isExpanded && stage && (
+          <StageEditPanel
+            stage={stage}
+            onUpdate={onStageUpdate}
+            onRemove={onRemoveStage}
+            onClose={onToggleExpand}
+          />
         )}
       </div>
     </div>
@@ -292,55 +547,50 @@ function SortableTimelineItem({
 export default function ApplicationTimeline({
   entries,
   stages,
+  deadlines,
+  companyName,
   showAll,
   onToggleShowAll,
   onStagesChange,
+  onDeadlinesChange,
 }: ApplicationTimelineProps) {
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [editResult, setEditResult] = useState<'pending' | 'passed' | 'failed'>('pending');
-
-  // Label editing
-  const [editingLabelIdx, setEditingLabelIdx] = useState<number | null>(null);
-  const [editLabelValue, setEditLabelValue] = useState('');
-
-  // Inline date editing
-  const [editingDateIdx, setEditingDateIdx] = useState<number | null>(null);
+  // Expanded stage panel
+  const [expandedStageIdx, setExpandedStageIdx] = useState<number | null>(null);
 
   // Adding new stage
   const [adding, setAdding] = useState(false);
   const [newType, setNewType] = useState<SelectionStatus>('interview_1');
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [addCalendarOpen, setAddCalendarOpen] = useState(false);
+  const addDateTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Deadline CRUD state
+  const [addingDeadline, setAddingDeadline] = useState(false);
+  const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
 
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  function handleStartEdit(entry: TimelineEntry) {
-    if (entry.stageIndex !== undefined) {
-      const stage = stages[entry.stageIndex];
-      setEditingIdx(entry.stageIndex);
-      setEditResult(stage.result || 'pending');
-    }
-  }
+  // Bind deadlines to stages
+  const { matched: matchedDeadlines, unmatched: unmatchedDeadlines } = useMemo(
+    () => bindDeadlinesToStages(deadlines, stages),
+    [deadlines, stages],
+  );
 
-  function handleSaveEdit() {
-    if (editingIdx === null) return;
+  // Unified stage update handler
+  function handleStageUpdate(stageIndex: number, patch: Partial<SelectionStage>) {
     const updated = stages.map((s, i) =>
-      i === editingIdx ? { ...s, result: editResult } : s,
+      i === stageIndex ? { ...s, ...patch } : s,
     );
     onStagesChange(updated);
-    setEditingIdx(null);
-  }
-
-  function handleCancelEdit() {
-    setEditingIdx(null);
   }
 
   function handleRemoveStage(stageIndex: number) {
     onStagesChange(stages.filter((_, i) => i !== stageIndex));
-    if (editingIdx === stageIndex) setEditingIdx(null);
+    if (expandedStageIdx === stageIndex) setExpandedStageIdx(null);
   }
 
   function handleAddStage() {
@@ -357,28 +607,6 @@ export default function ApplicationTimeline({
     setNewTime('');
   }
 
-  // Label editing handlers
-  function handleStartLabelEdit(entry: TimelineEntry) {
-    if (entry.stageIndex === undefined) return;
-    setEditingLabelIdx(entry.stageIndex);
-    const stage = stages[entry.stageIndex];
-    setEditLabelValue(stage.customLabel || (STATUS_LABELS[stage.type] ?? stage.type));
-  }
-
-  function handleSaveLabelEdit() {
-    if (editingLabelIdx === null) return;
-    const stage = stages[editingLabelIdx];
-    const defaultLabel = STATUS_LABELS[stage.type] ?? stage.type;
-    const customLabel = editLabelValue.trim() === '' || editLabelValue.trim() === defaultLabel
-      ? undefined
-      : editLabelValue.trim();
-    const updated = stages.map((s, i) =>
-      i === editingLabelIdx ? { ...s, customLabel } : s,
-    );
-    onStagesChange(updated);
-    setEditingLabelIdx(null);
-  }
-
   // Dot click handler — advance or revert progression
   function handleDotClick(clickedIdx: number) {
     const stage = stages[clickedIdx];
@@ -388,12 +616,10 @@ export default function ApplicationTimeline({
       if (s.type === 'rejected' || s.type === 'declined') return s;
 
       if (stage.result === 'passed') {
-        // Clicking a passed stage → revert: keep 0..clickedIdx-1 as-is, clickedIdx becomes pending, rest undefined
         if (i < clickedIdx) return s;
         if (i === clickedIdx) return { ...s, result: 'pending' as const };
         return { ...s, result: undefined };
       } else {
-        // Clicking a future/pending/undefined stage → advance
         if (i < clickedIdx) return { ...s, result: 'passed' as const };
         if (i === clickedIdx) return { ...s, result: 'pending' as const };
         return { ...s, result: undefined };
@@ -402,13 +628,33 @@ export default function ApplicationTimeline({
     onStagesChange(updated);
   }
 
-  // Inline date save
-  function handleDateSave(stageIndex: number, value: string) {
-    const updated = stages.map((s, i) =>
-      i === stageIndex ? { ...s, date: value || undefined } : s,
+  // Deadline CRUD handlers
+  function handleAddDeadline(type: DeadlineType, label: string, date: string, time: string, memo: string) {
+    const dl = createDeadline(type, label, date, time || undefined, memo || undefined);
+    onDeadlinesChange([...deadlines, dl]);
+    setAddingDeadline(false);
+  }
+
+  function handleSaveDeadline(type: DeadlineType, label: string, date: string, time: string, memo: string) {
+    if (!editingDeadlineId) return;
+    onDeadlinesChange(
+      deadlines.map(d =>
+        d.id === editingDeadlineId
+          ? { ...d, type, label, date, time: time || undefined, memo: memo || undefined }
+          : d,
+      ),
     );
-    onStagesChange(updated);
-    setEditingDateIdx(null);
+    setEditingDeadlineId(null);
+  }
+
+  function handleDeleteDeadline(id: string) {
+    onDeadlinesChange(deadlines.filter(d => d.id !== id));
+    if (editingDeadlineId === id) setEditingDeadlineId(null);
+  }
+
+  function handleGoogleCalendar(deadline: CompanyDeadline) {
+    const url = buildGoogleCalendarUrl(companyName, deadline);
+    window.open(url, '_blank');
   }
 
   // DnD handler
@@ -416,11 +662,8 @@ export default function ApplicationTimeline({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    // Reset editing states
-    setEditingIdx(null);
-    setEditingLabelIdx(null);
+    setExpandedStageIdx(null);
 
-    // Find sortable entries (non-terminal)
     const sortableEntries = entries.filter(
       (e) => e.type !== 'rejected' && e.type !== 'declined' && e.stageIndex !== undefined,
     );
@@ -432,13 +675,11 @@ export default function ApplicationTimeline({
     const oldStageIdx = sortableEntries[oldIdx].stageIndex!;
     const newStageIdx = sortableEntries[newIdx].stageIndex!;
 
-    // Map to stages array indices
     const stageIndices = sortableEntries.map((e) => e.stageIndex!);
     const fromPos = stageIndices.indexOf(oldStageIdx);
     const toPos = stageIndices.indexOf(newStageIdx);
     const reorderedIndices = arrayMove(stageIndices, fromPos, toPos);
 
-    // Build new stages array preserving non-sortable items in place
     const newStages = [...stages];
     const sortableStages = reorderedIndices.map((idx) => stages[idx]);
     let sortIdx = 0;
@@ -456,6 +697,30 @@ export default function ApplicationTimeline({
     (e) => e.type !== 'rejected' && e.type !== 'declined' && e.stageIndex !== undefined,
   );
   const sortableIds = sortableEntries.map((e) => `stage-${e.stageIndex}`);
+
+  // Render deadline sub-items (shared between matched and unmatched)
+  function renderDeadline(dl: CompanyDeadline) {
+    if (editingDeadlineId === dl.id) {
+      return (
+        <DeadlineEditForm
+          key={dl.id}
+          mode="edit"
+          initial={dl}
+          onSave={handleSaveDeadline}
+          onCancel={() => setEditingDeadlineId(null)}
+          onGoogleCalendar={() => handleGoogleCalendar(dl)}
+          onDelete={() => handleDeleteDeadline(dl.id)}
+        />
+      );
+    }
+    return (
+      <DeadlineSubItem
+        key={dl.id}
+        deadline={dl}
+        onExpand={() => setEditingDeadlineId(dl.id)}
+      />
+    );
+  }
 
   return (
     <div>
@@ -476,38 +741,53 @@ export default function ApplicationTimeline({
             {entries.map((entry, i) => {
               const isTerminal = entry.type === 'rejected' || entry.type === 'declined';
               const itemId = isTerminal ? `terminal-${entry.type}` : `stage-${entry.stageIndex}`;
-              const isEditing = entry.stageIndex !== undefined && editingIdx === entry.stageIndex;
-              const isEditingLabel = entry.stageIndex !== undefined && editingLabelIdx === entry.stageIndex;
+              const stageDeadlines = entry.stageIndex !== undefined ? (matchedDeadlines.get(entry.stageIndex) || []) : [];
+              const stage = entry.stageIndex !== undefined ? stages[entry.stageIndex] : undefined;
 
               return (
-                <SortableTimelineItem
-                  key={`${entry.type}-${i}`}
-                  id={itemId}
-                  entry={entry}
-                  isEditing={isEditing}
-                  isEditingLabel={isEditingLabel}
-                  editLabelValue={editLabelValue}
-                  editResult={editResult}
-                  onStartEdit={() => handleStartEdit(entry)}
-                  onSaveEdit={handleSaveEdit}
-                  onCancelEdit={handleCancelEdit}
-                  onRemoveStage={() => entry.stageIndex !== undefined && handleRemoveStage(entry.stageIndex)}
-                  onStartLabelEdit={() => handleStartLabelEdit(entry)}
-                  onLabelChange={setEditLabelValue}
-                  onLabelSave={handleSaveLabelEdit}
-                  onEditResultChange={setEditResult}
-                  isTerminal={isTerminal}
-                  onDotClick={() => entry.stageIndex !== undefined && handleDotClick(entry.stageIndex)}
-                  isEditingDate={entry.stageIndex !== undefined && editingDateIdx === entry.stageIndex}
-                  editDateValue={entry.stageIndex !== undefined && editingDateIdx === entry.stageIndex ? (stages[entry.stageIndex].date || '') : ''}
-                  onDateClick={() => entry.stageIndex !== undefined && setEditingDateIdx(entry.stageIndex)}
-                  onDateSave={(value) => entry.stageIndex !== undefined && handleDateSave(entry.stageIndex, value)}
-                />
+                <div key={`${entry.type}-${i}`}>
+                  <SortableTimelineItem
+                    id={itemId}
+                    entry={entry}
+                    stage={stage}
+                    isExpanded={entry.stageIndex !== undefined && expandedStageIdx === entry.stageIndex}
+                    onToggleExpand={() => {
+                      if (entry.stageIndex !== undefined) {
+                        setExpandedStageIdx(expandedStageIdx === entry.stageIndex ? null : entry.stageIndex);
+                      }
+                    }}
+                    onStageUpdate={(patch) => entry.stageIndex !== undefined && handleStageUpdate(entry.stageIndex, patch)}
+                    onRemoveStage={() => entry.stageIndex !== undefined && handleRemoveStage(entry.stageIndex)}
+                    isTerminal={isTerminal}
+                    onDotClick={() => entry.stageIndex !== undefined && handleDotClick(entry.stageIndex)}
+                  />
+                  {/* Matched deadline sub-items */}
+                  {stageDeadlines.map(dl => renderDeadline(dl))}
+                </div>
               );
             })}
           </div>
         </SortableContext>
       </DndContext>
+
+      {/* Unmatched deadlines */}
+      {unmatchedDeadlines.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-dashed border-gray-300">
+          <p className="text-xs text-gray-400 mb-2">その他の締切</p>
+          <div className="space-y-1">
+            {unmatchedDeadlines.map(dl => renderDeadline(dl))}
+          </div>
+        </div>
+      )}
+
+      {/* Add deadline form */}
+      {addingDeadline && (
+        <DeadlineEditForm
+          mode="add"
+          onSave={handleAddDeadline}
+          onCancel={() => setAddingDeadline(false)}
+        />
+      )}
 
       <div className="flex items-center gap-3 mt-3">
         {stages.length > 3 && (
@@ -530,17 +810,25 @@ export default function ApplicationTimeline({
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-            <input
-              type="date"
+            <button
+              ref={addDateTriggerRef}
+              type="button"
+              onClick={() => setAddCalendarOpen(true)}
+              className="text-xs py-1 px-2 border border-gray-200 rounded bg-white hover:border-gray-300 transition-colors text-left min-w-[80px]"
+            >
+              {newDate
+                ? `${parseInt(newDate.split('-')[1])}/${parseInt(newDate.split('-')[2])}${newTime ? ` ${newTime}` : ''}`
+                : '日付'}
+            </button>
+            <MiniCalendar
               value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
-            />
-            <input
-              type="time"
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
-              className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
+              onChange={(d) => setNewDate(d)}
+              showTime
+              timeValue={newTime}
+              onTimeChange={(t) => setNewTime(t)}
+              anchorRef={addDateTriggerRef}
+              open={addCalendarOpen}
+              onClose={() => setAddCalendarOpen(false)}
             />
             <button onClick={handleAddStage} className="text-xs py-1 px-2 bg-primary-700 text-white rounded">
               追加
@@ -555,6 +843,15 @@ export default function ApplicationTimeline({
             className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
           >
             + ステージ追加
+          </button>
+        )}
+
+        {!addingDeadline && !adding && (
+          <button
+            onClick={() => setAddingDeadline(true)}
+            className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
+          >
+            + 締切を追加
           </button>
         )}
       </div>

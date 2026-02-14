@@ -3,7 +3,6 @@ import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@jobs
 import type { DraftCompany, OnFieldChange } from './types';
 import { buildTimeline } from './types';
 import ApplicationTimeline from './ApplicationTimeline';
-import DeadlineManager from '../DeadlineManager';
 
 interface DrawerOverviewTabProps {
   company: Company;
@@ -29,7 +28,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left column */}
-      <div className="flex-[3] space-y-5">
+      <div className="flex-[2] space-y-5">
         <div>
           <label className="input-label">企業名</label>
           <input
@@ -153,7 +152,7 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
       </div>
 
       {/* Right column */}
-      <div className="flex-[2]">
+      <div className="flex-[3]">
         <div className="bg-gray-50 rounded-lg p-4 space-y-5">
           <div>
             <label className="input-label">ステータス</label>
@@ -171,18 +170,13 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
           <ApplicationTimeline
             entries={timelineEntries}
             stages={draft.stages}
+            deadlines={draft.deadlines}
+            companyName={company.name}
             showAll={showAll}
             onToggleShowAll={() => setShowAll((v) => !v)}
             onStagesChange={(stages) => onFieldChange('stages', stages)}
+            onDeadlinesChange={(deadlines) => onFieldChange('deadlines', deadlines)}
           />
-
-          <div className="border-t border-gray-200 mt-4 pt-4">
-            <DeadlineManager
-              deadlines={draft.deadlines}
-              companyName={company.name}
-              onDeadlinesChange={(deadlines) => onFieldChange('deadlines', deadlines)}
-            />
-          </div>
         </div>
       </div>
     </div>

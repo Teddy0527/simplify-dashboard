@@ -1,9 +1,9 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Company, STATUS_LABELS } from '@jobsimplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
-import { getNearestDeadline, getDeadlineUrgency, formatDeadlineShort, getNextSelectionStep } from '../utils/deadlineHelpers';
+import { getUnifiedNextAction, getNextSelectionStep } from '../utils/deadlineHelpers';
 
 interface KanbanCardProps {
   company: Company;
@@ -12,9 +12,23 @@ interface KanbanCardProps {
   esCount?: number;
   onESClick?: (companyId: string) => void;
   onDelete?: (company: Company) => void;
+  isSelectionColumn?: boolean;
 }
 
-const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, esCount, onESClick, onDelete }: KanbanCardProps) {
+const URGENCY_CARD_CLASS: Record<string, string> = {
+  overdue: 'card-deadline-overdue',
+  urgent: 'card-deadline-urgent',
+  soon: 'card-deadline-soon',
+};
+
+const URGENCY_TEXT_CLASS: Record<string, string> = {
+  overdue: 'text-red-600',
+  urgent: 'text-red-600',
+  soon: 'text-amber-600',
+  normal: 'text-gray-600',
+};
+
+const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, esCount, onESClick, onDelete, isSelectionColumn }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -31,15 +45,30 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, e
         transition,
       };
 
+  const nextAction = useMemo(
+    () => getUnifiedNextAction(company.deadlines ?? [], company.stages ?? []),
+    [company.deadlines, company.stages]
+  );
+
+  // サブステータス: 選考中列のみ表示
+  const subStatus = useMemo(() => {
+    if (!isSelectionColumn) return null;
+    const step = getNextSelectionStep(company.stages ?? []);
+    return step?.label ?? STATUS_LABELS[company.status];
+  }, [isSelectionColumn, company.stages, company.status]);
+
+  const urgencyCardClass = nextAction ? URGENCY_CARD_CLASS[nextAction.urgency] ?? '' : '';
+
   return (
     <div
       ref={!isDragOverlay ? setNodeRef : undefined}
       {...(!isDragOverlay ? { ...attributes, ...listeners } : {})}
       data-kanban-card
       style={style}
-      className={`card cursor-pointer mb-2 touch-none group ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
+      className={`card cursor-pointer mb-2 touch-none group ${urgencyCardClass} ${isDragging ? 'opacity-30 scale-95' : ''} ${isDragOverlay ? 'shadow-xl' : ''}`}
       onClick={() => !isDragging && onClick(company)}
     >
+      {/* Zone A: ID */}
       <div className="flex items-start gap-3">
         <CompanyLogo
           name={company.name}
@@ -65,14 +94,36 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, e
               </button>
             )}
           </div>
-          {company.industry && (
-            <p className="text-xs text-gray-500 mt-0.5">{company.industry}</p>
-          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {company.industry && (
+              <p className="text-xs text-gray-500 truncate">{company.industry}</p>
+            )}
+            {subStatus && (
+              <span className="text-[10px] text-gray-400 truncate">{subStatus}</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Links + ES badge */}
-      <div className="mt-2 flex items-center gap-3">
+      {/* Zone B: 統合締切 */}
+      {nextAction && (
+        <div className={`mt-2 flex items-center gap-1.5 ${URGENCY_TEXT_CLASS[nextAction.urgency] ?? 'text-gray-600'}`}>
+          <svg className="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span className="text-sm font-medium truncate">{nextAction.label}</span>
+          {nextAction.relativeDate && (
+            <span className="text-sm font-semibold whitespace-nowrap">{nextAction.relativeDate}</span>
+          )}
+          {nextAction.absoluteDate && (
+            <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">({nextAction.absoluteDate})</span>
+          )}
+        </div>
+      )}
+
+      {/* Zone C: リンク (ホバー時のみ表示) */}
+      <div className="mt-2 flex items-center gap-3 h-5 opacity-0 group-hover:opacity-100 transition-opacity">
           {company.loginUrl && (
             <a
               href={company.loginUrl}
@@ -112,48 +163,6 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, e
               ES ({esCount})
             </button>
           )}
-      </div>
-
-      {/* Nearest deadline */}
-      {(() => {
-        const nearest = getNearestDeadline(company.deadlines ?? []);
-        if (!nearest) return null;
-        const urgency = getDeadlineUrgency(nearest.date);
-        const textColor =
-          urgency === 'overdue' || urgency === 'urgent' ? 'text-red-600'
-            : urgency === 'soon' ? 'text-amber-600'
-            : 'text-gray-500';
-        return (
-          <div className={`mt-2 flex items-center gap-1 ${textColor}`}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span className="text-xs font-medium truncate">{nearest.label}</span>
-            <span className="text-xs">{formatDeadlineShort(nearest.date)}</span>
-          </div>
-        );
-      })()}
-
-      <div className="mt-2 flex items-center justify-end">
-        {(() => {
-          const next = getNextSelectionStep(company.stages ?? []);
-          if (next) {
-            const dateDisplay = next.date
-              ? `${new Date(next.date).getMonth() + 1}/${new Date(next.date).getDate()}${next.time ? ` ${next.time}` : ''}`
-              : '';
-            return (
-              <span className="text-xs py-0.5 px-2 border border-primary-200 rounded-full text-primary-700 bg-primary-50 truncate">
-                {next.label}{dateDisplay ? ` : ${dateDisplay}` : ''}
-              </span>
-            );
-          }
-          return (
-            <span className="text-xs py-0.5 px-2 border border-gray-200 rounded-full text-gray-600 bg-white">
-              {STATUS_LABELS[company.status]}
-            </span>
-          );
-        })()}
       </div>
     </div>
   );
