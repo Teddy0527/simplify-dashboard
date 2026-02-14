@@ -1,11 +1,10 @@
 import { getSupabase } from '@jobsimplify/shared';
 import type { Session, User } from '@supabase/supabase-js';
-import { buildGoogleOAuthOptions } from '../../constants/oauth';
 
 export async function signInWithGoogle(): Promise<void> {
   const { error } = await getSupabase().auth.signInWithOAuth({
     provider: 'google',
-    options: buildGoogleOAuthOptions(window.location.origin),
+    options: { redirectTo: window.location.origin },
   });
   if (error) throw error;
 }

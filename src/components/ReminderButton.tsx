@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DeadlinePresetWithCompany } from '@jobsimplify/shared';
-import type { DeadlineReminder } from '../hooks/useDeadlineReminders';
 import { useToast } from '../hooks/useToast';
-import { GoogleCalendarAuthError } from '../utils/googleCalendarApi';
+import { buildPresetGoogleCalendarUrl } from '../utils/googleCalendar';
 
 const REMINDER_OPTIONS = [
   { daysBefore: 1, label: '1日前' },
@@ -12,22 +11,12 @@ const REMINDER_OPTIONS = [
 
 interface ReminderButtonProps {
   entry: DeadlinePresetWithCompany;
-  reminders: DeadlineReminder[];
-  onAdd: (entry: DeadlinePresetWithCompany, daysBefore: number) => Promise<void>;
-  onCancel: (reminderId: string) => Promise<void>;
-  hasCalendarToken: () => boolean;
-  onReconnect: () => void;
   size?: 'sm' | 'xs';
   dropUp?: boolean;
 }
 
 export function ReminderButton({
   entry,
-  reminders,
-  onAdd,
-  onCancel,
-  hasCalendarToken,
-  onReconnect,
   size = 'sm',
   dropUp = false,
 }: ReminderButtonProps) {
@@ -36,10 +25,7 @@ export function ReminderButton({
   const ref = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
 
-  const presetReminders = reminders.filter(
-    (r) => r.presetId === entry.id && (r.status === 'pending' || r.status === 'sent'),
-  );
-  const hasActiveReminder = presetReminders.length > 0;
+  const hasActiveReminder = false;
 
   useEffect(() => {
     if (!open) return;
@@ -55,52 +41,31 @@ export function ReminderButton({
   const handleToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!open) {
-        if (!hasCalendarToken()) {
-          onReconnect();
-          return;
-        }
-      }
       setOpen((v) => !v);
     },
-    [open, hasCalendarToken, onReconnect],
+    [],
   );
 
   const handleOption = useCallback(
     async (daysBefore: number, e: React.MouseEvent) => {
       e.stopPropagation();
-      const existing = presetReminders.find((r) => r.daysBefore === daysBefore);
 
       setLoading(daysBefore);
       try {
-        if (existing) {
-          await onCancel(existing.id);
-          showToast('通知をキャンセルしました', 'success');
-        } else {
-          // Check if remind_at would be in the past
-          const deadline = new Date(entry.deadlineDate + 'T09:00:00+09:00');
-          deadline.setDate(deadline.getDate() - daysBefore);
-          if (deadline <= new Date()) {
-            return; // Past date, do nothing
-          }
-          await onAdd(entry, daysBefore);
-          showToast('カレンダーに通知を設定しました', 'success');
-        }
-      } catch (err) {
-        if (
-          err instanceof GoogleCalendarAuthError ||
-          (err instanceof Error && err.message === 'No calendar token')
-        ) {
-          showToast('認証が切れました。再度ベルをクリックして再ログインしてください', 'error');
-          setOpen(false);
-        } else {
-          showToast('リマインダーの設定に失敗しました', 'error');
-        }
+        const url = new URL(buildPresetGoogleCalendarUrl(entry));
+        const currentDetails = url.searchParams.get('details') ?? '';
+        const reminderGuide = `\n推奨通知: ${daysBefore}日前\n※保存後にGoogleカレンダー側で通知を追加してください。`;
+        url.searchParams.set('details', `${currentDetails}${reminderGuide}`.trim());
+        window.open(url.toString(), '_blank', 'noopener,noreferrer');
+        showToast('Googleカレンダーで保存後に通知を設定してください', 'success');
+      } catch {
+        showToast('カレンダー追加画面を開けませんでした', 'error');
       } finally {
         setLoading(null);
+        setOpen(false);
       }
     },
-    [entry, presetReminders, onAdd, onCancel, showToast],
+    [entry, showToast],
   );
 
   const iconSize = size === 'xs' ? 'w-3.5 h-3.5' : 'w-4 h-4';
@@ -137,12 +102,9 @@ export function ReminderButton({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-xs font-medium text-gray-400 border-b border-gray-100">
-            カレンダー通知
+            通知設定ガイド
           </div>
           {REMINDER_OPTIONS.map((opt) => {
-            const existing = presetReminders.find(
-              (r) => r.daysBefore === opt.daysBefore,
-            );
             const isLoading = loading === opt.daysBefore;
 
             // Check if remind_at would be in the past
@@ -154,30 +116,16 @@ export function ReminderButton({
               <button
                 key={opt.daysBefore}
                 onClick={(e) => handleOption(opt.daysBefore, e)}
-                disabled={isLoading || (isPast && !existing)}
+                disabled={isLoading || isPast}
                 className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between gap-2 transition-colors ${
-                  isPast && !existing
+                  isPast
                     ? 'text-gray-300 cursor-not-allowed'
-                    : existing
-                      ? 'text-amber-600 hover:bg-amber-50'
-                      : 'text-gray-700 hover:bg-gray-50'
+                    : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 <span>{opt.label}</span>
                 {isLoading ? (
                   <span className="w-3.5 h-3.5 border border-gray-300 border-t-primary-600 rounded-full animate-spin" />
-                ) : existing ? (
-                  <svg
-                    className="w-3.5 h-3.5 text-amber-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
                 ) : null}
               </button>
             );

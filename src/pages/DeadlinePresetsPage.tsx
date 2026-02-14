@@ -5,23 +5,8 @@ import { useDeadlinePresets, CompanyGroup } from '../hooks/useDeadlinePresets';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { getDeadlineUrgency, formatDeadlineShort } from '../utils/deadlineHelpers';
-import { buildPresetGoogleCalendarUrl, presetToCalendarEvent } from '../utils/googleCalendar';
-import { createCalendarEvent, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
-import { getStoredToken } from '../hooks/useGoogleCalendar';
-import { getSupabase } from '@jobsimplify/shared';
-import { buildGoogleOAuthOptions } from '../constants/oauth';
-import { useDeadlineReminders, type DeadlineReminder } from '../hooks/useDeadlineReminders';
+import { buildPresetGoogleCalendarUrl } from '../utils/googleCalendar';
 import { ReminderButton } from '../components/ReminderButton';
-
-// ── Reminder Props ──────────────────────────────────────────────────────
-
-interface ReminderProps {
-  reminders: DeadlineReminder[];
-  onAddReminder: (entry: DeadlinePresetWithCompany, daysBefore: number) => Promise<void>;
-  onCancelReminder: (reminderId: string) => Promise<void>;
-  hasCalendarToken: () => boolean;
-  onReconnectCalendar: () => void;
-}
 
 // ── Constants ───────────────────────────────────────────────────────────
 
@@ -178,17 +163,6 @@ export default function DeadlinePresetsPage() {
   const { grouped, byDate, loading } = useDeadlinePresets(query, 2028, industry || undefined);
   const { companies, addCompany } = useCompanies();
   const { showToast } = useToast();
-  const { reminders, addReminder, cancelReminder, addBulkReminders, hasCalendarToken } = useDeadlineReminders();
-
-  const handleReconnectCalendar = useCallback(() => {
-    getSupabase().auth.signInWithOAuth({
-      provider: 'google',
-      options: buildGoogleOAuthOptions(
-        window.location.origin + window.location.pathname + window.location.search,
-        true,
-      ),
-    });
-  }, []);
 
   const trackedMasterIds = useMemo(
     () => new Set(companies.filter(c => c.companyMasterId).map(c => c.companyMasterId!)),
@@ -259,11 +233,11 @@ export default function DeadlinePresetsPage() {
             <p className="text-sm">読み込み中...</p>
           </div>
         ) : viewMode === 'calendar' ? (
-          <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
+          <CalendarLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
         ) : viewMode === 'week' ? (
-          <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
+          <WeekLayout byDate={byDate} trackedMasterIds={trackedMasterIds} onAddEntryToTracker={handleAddEntryToTracker} />
         ) : (
-          <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} reminders={reminders} onAddReminder={addReminder} onCancelReminder={cancelReminder} onAddBulkReminders={addBulkReminders} hasCalendarToken={hasCalendarToken} onReconnectCalendar={handleReconnectCalendar} />
+          <ListView grouped={grouped} query={query} trackedMasterIds={trackedMasterIds} onAddToTracker={handleAddToTracker} />
         )}
       </div>
     </div>
@@ -371,11 +345,11 @@ function DeadlineFilters({
 
 // ── CalendarLayout ──────────────────────────────────────────────────────
 
-function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...reminderProps }: {
+function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
   byDate: Map<string, DeadlinePresetWithCompany[]>;
   trackedMasterIds: Set<string>;
   onAddEntryToTracker: (entry: DeadlinePresetWithCompany) => void;
-} & ReminderProps) {
+}) {
   const CALENDAR_WEEKDAY_HEADER_HEIGHT = 28;
   const CALENDAR_SCALE = 0.92;
   const calendarAreaRef = useRef<HTMLDivElement>(null);
@@ -460,7 +434,6 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...remi
           x={popover.x}
           y={popover.y}
           onClose={() => setPopover(null)}
-          {...reminderProps}
         />
       )}
       {eventDetail && (
@@ -471,7 +444,6 @@ function CalendarLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...remi
           onClose={() => setEventDetail(null)}
           isAlreadyTracked={trackedMasterIds.has(eventDetail.entry.companyMasterId)}
           onAddToTracker={() => onAddEntryToTracker(eventDetail.entry)}
-          {...reminderProps}
         />
       )}
     </div>
@@ -640,14 +612,14 @@ function EventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; onCli
 // ── DayDetailPopover ────────────────────────────────────────────────────
 
 function DayDetailPopover({
-  date, entries, x, y, onClose, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar,
+  date, entries, x, y, onClose,
 }: {
   date: Date;
   entries: DeadlinePresetWithCompany[];
   x: number;
   y: number;
   onClose: () => void;
-} & ReminderProps) {
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -698,7 +670,7 @@ function DayDetailPopover({
                 )}
               </div>
               <GCalButton entry={entry} size="xs" />
-              <ReminderButton entry={entry} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="xs" />
+              <ReminderButton entry={entry} size="xs" />
               {entry.sourceUrl && (
                 <a
                   href={entry.sourceUrl}
@@ -726,7 +698,7 @@ function DayDetailPopover({
 // ── EventDetailPopover ─────────────────────────────────────────────────
 
 function EventDetailPopover({
-  entry, x, y, onClose, isAlreadyTracked, onAddToTracker, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar,
+  entry, x, y, onClose, isAlreadyTracked, onAddToTracker,
 }: {
   entry: DeadlinePresetWithCompany;
   x: number;
@@ -734,7 +706,7 @@ function EventDetailPopover({
   onClose: () => void;
   isAlreadyTracked?: boolean;
   onAddToTracker?: () => void;
-} & ReminderProps) {
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const color = getTypeColor(entry.deadlineType);
   const categoryLabel = DEADLINE_TYPE_LABELS[entry.deadlineType as DeadlineType] || entry.deadlineType;
@@ -820,7 +792,7 @@ function EventDetailPopover({
             )}
             {entry.sourceUrl && <span className="text-gray-200">|</span>}
             <GCalButton entry={entry} size="sm" />
-            <ReminderButton entry={entry} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="sm" dropUp />
+            <ReminderButton entry={entry} size="sm" dropUp />
             {onAddToTracker && <span className="text-gray-200">|</span>}
             {onAddToTracker && (
                 isAlreadyTracked ? (
@@ -866,11 +838,11 @@ function DeadlineTypeLegend() {
 
 // ── WeekLayout ──────────────────────────────────────────────────────────
 
-function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...reminderProps }: {
+function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker }: {
   byDate: Map<string, DeadlinePresetWithCompany[]>;
   trackedMasterIds: Set<string>;
   onAddEntryToTracker: (entry: DeadlinePresetWithCompany) => void;
-} & ReminderProps) {
+}) {
   const today = new Date();
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date(today);
@@ -952,7 +924,6 @@ function WeekLayout({ byDate, trackedMasterIds, onAddEntryToTracker, ...reminder
           onClose={() => setEventDetail(null)}
           isAlreadyTracked={trackedMasterIds.has(eventDetail.entry.companyMasterId)}
           onAddToTracker={() => onAddEntryToTracker(eventDetail.entry)}
-          {...reminderProps}
         />
       )}
     </div>
@@ -1043,13 +1014,12 @@ function WeekEventChip({ entry, onClick }: { entry: DeadlinePresetWithCompany; o
 
 // ── ListView (existing card-based layout) ───────────────────────────────
 
-function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders, onAddReminder, onCancelReminder, onAddBulkReminders, hasCalendarToken, onReconnectCalendar }: {
+function ListView({ grouped, query, trackedMasterIds, onAddToTracker }: {
   grouped: CompanyGroup[];
   query: string;
   trackedMasterIds: Set<string>;
   onAddToTracker: (group: CompanyGroup) => void;
-  onAddBulkReminders: (entries: DeadlinePresetWithCompany[], daysBefore: number) => Promise<number>;
-} & ReminderProps) {
+}) {
   const { showToast } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAdding, setBulkAdding] = useState(false);
@@ -1078,18 +1048,6 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders,
   }, [allDeadlines]);
 
   const handleBulkAdd = useCallback(async () => {
-    const token = getStoredToken();
-    if (!token) {
-      getSupabase().auth.signInWithOAuth({
-        provider: 'google',
-        options: buildGoogleOAuthOptions(
-          window.location.origin + window.location.pathname + window.location.search,
-          true,
-        ),
-      });
-      return;
-    }
-
     const selected = allDeadlines.filter(d => selectedIds.has(d.id));
     if (selected.length === 0) return;
 
@@ -1099,47 +1057,44 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders,
     let successCount = 0;
     for (const entry of selected) {
       try {
-        await createCalendarEvent(token, presetToCalendarEvent(entry));
+        window.open(buildPresetGoogleCalendarUrl(entry), '_blank', 'noopener,noreferrer');
         successCount++;
         setBulkProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        await new Promise((r) => setTimeout(r, 80));
       } catch (err) {
-        if (err instanceof GoogleCalendarAuthError) {
-          showToast('認証が切れました。再ログインしてください', 'error');
-          setBulkAdding(false);
-          return;
-        }
         // Continue with remaining entries
       }
     }
 
     setBulkAdding(false);
     setSelectedIds(new Set());
-    showToast(`${successCount}件のイベントをGoogleカレンダーに追加しました`, 'success');
+    showToast(`${successCount}件のGoogleカレンダー追加画面を開きました`, 'success');
   }, [allDeadlines, selectedIds, showToast]);
 
   const handleBulkReminder = useCallback(async (daysBefore: number) => {
-    if (!hasCalendarToken()) {
-      onReconnectCalendar();
-      return;
-    }
-
     const selected = allDeadlines.filter(d => selectedIds.has(d.id));
     if (selected.length === 0) return;
 
     setBulkReminderAdding(true);
     try {
-      const count = await onAddBulkReminders(
-        selected,
-        daysBefore,
-      );
-      showToast(`${count}件のリマインダーを設定しました`, 'success');
+      let count = 0;
+      for (const entry of selected) {
+        const url = new URL(buildPresetGoogleCalendarUrl(entry));
+        const currentDetails = url.searchParams.get('details') ?? '';
+        const reminderGuide = `\n推奨通知: ${daysBefore}日前\n※保存後にGoogleカレンダー側で通知を追加してください。`;
+        url.searchParams.set('details', `${currentDetails}${reminderGuide}`.trim());
+        window.open(url.toString(), '_blank', 'noopener,noreferrer');
+        count++;
+        await new Promise((r) => setTimeout(r, 80));
+      }
+      showToast(`${count}件の通知設定ガイド付き追加画面を開きました`, 'success');
       setBulkReminderDays(null);
     } catch {
       showToast('リマインダーの設定に失敗しました', 'error');
     } finally {
       setBulkReminderAdding(false);
     }
-  }, [allDeadlines, selectedIds, hasCalendarToken, onReconnectCalendar, onAddBulkReminders, showToast]);
+  }, [allDeadlines, selectedIds, showToast]);
 
   if (grouped.length === 0) {
     return (
@@ -1232,11 +1187,6 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders,
           onAddToTracker={onAddToTracker}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
-          reminders={reminders}
-          onAddReminder={onAddReminder}
-          onCancelReminder={onCancelReminder}
-          hasCalendarToken={hasCalendarToken}
-          onReconnectCalendar={onReconnectCalendar}
         />
       ))}
     </div>
@@ -1245,13 +1195,13 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker, reminders,
 
 // ── CompanyCard (unchanged) ─────────────────────────────────────────────
 
-function CompanyCard({ group, isAlreadyTracked, onAddToTracker, selectedIds, onToggleSelect, reminders, onAddReminder, onCancelReminder, hasCalendarToken, onReconnectCalendar }: {
+function CompanyCard({ group, isAlreadyTracked, onAddToTracker, selectedIds, onToggleSelect }: {
   group: CompanyGroup;
   isAlreadyTracked: boolean;
   onAddToTracker: (group: CompanyGroup) => void;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
-} & ReminderProps) {
+}) {
   const logoUrl = group.companyWebsiteDomain
     ? `https://logo.clearbit.com/${group.companyWebsiteDomain}`
     : undefined;
@@ -1330,7 +1280,7 @@ function CompanyCard({ group, isAlreadyTracked, onAddToTracker, selectedIds, onT
                 </button>
               )}
               <GCalButton entry={d} size="xs" />
-              <ReminderButton entry={d} reminders={reminders} onAdd={onAddReminder} onCancel={onCancelReminder} hasCalendarToken={hasCalendarToken} onReconnect={onReconnectCalendar} size="xs" />
+              <ReminderButton entry={d} size="xs" />
               <span className="text-sm tabular-nums">{d.deadlineDate}</span>
               {d.deadlineTime && (
                 <span className="text-xs text-gray-500">{d.deadlineTime}</span>

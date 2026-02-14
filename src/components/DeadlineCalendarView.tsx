@@ -51,7 +51,7 @@ export default function DeadlineCalendarView({ companies, onCardClick }: Deadlin
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const { events: gcalEvents, loading: gcalLoading, enabled: gcalEnabled, setEnabled: setGcalEnabled, tokenAvailable, reconnect } = useGoogleCalendar(year, month);
+  const { events: gcalEvents, enabled: gcalEnabled } = useGoogleCalendar(year, month);
   const gcalEventMap = useGoogleCalendarEventMap(gcalEvents);
 
   // Build deadline map
@@ -279,43 +279,9 @@ export default function DeadlineCalendarView({ companies, onCardClick }: Deadlin
             </button>
           </div>
 
-          {/* Google Calendar toggle */}
-          <div className="flex items-center gap-2">
-            {gcalEnabled && gcalLoading && (
-              <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            )}
-            <button
-              onClick={() => setGcalEnabled(!gcalEnabled)}
-              className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                gcalEnabled
-                  ? 'bg-[#4285f4] text-white border-[#4285f4] hover:bg-[#3367d6]'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-              </svg>
-              Googleカレンダー
-            </button>
-          </div>
+          <span className="text-xs text-gray-400">Google同期は一時停止中</span>
         </div>
       </div>
-
-      {/* Reconnect banner */}
-      {gcalEnabled && !tokenAvailable && !gcalLoading && (
-        <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex-shrink-0">
-          <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs text-blue-700">Googleカレンダーの予定を表示するにはアカウントを接続してください</span>
-          <button
-            onClick={reconnect}
-            className="ml-auto text-xs font-medium text-white bg-[#4285f4] hover:bg-[#3367d6] px-3 py-1 rounded transition-colors"
-          >
-            接続する
-          </button>
-        </div>
-      )}
 
       {/* Legend */}
       <div className="flex items-center gap-4 mb-2 text-[11px] text-gray-500 flex-wrap flex-shrink-0">
