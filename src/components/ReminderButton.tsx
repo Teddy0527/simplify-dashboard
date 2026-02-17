@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DeadlinePresetWithCompany } from '@jobsimplify/shared';
+import { trackEventAsync } from '@jobsimplify/shared';
 import { useToast } from '../hooks/useToast';
 import { buildPresetGoogleCalendarUrl } from '../utils/googleCalendar';
 
@@ -57,6 +58,7 @@ export function ReminderButton({
         const reminderGuide = `\n推奨通知: ${daysBefore}日前\n※保存後にGoogleカレンダー側で通知を追加してください。`;
         url.searchParams.set('details', `${currentDetails}${reminderGuide}`.trim());
         window.open(url.toString(), '_blank', 'noopener,noreferrer');
+        trackEventAsync('deadline.reminder_set', { companyMasterId: entry.companyMasterId, daysBefore });
         showToast('Googleカレンダーで保存後に通知を設定してください', 'success');
       } catch {
         showToast('カレンダー追加画面を開けませんでした', 'error');

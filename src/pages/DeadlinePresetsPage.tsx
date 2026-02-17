@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { INDUSTRY_OPTIONS, DEADLINE_TYPE_LABELS, DeadlineType, DeadlinePresetWithCompany, createCompany, createDeadline, mapMasterIndustry } from '@jobsimplify/shared';
+import { INDUSTRY_OPTIONS, DEADLINE_TYPE_LABELS, DeadlineType, DeadlinePresetWithCompany, createCompany, createDeadline, mapMasterIndustry, trackEventAsync, trackEventDebounced, trackMilestoneOnce } from '@jobsimplify/shared';
 import { useDeadlinePresets, CompanyGroup } from '../hooks/useDeadlinePresets';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
+import { useOnboardingContext } from '../contexts/OnboardingContext';
 import { getDeadlineUrgency, formatDeadlineShort } from '../utils/deadlineHelpers';
 import { buildPresetGoogleCalendarUrl } from '../utils/googleCalendar';
 import { ReminderButton } from '../components/ReminderButton';
@@ -138,7 +139,10 @@ function GCalButton({ entry, size = 'sm' }: { entry: DeadlinePresetWithCompany; 
       rel="noopener noreferrer"
       className="text-gray-400 hover:text-green-600 transition-colors flex-shrink-0"
       title="Googleカレンダーに追加"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        trackEventAsync('deadline.gcal_add', { companyMasterId: entry.companyMasterId, deadlineType: entry.deadlineType });
+      }}
     >
       <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -160,6 +164,13 @@ export default function DeadlinePresetsPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'week' | 'list'>('calendar');
 
   const navigate = useNavigate();
+  const { completeChecklistItem } = useOnboardingContext();
+
+  // Complete checklist item after 3 seconds on this page
+  useEffect(() => {
+    const timer = setTimeout(() => completeChecklistItem('check_deadlines'), 3000);
+    return () => clearTimeout(timer);
+  }, [completeChecklistItem]);
   const { grouped, byDate, loading } = useDeadlinePresets(query, 2028, industry || undefined);
   const { companies, addCompany } = useCompanies();
   const { showToast } = useToast();
@@ -184,8 +195,13 @@ export default function DeadlinePresetsPage() {
       createDeadline(d.deadlineType, d.label, d.deadlineDate, d.deadlineTime, d.memo),
     );
     await addCompany(company);
+    trackEventAsync('deadline.add_to_tracker', {
+      companyMasterId: group.companyMasterId,
+      deadlineCount: group.deadlines.length,
+    });
+    trackMilestoneOnce('milestone.first_deadline_add');
     navigate('/?company=' + company.id);
-  }, [trackedMasterIds, addCompany, navigate]);
+  }, [trackedMasterIds, addCompany, navigate, showToast]);
 
   const handleAddEntryToTracker = useCallback((entry: DeadlinePresetWithCompany) => {
     const group = grouped.find(g => g.companyMasterId === entry.companyMasterId);
@@ -213,15 +229,24 @@ export default function DeadlinePresetsPage() {
           <h1 className={`${isCalendarView ? 'text-lg' : 'text-xl'} font-semibold tracking-tight text-gray-900`}>ES締切データベース</h1>
           {!isCalendarView && <p className="text-sm text-gray-500 mt-1.5">主要企業のES締切・選考スケジュールを一覧で確認できます</p>}
         </div>
-        <ViewToggle viewMode={viewMode} onChange={setViewMode} compact={isCalendarView} />
+        <ViewToggle viewMode={viewMode} onChange={(v) => {
+          trackEventAsync('interaction.view_mode_change', { from: viewMode, to: v, page: 'deadlines' });
+          setViewMode(v);
+        }} compact={isCalendarView} />
       </div>
 
       {/* Filters */}
       <DeadlineFilters
         query={query}
-        onQueryChange={setQuery}
+        onQueryChange={(q) => {
+          setQuery(q);
+          if (q) trackEventDebounced('deadline.search', { query: q.slice(0, 50) });
+        }}
         industry={industry}
-        onIndustryChange={setIndustry}
+        onIndustryChange={(v) => {
+          setIndustry(v);
+          if (v) trackEventAsync('interaction.filter_use', { type: 'industry', value: v, page: 'deadlines' });
+        }}
         compact={isCalendarView}
       />
 
@@ -1069,6 +1094,7 @@ function ListView({ grouped, query, trackedMasterIds, onAddToTracker }: {
     setBulkAdding(false);
     setSelectedIds(new Set());
     showToast(`${successCount}件のGoogleカレンダー追加画面を開きました`, 'success');
+    trackEventAsync('deadline.bulk_gcal_add', { count: successCount });
   }, [allDeadlines, selectedIds, showToast]);
 
   const handleBulkReminder = useCallback(async (daysBefore: number) => {

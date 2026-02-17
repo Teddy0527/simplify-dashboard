@@ -18,6 +18,7 @@ interface CompanyAutocompleteProps {
  * 企業名オートコンプリートコンポーネント
  *
  * - 入力に応じて企業候補を表示
+ * - フォーカス時＆未入力時に人気企業を表示
  * - ロゴ、企業名、業種を表示
  * - 選択時に企業情報を親コンポーネントに通知
  */
@@ -36,11 +37,15 @@ export function CompanyAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { results, loading, error, search, clearResults } = useCompanySearch({
+  const { results, popularCompanies, loading, error, search, clearResults } = useCompanySearch({
     debounceMs: 300,
     limit: 8,
     minQueryLength: 1,
   });
+
+  // Determine which list to show
+  const showingPopular = results.length === 0 && value.length === 0 && popularCompanies.length > 0;
+  const displayItems = showingPopular ? popularCompanies : results;
 
   // 入力変更時
   const handleInputChange = useCallback(
@@ -69,25 +74,25 @@ export function CompanyAutocomplete({
   // キーボード操作
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!isOpen || results.length === 0) return;
+      if (!isOpen || displayItems.length === 0) return;
 
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
           setHighlightedIndex((prev) =>
-            prev < results.length - 1 ? prev + 1 : 0
+            prev < displayItems.length - 1 ? prev + 1 : 0
           );
           break;
         case 'ArrowUp':
           e.preventDefault();
           setHighlightedIndex((prev) =>
-            prev > 0 ? prev - 1 : results.length - 1
+            prev > 0 ? prev - 1 : displayItems.length - 1
           );
           break;
         case 'Enter':
           e.preventDefault();
-          if (highlightedIndex >= 0 && highlightedIndex < results.length) {
-            handleSelect(results[highlightedIndex]);
+          if (highlightedIndex >= 0 && highlightedIndex < displayItems.length) {
+            handleSelect(displayItems[highlightedIndex]);
           }
           break;
         case 'Escape':
@@ -96,7 +101,7 @@ export function CompanyAutocomplete({
           break;
       }
     },
-    [isOpen, results, highlightedIndex, handleSelect]
+    [isOpen, displayItems, highlightedIndex, handleSelect]
   );
 
   // 外側クリックで閉じる
@@ -114,14 +119,14 @@ export function CompanyAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // フォーカス時に結果があれば開く
+  // フォーカス時にドロップダウンを開く
   const handleFocus = () => {
-    if (results.length > 0) {
+    if (results.length > 0 || (value.length === 0 && popularCompanies.length > 0)) {
       setIsOpen(true);
     }
   };
 
-  const showDropdown = isOpen && (results.length > 0 || loading || !!error);
+  const showDropdown = isOpen && (displayItems.length > 0 || loading || !!error);
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -174,7 +179,14 @@ export function CompanyAutocomplete({
             </li>
           )}
 
-          {results.map((company, index) => (
+          {/* 人気企業セクションヘッダー */}
+          {showingPopular && (
+            <li className="px-4 pt-3 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider select-none">
+              人気の企業
+            </li>
+          )}
+
+          {displayItems.map((company, index) => (
             <li
               key={company.id}
               onClick={() => handleSelect(company)}

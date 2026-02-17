@@ -10,6 +10,9 @@ export default {
         sans: ['Inter', 'Noto Sans JP', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
+        admin: {
+          bg: '#f8f9fb',
+        },
         primary: {
           50: '#f0f4f8',
           100: '#d9e2ec',

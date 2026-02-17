@@ -14,7 +14,7 @@ import {
   CollisionDetection,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Company, SelectionStatus } from '@jobsimplify/shared';
+import { Company, SelectionStatus, trackEventAsync } from '@jobsimplify/shared';
 import KanbanColumn, { ColumnDef } from './KanbanColumn';
 import KanbanCard from './KanbanCard';
 
@@ -244,6 +244,9 @@ export default function KanbanBoard({ companies, onReorder, onCardClick, esCount
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    const draggedCompany = companies.find((c) => c.id === (active.id as string));
+    const fromCol = draggedCompany ? findColumnId(draggedCompany.status) : null;
+
     setActiveId(null);
     setOverColumnId(null);
     lastOverId.current = null;
@@ -264,6 +267,16 @@ export default function KanbanBoard({ companies, onReorder, onCardClick, esCount
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
         onReorder(arrayMove([...companies], oldIndex, newIndex));
       }
+    }
+
+    // Track kanban drag interaction
+    const toCol = overCol ?? activeCol;
+    if (fromCol && toCol && fromCol !== toCol) {
+      trackEventAsync('interaction.kanban_drag', {
+        companyId: activeIdStr,
+        fromColumn: fromCol,
+        toColumn: toCol,
+      });
     }
   }
 

@@ -6,6 +6,8 @@ import {
   addCompany as addCompanyRepo,
   updateCompany as updateCompanyRepo,
   deleteCompany as deleteCompanyRepo,
+  trackEventAsync,
+  trackMilestoneOnce,
 } from '@jobsimplify/shared';
 
 export function useCompanies() {
@@ -26,14 +28,22 @@ export function useCompanies() {
   }, [user?.id]);
 
   const updateStatus = useCallback(async (id: string, status: SelectionStatus) => {
+    const company = companies.find((c) => c.id === id);
+    const fromStatus = company?.status;
     setCompanies((prev) =>
       prev.map((c) =>
         c.id === id ? { ...c, status, updatedAt: new Date().toISOString() } : c
       )
     );
-    const company = companies.find((c) => c.id === id);
     if (company) {
       await updateCompanyRepo({ ...company, status, updatedAt: new Date().toISOString() }).catch(console.error);
+      trackEventAsync('company.status_change', {
+        companyId: id,
+        fromStatus,
+        toStatus: status,
+        source: 'drawer',
+      });
+      trackMilestoneOnce('milestone.first_status_change');
     }
   }, [companies]);
 
@@ -47,10 +57,18 @@ export function useCompanies() {
     // 即座にローカルステートを更新（楽観的更新）
     setCompanies(newCompanies);
 
-    // ステータス変更をデータベースに保存
+    // ステータス変更をデータベースに保存 & トラッキング
     for (const company of statusChanges) {
       try {
+        const oldCompany = companies.find((c) => c.id === company.id);
         await updateCompanyRepo(company);
+        trackEventAsync('company.status_change', {
+          companyId: company.id,
+          fromStatus: oldCompany?.status,
+          toStatus: company.status,
+          source: 'kanban_drag',
+        });
+        trackMilestoneOnce('milestone.first_status_change');
       } catch (error) {
         console.error('Failed to persist status change:', error);
       }
@@ -58,7 +76,13 @@ export function useCompanies() {
   }, [companies]);
 
   const addCompany = useCallback(async (company: Company) => {
-    setCompanies((prev) => [company, ...prev]);
+    setCompanies((prev) => {
+      const newList = [company, ...prev];
+      // Milestone tracking based on new count
+      if (newList.length === 1) trackMilestoneOnce('milestone.first_company');
+      if (newList.length === 3) trackMilestoneOnce('milestone.third_company');
+      return newList;
+    });
     await addCompanyRepo(company).catch(console.error);
   }, []);
 

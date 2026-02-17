@@ -906,6 +906,32 @@
     transition: color 0.15s;
   }
 
+  /* Admin dashboard cards */
+  .admin-card {
+    background: white;
+    border: 1px solid var(--color-gray-100);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    padding: 1rem;
+  }
+
+  .admin-pill-tab {
+    @apply px-4 py-2 text-sm font-medium rounded-lg transition-colors;
+    color: var(--color-gray-500);
+    background: transparent;
+  }
+
+  .admin-pill-tab:hover {
+    color: var(--color-gray-700);
+  }
+
+  .admin-pill-tab-active {
+    @apply px-4 py-2 text-sm font-medium rounded-lg;
+    color: var(--color-primary-800);
+    background: white;
+    box-shadow: var(--shadow-sm);
+  }
+
   /* Glass card */
   .glass-card {
     background: white;
@@ -1030,6 +1056,38 @@
   to {
     transform: translateX(0);
   }
+}
+
+/* Onboarding checklist */
+.onboarding-checklist {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 40;
+  width: 400px;
+}
+
+@media (max-width: 640px) {
+  .onboarding-checklist {
+    bottom: 16px;
+    right: 16px;
+    width: calc(100vw - 32px);
+  }
+}
+
+.onboarding-checklist-fab {
+  cursor: pointer;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.onboarding-check-done {
+  animation: checkPop 0.3s ease-out;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 /* Pulse effect for autofill button */

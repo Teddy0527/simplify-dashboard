@@ -7,6 +7,7 @@ const PATH_TO_EVENT: Record<string, EventType> = {
   '/': 'page_view.tracker',
   '/es': 'page_view.es',
   '/profile': 'page_view.profile',
+  '/deadlines': 'page_view.deadlines',
 };
 
 export function usePageTracking(): void {

@@ -1,34 +1,89 @@
 export type EventType =
+  // company
   | 'company.create'
   | 'company.update'
   | 'company.delete'
   | 'company.status_change'
+  // entry_sheet
   | 'entry_sheet.create'
   | 'entry_sheet.update'
   | 'entry_sheet.delete'
   | 'entry_sheet.copy'
+  // es_question
   | 'es_question.create'
   | 'es_question.update'
   | 'es_question.delete'
   | 'es_question.reorder'
+  // job_site
+  | 'job_site.create'
+  | 'job_site.update'
+  | 'job_site.delete'
+  | 'job_site.gmail_search_click'
+  | 'job_site.query_copy'
+  | 'job_site.filter_download'
+  | 'job_site.site_link_click'
+  | 'job_site.check_mark'
+  // template
   | 'template.create'
   | 'template.update'
   | 'template.delete'
+  // profile
   | 'profile.update'
+  // page_view
   | 'page_view.tracker'
   | 'page_view.es'
   | 'page_view.profile'
+  | 'page_view.deadlines'
+  | 'page_view.sites'
+  // auth
   | 'auth.login'
-  | 'auth.logout';
+  | 'auth.logout'
+  // interaction
+  | 'interaction.kanban_drag'
+  | 'interaction.drawer_open'
+  | 'interaction.drawer_save'
+  | 'interaction.view_mode_change'
+  | 'interaction.filter_use'
+  | 'interaction.add_modal_open'
+  | 'interaction.add_modal_cancel'
+  // deadline
+  | 'deadline.add_to_tracker'
+  | 'deadline.gcal_add'
+  | 'deadline.reminder_set'
+  | 'deadline.bulk_gcal_add'
+  | 'deadline.search'
+  // session
+  | 'session.start'
+  | 'session.heartbeat'
+  // milestone
+  | 'milestone.first_company'
+  | 'milestone.third_company'
+  | 'milestone.first_status_change'
+  | 'milestone.first_profile_update'
+  | 'milestone.profile_complete'
+  | 'milestone.first_deadline_add'
+  // onboarding
+  | 'onboarding.started'
+  | 'onboarding.step_view'
+  | 'onboarding.completed'
+  | 'onboarding.skipped'
+  | 'onboarding.cta_click'
+  | 'onboarding.reshown';
 
 export type EventCategory =
   | 'company'
   | 'entry_sheet'
   | 'es_question'
+  | 'job_site'
   | 'template'
   | 'profile'
   | 'page_view'
-  | 'auth';
+  | 'auth'
+  | 'interaction'
+  | 'deadline'
+  | 'session'
+  | 'milestone'
+  | 'onboarding';
 
 /** DB row (snake_case) */
 export interface UserEventRow {

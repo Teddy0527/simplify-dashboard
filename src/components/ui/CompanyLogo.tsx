@@ -30,10 +30,6 @@ function getDirectFaviconUrl(domain: string): string {
   return `https://${domain}/favicon.ico`;
 }
 
-function getDirectHttpFaviconUrl(domain: string): string {
-  return `http://${domain}/favicon.ico`;
-}
-
 function buildDomainVariants(domain: string): string[] {
   const normalized = domain.toLowerCase();
   const variants = new Set<string>();
@@ -54,8 +50,6 @@ function buildFaviconSources(domain: string): string[] {
     getFaviconUrl(domain),
     // 2. 直接favicon.ico（https）
     getDirectFaviconUrl(domain),
-    // 3. 直接favicon.ico（http: SSL不一致時の救済）
-    getDirectHttpFaviconUrl(domain),
   ];
 }
 
@@ -117,7 +111,7 @@ function getInitialColor(name: string): string {
  * フォールバックチェーン:
  * 1. logoUrl（DB保存済み）
  * 2. Google Favicon（最安定）
- * 3. 直接favicon.ico（https → http）
+ * 3. 直接favicon.ico（https）
  * 4. 首文字カラーバッジ
  */
 export const CompanyLogo = memo(function CompanyLogo({

@@ -1,6 +1,7 @@
 import type { Profile } from './profile';
 import type { Template, TemplateType } from './template';
 import type { Company, SelectionStatus, SelectionStage, CompanyDeadline } from './company';
+import type { JobSite, JobSiteCategory, JobSitePriority } from './jobSite';
 // Supabase Database型定義
 export interface Database {
   public: {
@@ -144,6 +145,44 @@ export interface Database {
           memo?: string | null;
         };
       };
+      job_sites: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          url: string | null;
+          email_domains: string[];
+          memo: string | null;
+          login_id: string | null;
+          category: string;
+          priority: string;
+          last_checked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          url?: string | null;
+          email_domains?: string[];
+          memo?: string | null;
+          login_id?: string | null;
+          category?: string;
+          priority?: string;
+          last_checked_at?: string | null;
+        };
+        Update: {
+          name?: string;
+          url?: string | null;
+          email_domains?: string[];
+          memo?: string | null;
+          login_id?: string | null;
+          category?: string;
+          priority?: string;
+          last_checked_at?: string | null;
+        };
+      };
     };
     Functions: Record<string, never>;
     Enums: Record<string, never>;
@@ -202,6 +241,42 @@ export function dbToCompany(
     companyMasterId: company.company_master_id ?? undefined,
     createdAt: company.created_at,
     updatedAt: application.updated_at,
+  };
+}
+
+// DB行 → JobSite型の変換
+export function dbToJobSite(row: Database['public']['Tables']['job_sites']['Row']): JobSite {
+  return {
+    id: row.id,
+    name: row.name,
+    url: row.url ?? undefined,
+    emailDomains: row.email_domains ?? [],
+    memo: row.memo ?? undefined,
+    loginId: row.login_id ?? undefined,
+    category: row.category as JobSiteCategory,
+    priority: row.priority as JobSitePriority,
+    lastCheckedAt: row.last_checked_at ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// JobSite型 → DB Insert行の変換
+export function jobSiteToDbInsert(
+  site: JobSite,
+  userId: string,
+): Database['public']['Tables']['job_sites']['Insert'] {
+  return {
+    id: site.id,
+    user_id: userId,
+    name: site.name,
+    url: site.url ?? null,
+    email_domains: site.emailDomains,
+    memo: site.memo ?? null,
+    login_id: site.loginId ?? null,
+    category: site.category,
+    priority: site.priority,
+    last_checked_at: site.lastCheckedAt ?? null,
   };
 }
 

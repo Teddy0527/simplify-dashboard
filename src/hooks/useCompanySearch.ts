@@ -14,6 +14,7 @@ interface UseCompanySearchOptions {
 
 interface UseCompanySearchReturn {
   results: CompanySearchResult[];
+  popularCompanies: CompanySearchResult[];
   loading: boolean;
   error: string | null;
   search: (query: string) => void;
@@ -33,11 +34,50 @@ export function useCompanySearch(
   const { debounceMs = 300, limit = 10, minQueryLength = 1 } = options;
 
   const [results, setResults] = useState<CompanySearchResult[]>([]);
+  const [popularCompanies, setPopularCompanies] = useState<CompanySearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Fetch popular companies on mount (once)
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const supabase = getSupabase();
+        const { data, error: fetchError } = await supabase
+          .from('company_master')
+          .select('id, name, name_kana, industry, logo_url, website_url, website_domain, mypage_url, recruit_url, is_popular')
+          .eq('is_popular', true)
+          .order('popularity_rank', { ascending: true, nullsFirst: false })
+          .limit(12);
+
+        if (cancelled) return;
+
+        if (fetchError) {
+          console.warn('Failed to fetch popular companies:', fetchError.message);
+          return;
+        }
+
+        if (data) {
+          const mapped: CompanySearchResult[] = data.map((row) =>
+            toCompanySearchResult({
+              ...row,
+              similarity_score: 0,
+            } as CompanySearchResultRow)
+          );
+          setPopularCompanies(mapped);
+        }
+      } catch {
+        // silently ignore
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
 
   const executeSearch = useCallback(
     async (query: string) => {
@@ -123,5 +163,5 @@ export function useCompanySearch(
     };
   }, []);
 
-  return { results, loading, error, search, clearResults };
+  return { results, popularCompanies, loading, error, search, clearResults };
 }

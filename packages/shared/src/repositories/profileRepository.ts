@@ -3,6 +3,7 @@ import { getProfile as getLocalProfile, saveProfile as saveLocalProfile } from '
 import type { Profile } from '../types/profile';
 import { DEFAULT_PROFILE } from '../types/profile';
 import { trackEventAsync } from './eventRepository';
+import { trackMilestoneOnce } from '../utils/milestoneTracker';
 
 export async function getProfile(): Promise<Profile> {
   if (!(await isAuthenticated())) {
@@ -45,4 +46,5 @@ export async function saveProfile(profile: Profile): Promise<void> {
   }
 
   trackEventAsync('profile.update');
+  trackMilestoneOnce('milestone.first_profile_update');
 }

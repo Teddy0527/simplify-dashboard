@@ -7,16 +7,19 @@ import {
   searchDeadlinePresets,
   DeadlinePresetWithCompany,
   PendingContributionSummary,
+  getSupabase,
 } from '@jobsimplify/shared';
+import { useAuth } from '../shared/hooks/useAuth';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
 
-type Tab = 'review' | 'presets' | 'log' | 'analytics';
+type Tab = 'review' | 'presets' | 'log' | 'analytics' | 'devtools';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'review', label: 'シグナルレビュー' },
   { key: 'presets', label: 'プリセット管理' },
   { key: 'log', label: '変更ログ' },
   { key: 'analytics', label: 'ユーザー分析' },
+  { key: 'devtools', label: 'Dev Tools' },
 ];
 
 export default function AdminPage() {
@@ -32,23 +35,23 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto px-8 py-6 bg-admin-bg min-h-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">管理画面</h1>
+        <h1 className="text-3xl font-bold text-gray-900">管理画面</h1>
         <p className="text-sm text-gray-500 mt-1">締切シグナルのレビュー・プリセット管理・ユーザー分析</p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      {/* Pill tab bar */}
+      <div className="bg-gray-100 rounded-xl p-1 inline-flex gap-1 mb-6">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={
               tab === t.key
-                ? 'border-primary-700 text-primary-800'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+                ? 'admin-pill-tab-active'
+                : 'admin-pill-tab'
+            }
           >
             {t.label}
           </button>
@@ -59,6 +62,7 @@ export default function AdminPage() {
       {tab === 'presets' && <PresetManagementTab />}
       {tab === 'log' && <ChangeLogTab />}
       {tab === 'analytics' && <AnalyticsTab />}
+      {tab === 'devtools' && <DevToolsTab />}
     </div>
   );
 }
@@ -338,6 +342,79 @@ function ChangeLogTab() {
         <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <p className="text-sm">変更ログ機能は準備中です</p>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────
+// Tab 5: Dev Tools
+// ────────────────────────────────────────────
+
+function DevToolsTab() {
+  const { user } = useAuth();
+  const [resetting, setResetting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  async function handleResetOnboarding() {
+    if (!user) return;
+    setResetting(true);
+    setMessage(null);
+
+    try {
+      const supabase = getSupabase();
+      // 1. Reset profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          onboarding_status: 'pending',
+          onboarding_variant: 'control',
+          onboarding_skipped_at: null,
+          onboarding_completed_at: null,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // 2. Delete onboarding-related events (checklist completion, started, etc.)
+      await supabase
+        .from('user_events')
+        .delete()
+        .eq('user_id', user.id)
+        .like('event_type', 'onboarding.%');
+
+      // 3. Clear localStorage flags
+      localStorage.removeItem('welcome_shown');
+      localStorage.removeItem('onboarding_checklist_v2');
+
+      setMessage({ type: 'success', text: 'リセット完了。リロードします...' });
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'リセットに失敗しました' });
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  return (
+    <div className="max-w-lg">
+      <div className="card p-5">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">オンボーディングリセット</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          自分のアカウントを初回ログイン状態に戻します。ウェルカムモーダル・チェックリストが再表示されます。
+        </p>
+        <button
+          onClick={handleResetOnboarding}
+          disabled={resetting}
+          className="btn-primary text-sm px-4 py-2"
+        >
+          {resetting ? 'リセット中...' : 'オンボーディングをリセット'}
+        </button>
+        {message && (
+          <p className={`text-xs mt-3 ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            {message.text}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
