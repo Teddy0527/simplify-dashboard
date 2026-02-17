@@ -20,8 +20,6 @@ export { normalizeLabelKey } from './utils/labelNormalizer';
 export { getSessionId, isNewSession, getLastActivityTs } from './utils/sessionManager';
 export { trackMilestoneOnce, isMilestoneAchieved } from './utils/milestoneTracker';
 export { trackEventDebounced } from './utils/trackEventDebounced';
-export { generateGmailFilterXml, downloadGmailFilterXml } from './utils/gmailFilterGenerator';
-export { getGmailSearchUrl, getMailSearchQuery, getImportantMailSearchQuery } from './utils/mailSearchHelper';
 
 // Constants
 export { FIELD_MATCHERS, SKIP_PATTERNS, shouldSkipField, findMatchingField } from './constants/fieldMatchers';
@@ -48,8 +46,6 @@ export {
   getAutofillLogs,
   saveAutofillLog,
   exportAutofillLogs,
-  getJobSites as getLocalJobSites,
-  saveJobSites as saveLocalJobSites,
 } from './storage/chromeStorage';
 export { getStorageAdapter } from './storage/storageAdapter';
 export type { StorageAdapter } from './storage/storageAdapter';
@@ -86,12 +82,6 @@ export {
   rejectContributions,
   recalculateContributorCounts,
 } from './repositories/adminRepository';
-export {
-  getJobSites,
-  addJobSite,
-  updateJobSite,
-  deleteJobSite,
-} from './repositories/jobSiteRepository';
 export {
   trackEvent,
   trackEventAsync,

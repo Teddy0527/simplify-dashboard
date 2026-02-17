@@ -14,15 +14,6 @@ export type EventType =
   | 'es_question.update'
   | 'es_question.delete'
   | 'es_question.reorder'
-  // job_site
-  | 'job_site.create'
-  | 'job_site.update'
-  | 'job_site.delete'
-  | 'job_site.gmail_search_click'
-  | 'job_site.query_copy'
-  | 'job_site.filter_download'
-  | 'job_site.site_link_click'
-  | 'job_site.check_mark'
   // template
   | 'template.create'
   | 'template.update'
@@ -34,7 +25,6 @@ export type EventType =
   | 'page_view.es'
   | 'page_view.profile'
   | 'page_view.deadlines'
-  | 'page_view.sites'
   // auth
   | 'auth.login'
   | 'auth.logout'
@@ -74,7 +64,6 @@ export type EventCategory =
   | 'company'
   | 'entry_sheet'
   | 'es_question'
-  | 'job_site'
   | 'template'
   | 'profile'
   | 'page_view'

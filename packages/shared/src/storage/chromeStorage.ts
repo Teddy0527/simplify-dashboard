@@ -1,4 +1,4 @@
-import { Profile, Template, Company, JobSite, Settings, DEFAULT_PROFILE, DEFAULT_SETTINGS } from '../types';
+import { Profile, Template, Company, Settings, DEFAULT_PROFILE, DEFAULT_SETTINGS } from '../types';
 
 const STORAGE_KEYS = {
   PROFILE: 'profile',
@@ -6,7 +6,6 @@ const STORAGE_KEYS = {
   COMPANIES: 'companies',
   SETTINGS: 'settings',
   AUTOFILL_LOGS: 'autofill_logs',
-  JOB_SITES: 'job_sites',
 } as const;
 
 const MAX_AUTOFILL_LOGS = 50;
@@ -102,15 +101,6 @@ export async function updateCompany(company: Company): Promise<void> {
 export async function deleteCompany(id: string): Promise<void> {
   const companies = await getCompanies();
   await saveCompanies(companies.filter(c => c.id !== id));
-}
-
-// Job Sites
-export async function getJobSites(): Promise<JobSite[]> {
-  return getItem<JobSite[]>(STORAGE_KEYS.JOB_SITES, []);
-}
-
-export async function saveJobSites(sites: JobSite[]): Promise<void> {
-  await setItem(STORAGE_KEYS.JOB_SITES, sites);
 }
 
 // Settings
