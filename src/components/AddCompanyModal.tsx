@@ -140,7 +140,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
               onChange={setName}
               onSelect={handleCompanySelect}
               placeholder="企業名を入力（候補から選択可能）"
-              autoFocus
               required
             />
             {selectedCompanyId && (
