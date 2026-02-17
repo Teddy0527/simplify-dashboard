@@ -4,6 +4,10 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import { ToastProvider } from '../../hooks/useToast';
 import { usePageTracking } from '../../hooks/usePageTracking';
+import { useSessionTracking } from '../../hooks/useSessionTracking';
+import { OnboardingProvider } from '../../contexts/OnboardingContext';
+import OnboardingChecklist from '../onboarding/OnboardingChecklist';
+import WelcomeModal from '../onboarding/WelcomeModal';
 
 function LoadingSpinner() {
   return (
@@ -15,9 +19,11 @@ function LoadingSpinner() {
 
 export default function DashboardLayout() {
   usePageTracking();
+  useSessionTracking();
 
   return (
     <ToastProvider>
+      <OnboardingProvider>
         <div className="h-screen flex flex-col bg-white">
           <Header />
           <div className="flex flex-1 overflow-hidden">
@@ -29,6 +35,9 @@ export default function DashboardLayout() {
             </main>
           </div>
         </div>
+        <OnboardingChecklist />
+        <WelcomeModal />
+      </OnboardingProvider>
     </ToastProvider>
   );
 }

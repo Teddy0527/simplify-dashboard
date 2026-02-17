@@ -17,6 +17,7 @@ export {
 } from './utils/formatters';
 export { getCurrentRecruitmentYear } from './utils/recruitmentYear';
 export { normalizeLabelKey } from './utils/labelNormalizer';
+export { getSessionId, isNewSession, getLastActivityTs } from './utils/sessionManager';
 
 // Constants
 export { FIELD_MATCHERS, SKIP_PATTERNS, shouldSkipField, findMatchingField } from './constants/fieldMatchers';
