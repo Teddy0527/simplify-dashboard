@@ -18,6 +18,7 @@ export {
 export { getCurrentRecruitmentYear } from './utils/recruitmentYear';
 export { normalizeLabelKey } from './utils/labelNormalizer';
 export { getSessionId, isNewSession, getLastActivityTs } from './utils/sessionManager';
+export { trackEventDebounced } from './utils/trackEventDebounced';
 
 // Constants
 export { FIELD_MATCHERS, SKIP_PATTERNS, shouldSkipField, findMatchingField } from './constants/fieldMatchers';
