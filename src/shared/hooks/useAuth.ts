@@ -26,8 +26,22 @@ export function useAuthProvider(): AuthState {
   useEffect(() => {
     const supabase = getSupabase();
 
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const TEST_EMAIL = 'k.hayashida.king@gmail.com';
+    const RESET_KEY = 'test_user_reset_session';
+
     // 起動時にセッション取得
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // localhost起動時: テストアカウントならデータをリセットして初回ユーザー状態に戻す
+      // sessionStorageで同一タブセッション中の重複リセットを防止
+      if (isLocalhost && session?.user?.email === TEST_EMAIL && !sessionStorage.getItem(RESET_KEY)) {
+        sessionStorage.setItem(RESET_KEY, '1');
+        await getSupabase().rpc('reset_test_user', { target_user_id: session.user.id });
+        localStorage.removeItem('onboarding_checklist_v3');
+        localStorage.removeItem('welcome_shown_v2');
+        window.location.reload();
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

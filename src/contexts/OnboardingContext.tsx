@@ -102,6 +102,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setLoading(true);
     let cancelled = false;
 
     (async () => {
