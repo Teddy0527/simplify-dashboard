@@ -93,14 +93,19 @@ const PIPELINE_STEPS = [
   { key: 'revenue', label: 'Revenue', sub: '収益' },
 ] as const;
 
-function PipelineOverview({ activationCount, retentionD1, ga4Sessions, cwsSessions }: { activationCount: number; retentionD1: number | null; ga4Sessions?: number; cwsSessions?: number }) {
+function PipelineOverview({ activationCount, retentionD1, retentionD1Users, retentionD1Size, ga4Sessions, cwsSessions }: { activationCount: number; retentionD1: number | null; retentionD1Users?: number; retentionD1Size?: number; ga4Sessions?: number; cwsSessions?: number }) {
   const acqParts: string[] = [];
   if (ga4Sessions !== undefined) acqParts.push(`LP:${ga4Sessions.toLocaleString()}`);
   if (cwsSessions !== undefined) acqParts.push(`CWS:${cwsSessions.toLocaleString()}`);
+  const retentionLabel = retentionD1 !== null
+    ? retentionD1Users !== undefined && retentionD1Size !== undefined
+      ? `${(retentionD1 * 100).toFixed(0)}% (${retentionD1Users}/${retentionD1Size})`
+      : `${(retentionD1 * 100).toFixed(0)}%`
+    : '-';
   const values: Record<string, string> = {
     acquisition: acqParts.length > 0 ? acqParts.join(' / ') : '未連携',
     activation: `${activationCount}`,
-    retention: retentionD1 !== null ? `${(retentionD1 * 100).toFixed(0)}%` : '-',
+    retention: retentionLabel,
     referral: 'スコープ外',
     revenue: 'スコープ外',
   };
@@ -214,6 +219,8 @@ export function AARRRSection({ aarrr, ga4 }: { aarrr: AARRRData; ga4: GA4Metrics
       <PipelineOverview
         activationCount={weeklySignups}
         retentionD1={d1?.rate ?? null}
+        retentionD1Users={d1?.retainedUsers}
+        retentionD1Size={d1?.cohortSize}
         ga4Sessions={ga4TotalSessions}
         cwsSessions={cwsTotalSessions}
       />

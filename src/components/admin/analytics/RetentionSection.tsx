@@ -26,6 +26,10 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
       d1: Math.round(p.d1Rate * 100),
       d3: Math.round(p.d3Rate * 100),
       d7: Math.round(p.d7Rate * 100),
+      cohortSize: p.cohortSize,
+      d1Retained: Math.round(p.d1Rate * p.cohortSize),
+      d3Retained: Math.round(p.d3Rate * p.cohortSize),
+      d7Retained: Math.round(p.d7Rate * p.cohortSize),
       isD1Mature: p.isD1Mature,
       isD3Mature: p.isD3Mature,
       isD7Mature: p.isD7Mature,
@@ -55,6 +59,7 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
             label="D1 リテンション"
             value={Math.round(latestMature.d1Rate * 100)}
             suffix="%"
+            subtitle={`(${Math.round(latestMature.d1Rate * latestMature.cohortSize)}/${latestMature.cohortSize}人)`}
             trend={computeTrend(
               Math.round(latestMature.d1Rate * 100),
               prevMature ? Math.round(prevMature.d1Rate * 100) : undefined,
@@ -64,6 +69,7 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
             label="D3 リテンション"
             value={Math.round(latestMature.d3Rate * 100)}
             suffix="%"
+            subtitle={`(${Math.round(latestMature.d3Rate * latestMature.cohortSize)}/${latestMature.cohortSize}人)`}
             trend={computeTrend(
               Math.round(latestMature.d3Rate * 100),
               prevMature ? Math.round(prevMature.d3Rate * 100) : undefined,
@@ -73,6 +79,7 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
             label="D7 リテンション"
             value={Math.round(latestMature.d7Rate * 100)}
             suffix="%"
+            subtitle={`(${Math.round(latestMature.d7Rate * latestMature.cohortSize)}/${latestMature.cohortSize}人)`}
             trend={computeTrend(
               Math.round(latestMature.d7Rate * 100),
               prevMature ? Math.round(prevMature.d7Rate * 100) : undefined,
@@ -90,7 +97,13 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={[0, 100]} unit="%" />
-              <Tooltip {...CHART_TOOLTIP_STYLE} formatter={(value) => `${value}%`} />
+              <Tooltip {...CHART_TOOLTIP_STYLE} formatter={(value: number | undefined, name: string | undefined, props: { payload?: Record<string, number> }) => {
+                if (value === undefined || !props.payload) return `${value ?? '-'}%`;
+                const p = props.payload;
+                const key = name === 'D1' ? 'd1' : name === 'D3' ? 'd3' : 'd7';
+                const retained = p[`${key}Retained`];
+                return `${value}% (${retained}/${p.cohortSize}人)`;
+              }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line
                 type="monotone" dataKey="d1" name="D1"
@@ -148,8 +161,9 @@ export function RetentionSection({ retentionTrend, cohorts }: RetentionSectionPr
                         : pct >= 15 ? 'bg-orange-50 text-orange-600'
                         : 'bg-red-50 text-red-600';
                       return (
-                        <td key={w} className={`text-center py-1.5 px-1 tabular-nums rounded-md ${bg}`}>
-                          {pct}%
+                        <td key={w} className={`text-center py-1 px-1 tabular-nums rounded-md ${bg}`}>
+                          <div>{pct}%</div>
+                          <div className="text-[9px] opacity-70">{cell.retainedUsers}/{cell.cohortSize}</div>
                         </td>
                       );
                     })}

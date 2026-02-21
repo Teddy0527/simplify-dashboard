@@ -27,13 +27,14 @@ export function EmptyCard({ message }: { message: string }) {
   );
 }
 
-export function SummaryCard({ label, value, suffix, className, trend, icon }: {
+export function SummaryCard({ label, value, suffix, className, trend, icon, subtitle }: {
   label: string;
   value: number;
   suffix?: string;
   className?: string;
   trend?: number | null;
   icon?: ReactNode;
+  subtitle?: string;
 }) {
   return (
     <div className={`admin-card px-5 py-4 ${className ?? ''}`}>
@@ -47,6 +48,7 @@ export function SummaryCard({ label, value, suffix, className, trend, icon }: {
         </p>
         {trend !== undefined && <TrendBadge trend={trend} />}
       </div>
+      {subtitle && <p className="text-xs text-gray-400 mt-1 tabular-nums">{subtitle}</p>}
     </div>
   );
 }
