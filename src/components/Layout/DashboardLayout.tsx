@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -8,6 +8,7 @@ import { useSessionTracking } from '../../hooks/useSessionTracking';
 import { OnboardingProvider } from '../../contexts/OnboardingContext';
 import OnboardingChecklist from '../onboarding/OnboardingChecklist';
 import WelcomeModal from '../onboarding/WelcomeModal';
+import FeedbackModal from '../feedback/FeedbackModal';
 
 function LoadingSpinner() {
   return (
@@ -21,13 +22,17 @@ export default function DashboardLayout() {
   usePageTracking();
   useSessionTracking();
 
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const handleFeedbackClick = useCallback(() => setFeedbackOpen(true), []);
+  const handleFeedbackClose = useCallback(() => setFeedbackOpen(false), []);
+
   return (
     <ToastProvider>
       <OnboardingProvider>
         <div className="h-screen flex flex-col bg-white">
-          <Header />
+          <Header onFeedbackClick={handleFeedbackClick} />
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar />
+            <Sidebar onFeedbackClick={handleFeedbackClick} />
             <main className="flex-1 overflow-hidden flex flex-col">
               <Suspense fallback={<LoadingSpinner />}>
                 <Outlet />
@@ -37,6 +42,7 @@ export default function DashboardLayout() {
         </div>
         <OnboardingChecklist />
         <WelcomeModal />
+        <FeedbackModal externalOpen={feedbackOpen} onExternalClose={handleFeedbackClose} />
       </OnboardingProvider>
     </ToastProvider>
   );

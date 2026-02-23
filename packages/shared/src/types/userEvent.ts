@@ -58,7 +58,14 @@ export type EventType =
   | 'onboarding.completed'
   | 'onboarding.skipped'
   | 'onboarding.cta_click'
-  | 'onboarding.reshown';
+  | 'onboarding.reshown'
+  // feedback
+  | 'feedback.prompt_shown'
+  | 'feedback.submitted'
+  | 'feedback.skipped_text'
+  | 'feedback.snoozed'
+  | 'feedback.opted_out'
+  | 'feedback.manual_open';
 
 export type EventCategory =
   | 'company'
@@ -72,7 +79,8 @@ export type EventCategory =
   | 'deadline'
   | 'session'
   | 'milestone'
-  | 'onboarding';
+  | 'onboarding'
+  | 'feedback';
 
 /** DB row (snake_case) */
 export interface UserEventRow {

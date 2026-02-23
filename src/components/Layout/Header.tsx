@@ -4,7 +4,11 @@ import MobileNav from './MobileNav';
 import { URLS } from '../../constants/urls';
 import { useAuth } from '../../shared/hooks/useAuth';
 
-export default function Header() {
+interface HeaderProps {
+  onFeedbackClick?: () => void;
+}
+
+export default function Header({ onFeedbackClick }: HeaderProps) {
   const { user, signIn, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -27,7 +31,7 @@ export default function Header() {
   return (
     <header className="h-14 border-b border-gray-200 bg-white px-6 flex items-center justify-between flex-shrink-0">
       <div className="flex items-center gap-3">
-        <MobileNav />
+        <MobileNav onFeedbackClick={onFeedbackClick} />
         <a href={URLS.LP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
           <img src="/lockup.svg" alt="JobSimplify" className="h-14" />
         </a>
