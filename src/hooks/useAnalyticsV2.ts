@@ -3,14 +3,16 @@ import {
   getAARRRMetrics, getGA4Metrics, getExtensionDailyMetrics,
   getRetentionTrend, getRetentionCohorts,
   getUserActivitySummary, getUserEventBreakdown,
+  getFeaturePopularity,
 } from '@jobsimplify/shared';
 import type {
   AARRRData, GA4MetricsResponse, ExtensionDailyMetrics,
   RetentionTrendPoint, RetentionCohort,
   UserActivitySummary, UserEventBreakdown,
+  FeaturePopularity,
 } from '@jobsimplify/shared';
 
-export type V2Tab = 'growth' | 'retention' | 'users';
+export type V2Tab = 'growth' | 'retention' | 'features' | 'users';
 
 /** Add a cumulative field to each item in the array. */
 export function withCumulative<T>(data: T[], getValue: (d: T) => number): (T & { cumulative: number })[] {
@@ -41,6 +43,9 @@ export function useAnalyticsV2(activeTab: V2Tab) {
   const [retentionTrend, setRetentionTrend] = useState<RetentionTrendPoint[]>([]);
   const [cohorts, setCohorts] = useState<RetentionCohort[]>([]);
 
+  // Features state
+  const [featurePopularity, setFeaturePopularity] = useState<FeaturePopularity[]>([]);
+
   // Users state
   const [users, setUsers] = useState<UserActivitySummary[]>([]);
 
@@ -65,6 +70,11 @@ export function useAnalyticsV2(activeTab: V2Tab) {
     setCohorts(cohortData);
   }, [days]);
 
+  const fetchFeatures = useCallback(async (d: number) => {
+    const data = await getFeaturePopularity(d);
+    setFeaturePopularity(data);
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     const data = await getUserActivitySummary();
     setUsers(data);
@@ -79,6 +89,7 @@ export function useAnalyticsV2(activeTab: V2Tab) {
       switch (activeTab) {
         case 'growth': await fetchGrowth(days); break;
         case 'retention': await fetchRetention(); break;
+        case 'features': await fetchFeatures(days); break;
         case 'users': await fetchUsers(); break;
       }
       hasLoadedOnce.current = true;
@@ -88,7 +99,7 @@ export function useAnalyticsV2(activeTab: V2Tab) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [activeTab, days, fetchGrowth, fetchRetention, fetchUsers]);
+  }, [activeTab, days, fetchGrowth, fetchRetention, fetchFeatures, fetchUsers]);
 
   // Fetch on tab/days change
   useEffect(() => {
@@ -110,6 +121,8 @@ export function useAnalyticsV2(activeTab: V2Tab) {
     aarrr, ga4, extensionMetrics,
     // Retention
     retentionTrend, cohorts,
+    // Features
+    featurePopularity,
     // Users
     users, getUserBreakdown,
   };

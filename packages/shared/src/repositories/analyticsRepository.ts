@@ -7,6 +7,7 @@ import type {
   RetentionCohort, RetentionCohortRow,
   ActivationFunnelStep, ActivationFunnelRow,
   FeatureAdoption, FeatureAdoptionRow,
+  FeaturePopularity, FeaturePopularityRow,
   ChurnRiskUser, ChurnRiskUserRow,
   AARRRMetricsRow,
   GA4MetricsResponse,
@@ -22,6 +23,7 @@ import {
   toRetentionCohort,
   toActivationFunnelStep,
   toFeatureAdoption,
+  toFeaturePopularity,
   toChurnRiskUser,
   toAARRRData,
   toRetentionTrendPoint,
@@ -132,6 +134,21 @@ export async function getFeatureAdoption(): Promise<FeatureAdoption[]> {
   }
 
   return ((data as FeatureAdoptionRow[]) ?? []).map(toFeatureAdoption);
+}
+
+/**
+ * Get feature popularity by category (5 functional groups).
+ */
+export async function getFeaturePopularity(days: number = 90): Promise<FeaturePopularity[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_feature_popularity', { p_days: days });
+
+  if (error) {
+    console.error('Failed to get feature popularity:', error.message);
+    return [];
+  }
+
+  return ((data as FeaturePopularityRow[]) ?? []).map(toFeaturePopularity);
 }
 
 /**

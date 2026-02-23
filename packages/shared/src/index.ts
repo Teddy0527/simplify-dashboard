@@ -87,6 +87,11 @@ export {
   trackEventAsync,
 } from './repositories/eventRepository';
 export {
+  submitFeedback,
+  getAllFeedback,
+} from './repositories/feedbackRepository';
+export type { FeedbackRow } from './repositories/feedbackRepository';
+export {
   getUserAnalyticsSummary,
   getUserEventBreakdown,
   getAggregateTrends,
@@ -94,6 +99,7 @@ export {
   getRetentionCohorts,
   getActivationFunnel,
   getFeatureAdoption,
+  getFeaturePopularity,
   getAARRRMetrics,
   getGA4Metrics,
   getRetentionTrend,

@@ -8,6 +8,8 @@ import {
   DeadlinePresetWithCompany,
   PendingContributionSummary,
   getSupabase,
+  getAllFeedback,
+  FeedbackRow,
 } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
@@ -395,8 +397,27 @@ function DevToolsTab() {
     }
   }
 
+  function handleForceFeedback() {
+    localStorage.setItem('feedback_session_count', '5');
+    localStorage.setItem('welcome_shown_v2', '1');
+    localStorage.removeItem('feedback_last_interaction_ts');
+    localStorage.removeItem('feedback_opted_out');
+    localStorage.removeItem('feedback_last_session_id');
+    localStorage.setItem('onboarding_checklist_v3', JSON.stringify({ dismissed: true }));
+    setMessage({ type: 'success', text: 'フィードバックモーダルを有効化しました。リロードします...' });
+    setTimeout(() => window.location.reload(), 800);
+  }
+
+  function handleResetFeedback() {
+    localStorage.removeItem('feedback_session_count');
+    localStorage.removeItem('feedback_last_interaction_ts');
+    localStorage.removeItem('feedback_opted_out');
+    localStorage.removeItem('feedback_last_session_id');
+    setMessage({ type: 'success', text: 'フィードバック状態をリセットしました。' });
+  }
+
   return (
-    <div className="max-w-lg">
+    <div className="max-w-2xl space-y-4">
       <div className="card p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-1">オンボーディングリセット</h3>
         <p className="text-xs text-gray-500 mb-4">
@@ -415,6 +436,130 @@ function DevToolsTab() {
           </p>
         )}
       </div>
+
+      <div className="card p-5">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">フィードバックモーダル</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          フィードバックモーダルの表示条件を操作します。
+        </p>
+        <div className="flex gap-2">
+          <button onClick={handleForceFeedback} className="btn-primary text-sm px-4 py-2">
+            強制表示（リロード）
+          </button>
+          <button onClick={handleResetFeedback} className="text-sm px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+            状態リセット
+          </button>
+        </div>
+        <div className="mt-3 text-xs text-gray-400 space-y-0.5">
+          <p>セッション数: {localStorage.getItem('feedback_session_count') ?? '0'}</p>
+          <p>オプトアウト: {localStorage.getItem('feedback_opted_out') === '1' ? 'はい' : 'いいえ'}</p>
+          <p>最終操作: {localStorage.getItem('feedback_last_interaction_ts') ? new Date(Number(localStorage.getItem('feedback_last_interaction_ts'))).toLocaleString('ja-JP') : 'なし'}</p>
+        </div>
+      </div>
+
+      <FeedbackListCard />
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────
+// Feedback List (Admin)
+// ────────────────────────────────────────────
+
+function StarDisplay({ rating }: { rating: number }) {
+  return (
+    <span className="inline-flex gap-0.5" aria-label={`${rating}点`}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <svg key={s} width="14" height="14" viewBox="0 0 24 24"
+          fill={s <= rating ? '#f59e0b' : 'none'}
+          stroke={s <= rating ? '#f59e0b' : '#d1d5db'}
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+function FeedbackListCard() {
+  const [feedbacks, setFeedbacks] = useState<FeedbackRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllFeedback(100)
+      .then(setFeedbacks)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const avgRating = feedbacks.length > 0
+    ? (feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length).toFixed(1)
+    : '-';
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">フィードバック一覧</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {feedbacks.length}件 ・ 平均評価 {avgRating}
+          </p>
+        </div>
+        <button
+          onClick={() => { setLoading(true); getAllFeedback(100).then(setFeedbacks).finally(() => setLoading(false)); }}
+          className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
+        >
+          更新
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-8 text-gray-500">
+          <div className="inline-block w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
+          <p className="text-xs">読み込み中...</p>
+        </div>
+      ) : feedbacks.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          <p className="text-sm">フィードバックはまだありません</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {feedbacks.map((fb) => (
+            <div key={fb.id} className="border border-gray-100 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <StarDisplay rating={fb.rating} />
+                <span className="text-xs text-gray-400">
+                  {new Date(fb.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              {(fb.satisfaction || fb.complaints || fb.feature_requests) ? (
+                <div className="space-y-1.5 text-xs">
+                  {fb.satisfaction && (
+                    <div>
+                      <span className="font-medium text-gray-600">満足度: </span>
+                      <span className="text-gray-800">{fb.satisfaction}</span>
+                    </div>
+                  )}
+                  {fb.complaints && (
+                    <div>
+                      <span className="font-medium text-gray-600">不便な点: </span>
+                      <span className="text-gray-800">{fb.complaints}</span>
+                    </div>
+                  )}
+                  {fb.feature_requests && (
+                    <div>
+                      <span className="font-medium text-gray-600">要望: </span>
+                      <span className="text-gray-800">{fb.feature_requests}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">テキストフィードバックなし（星のみ）</p>
+              )}
+              <p className="text-[10px] text-gray-300 mt-2 font-mono">{fb.user_id.slice(0, 8)}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

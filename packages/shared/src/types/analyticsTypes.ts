@@ -349,6 +349,44 @@ export function toExtensionDailyMetrics(row: ExtensionDailyMetricsRow): Extensio
   };
 }
 
+// ── Feature Popularity ──────────────────────────────────────────────
+
+export interface FeaturePopularityRow {
+  category_key: string;
+  category_label: string;
+  event_count: number;
+  unique_users: number;
+  total_users: number;
+  adoption_rate: number;
+  top_events: Array<{ event_type: string; count: number; users: number }>;
+}
+
+export interface FeaturePopularity {
+  categoryKey: string;
+  categoryLabel: string;
+  eventCount: number;
+  uniqueUsers: number;
+  totalUsers: number;
+  adoptionRate: number;
+  topEvents: Array<{ eventType: string; count: number; users: number }>;
+}
+
+export function toFeaturePopularity(row: FeaturePopularityRow): FeaturePopularity {
+  return {
+    categoryKey: row.category_key,
+    categoryLabel: row.category_label,
+    eventCount: row.event_count,
+    uniqueUsers: row.unique_users,
+    totalUsers: row.total_users,
+    adoptionRate: row.adoption_rate,
+    topEvents: (row.top_events ?? []).map((e) => ({
+      eventType: e.event_type,
+      count: e.count,
+      users: e.users,
+    })),
+  };
+}
+
 // ── GA4 Metrics ──────────────────────────────────────────────────────
 
 export interface GA4MetricsRow {
