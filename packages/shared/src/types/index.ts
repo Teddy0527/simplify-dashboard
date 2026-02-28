@@ -7,6 +7,8 @@ export * from './deadlineContribution';
 export * from './adminTypes';
 export * from './userEvent';
 export * from './analyticsTypes';
+export * from './companyPromotion';
+export * from './companyNameAlias';
 
 export interface StorageData {
   profile: import('./profile').Profile;

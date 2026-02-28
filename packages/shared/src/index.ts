@@ -105,7 +105,22 @@ export {
   getRetentionTrend,
   getUserActivitySummary,
   getExtensionDailyMetrics,
+  getUserLoginHistory,
+  getUserCompanies,
 } from './repositories/analyticsRepository';
+
+export {
+  submitCompanyPromotion,
+  getPendingPromotions,
+  approvePromotion,
+  rejectPromotion,
+} from './repositories/companyPromotionRepository';
+
+export {
+  getAliasesForCompany,
+  addAlias,
+  deleteAlias,
+} from './repositories/companyNameAliasRepository';
 
 // Services
 export { migrateLocalToCloud } from './services/dataMigration';

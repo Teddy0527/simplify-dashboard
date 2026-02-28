@@ -13,12 +13,16 @@ import {
 } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
+import CompanyPromotionTab from '../components/admin/CompanyPromotionTab';
+import CompanyAliasTab from '../components/admin/CompanyAliasTab';
 
-type Tab = 'review' | 'presets' | 'log' | 'analytics' | 'devtools';
+type Tab = 'review' | 'presets' | 'promotions' | 'aliases' | 'log' | 'analytics' | 'devtools';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'review', label: 'シグナルレビュー' },
   { key: 'presets', label: 'プリセット管理' },
+  { key: 'promotions', label: '企業昇格' },
+  { key: 'aliases', label: 'エイリアス管理' },
   { key: 'log', label: '変更ログ' },
   { key: 'analytics', label: 'ユーザー分析' },
   { key: 'devtools', label: 'Dev Tools' },
@@ -62,6 +66,8 @@ export default function AdminPage() {
 
       {tab === 'review' && <SignalReviewTab />}
       {tab === 'presets' && <PresetManagementTab />}
+      {tab === 'promotions' && <CompanyPromotionTab />}
+      {tab === 'aliases' && <CompanyAliasTab />}
       {tab === 'log' && <ChangeLogTab />}
       {tab === 'analytics' && <AnalyticsTab />}
       {tab === 'devtools' && <DevToolsTab />}
