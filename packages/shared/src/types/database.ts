@@ -86,6 +86,7 @@ export interface Database {
           website_domain: string | null;
           recruit_url: string | null;
           company_master_id: string | null;
+          corporate_number: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -102,6 +103,7 @@ export interface Database {
           website_domain?: string | null;
           recruit_url?: string | null;
           company_master_id?: string | null;
+          corporate_number?: string | null;
         };
         Update: {
           name?: string;
@@ -114,6 +116,7 @@ export interface Database {
           website_domain?: string | null;
           recruit_url?: string | null;
           company_master_id?: string | null;
+          corporate_number?: string | null;
         };
       };
       applications: {
@@ -200,6 +203,7 @@ export function dbToCompany(
     websiteDomain: company.website_domain ?? undefined,
     recruitUrl: company.recruit_url ?? undefined,
     companyMasterId: company.company_master_id ?? undefined,
+    corporateNumber: company.corporate_number ?? undefined,
     createdAt: company.created_at,
     updatedAt: application.updated_at,
   };

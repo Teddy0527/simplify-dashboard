@@ -4,8 +4,6 @@ import { useContributionReview } from '../hooks/useContributionReview';
 import {
   DEADLINE_TYPE_LABELS,
   DeadlineType,
-  searchDeadlinePresets,
-  DeadlinePresetWithCompany,
   PendingContributionSummary,
   getSupabase,
   getAllFeedback,
@@ -13,17 +11,13 @@ import {
 } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
-import CompanyPromotionTab from '../components/admin/CompanyPromotionTab';
-import CompanyAliasTab from '../components/admin/CompanyAliasTab';
+import PopularCompaniesSection from '../components/admin/analytics/PopularCompaniesSection';
 
-type Tab = 'review' | 'presets' | 'promotions' | 'aliases' | 'log' | 'analytics' | 'devtools';
+type Tab = 'review' | 'companies' | 'analytics' | 'devtools';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'review', label: 'シグナルレビュー' },
-  { key: 'presets', label: 'プリセット管理' },
-  { key: 'promotions', label: '企業昇格' },
-  { key: 'aliases', label: 'エイリアス管理' },
-  { key: 'log', label: '変更ログ' },
+  { key: 'companies', label: '企業一覧' },
   { key: 'analytics', label: 'ユーザー分析' },
   { key: 'devtools', label: 'Dev Tools' },
 ];
@@ -44,7 +38,7 @@ export default function AdminPage() {
     <div className="h-full overflow-y-auto px-8 py-6 bg-admin-bg min-h-full">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">管理画面</h1>
-        <p className="text-sm text-gray-500 mt-1">締切シグナルのレビュー・プリセット管理・ユーザー分析</p>
+        <p className="text-sm text-gray-500 mt-1">締切シグナルのレビュー・企業一覧・ユーザー分析</p>
       </div>
 
       {/* Pill tab bar */}
@@ -65,10 +59,7 @@ export default function AdminPage() {
       </div>
 
       {tab === 'review' && <SignalReviewTab />}
-      {tab === 'presets' && <PresetManagementTab />}
-      {tab === 'promotions' && <CompanyPromotionTab />}
-      {tab === 'aliases' && <CompanyAliasTab />}
-      {tab === 'log' && <ChangeLogTab />}
+      {tab === 'companies' && <PopularCompaniesSection />}
       {tab === 'analytics' && <AnalyticsTab />}
       {tab === 'devtools' && <DevToolsTab />}
     </div>
@@ -245,117 +236,7 @@ function SignalCard({
 }
 
 // ────────────────────────────────────────────
-// Tab 2: Preset Management
-// ────────────────────────────────────────────
-
-function PresetManagementTab() {
-  const { recalculate } = useContributionReview();
-  const [presets, setPresets] = useState<DeadlinePresetWithCompany[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [recalculating, setRecalculating] = useState(false);
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    setLoading(true);
-    searchDeadlinePresets('', 2027, 200, 0)
-      .then(setPresets)
-      .catch(() => setPresets([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleRecalculate = async () => {
-    setRecalculating(true);
-    try {
-      await recalculate();
-      const data = await searchDeadlinePresets('', 2027, 200, 0);
-      setPresets(data);
-    } finally {
-      setRecalculating(false);
-    }
-  };
-
-  const filtered = query
-    ? presets.filter((p) => p.companyName.toLowerCase().includes(query.toLowerCase()) || p.label.toLowerCase().includes(query.toLowerCase()))
-    : presets;
-
-  return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="input-field flex-1"
-          placeholder="プリセット検索..."
-        />
-        <button
-          onClick={handleRecalculate}
-          disabled={recalculating}
-          className="btn-primary text-sm px-4 py-2 whitespace-nowrap"
-        >
-          {recalculating ? 'カウント再計算中...' : 'カウント再計算'}
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-gray-500">
-          <div className="inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
-          <p className="text-sm">読み込み中...</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p className="text-sm">プリセットが見つかりませんでした</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-gray-500">{filtered.length}件のプリセット</p>
-          {filtered.map((p) => (
-            <div key={p.id} className="card px-4 py-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">{p.companyName}</span>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
-                    {DEADLINE_TYPE_LABELS[p.deadlineType as DeadlineType] || p.deadlineType}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 truncate">{p.label}</p>
-              </div>
-              <span className="text-sm tabular-nums text-gray-700">{p.deadlineDate}</span>
-              {p.contributorCount > 0 && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
-                  {p.contributorCount}人が報告
-                </span>
-              )}
-              {p.verified && (
-                <span className="text-xs bg-green-50 text-green-600 px-1.5 py-0.5 rounded">
-                  検証済
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────
-// Tab 3: Change Log (placeholder)
-// ────────────────────────────────────────────
-
-function ChangeLogTab() {
-  return (
-    <div className="text-center py-12 text-gray-500">
-      <svg className="mx-auto mb-3 w-12 h-12 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <p className="text-sm">変更ログ機能は準備中です</p>
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────
-// Tab 5: Dev Tools
+// Tab: Dev Tools
 // ────────────────────────────────────────────
 
 function DevToolsTab() {

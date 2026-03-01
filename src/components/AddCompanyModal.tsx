@@ -30,6 +30,8 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   const [recruitUrl, setRecruitUrl] = useState('');
   const [visible, setVisible] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [selectedSource, setSelectedSource] = useState<'master' | 'nta' | null>(null);
+  const [selectedCorporateNumber, setSelectedCorporateNumber] = useState<string | undefined>(undefined);
   const [presetDeadlines, setPresetDeadlines] = useState<CompanyDeadline[]>([]);
   const [loadingPresets, setLoadingPresets] = useState(false);
 
@@ -40,6 +42,9 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   // 企業選択時のハンドラー
   const handleCompanySelect = useCallback(async (company: CompanySearchResult) => {
     setSelectedCompanyId(company.id);
+    setSelectedSource(company.source);
+    setSelectedCorporateNumber(company.corporateNumber);
+
     // 業種を自動入力（マスターの業界値をINDUSTRY_OPTIONSにマッピング）
     if (company.industry) {
       const mapped = mapMasterIndustry(company.industry);
@@ -56,6 +61,13 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
     if (company.recruitUrl) {
       setRecruitUrl(company.recruitUrl);
     }
+
+    // NTA結果の場合はプリセット取得をスキップ
+    if (company.source === 'nta') {
+      setPresetDeadlines([]);
+      return;
+    }
+
     // プリセット締切を取得
     setLoadingPresets(true);
     try {
@@ -95,7 +107,8 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       status,
       websiteDomain: normalizeWebsiteDomain(websiteDomain),
       recruitUrl: recruitUrl.trim() || undefined,
-      companyMasterId: selectedCompanyId || undefined,
+      companyMasterId: selectedSource === 'master' ? (selectedCompanyId || undefined) : undefined,
+      corporateNumber: selectedSource === 'nta' ? selectedCorporateNumber : undefined,
       deadlines: presetDeadlines.length > 0 ? presetDeadlines : [],
     });
     handleClose();
@@ -144,7 +157,7 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
             />
             {selectedCompanyId && (
               <p className="mt-1 text-xs text-success-600">
-                マスターデータから選択しました
+                {selectedSource === 'nta' ? '法人番号データベースから選択しました' : 'マスターデータから選択しました'}
               </p>
             )}
             {loadingPresets && (

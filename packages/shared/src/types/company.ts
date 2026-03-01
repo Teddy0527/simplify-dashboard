@@ -63,6 +63,7 @@ export interface Company {
   websiteDomain?: string;
   recruitUrl?: string;
   companyMasterId?: string;
+  corporateNumber?: string;
   createdAt: string;
   updatedAt: string;
 }

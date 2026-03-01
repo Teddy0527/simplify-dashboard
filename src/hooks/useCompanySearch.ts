@@ -5,6 +5,9 @@ import {
   CompanySearchResultRow,
   toCompanySearchResult,
 } from '@jobsimplify/shared';
+import type { NtaCompanyResult } from '@jobsimplify/shared';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface UseCompanySearchOptions {
   debounceMs?: number;
@@ -19,14 +22,53 @@ interface UseCompanySearchReturn {
   error: string | null;
   search: (query: string) => void;
   clearResults: () => void;
+  // NTA補助検索（オプトイン）
+  ntaResults: CompanySearchResult[];
+  ntaLoading: boolean;
+  searchNtaManually: (query: string) => void;
+  clearNtaResults: () => void;
 }
 
 /**
- * 企業マスター検索Hook
- *
- * @param options.debounceMs - デバウンス時間（デフォルト: 300ms）
- * @param options.limit - 検索結果の最大件数（デフォルト: 10）
- * @param options.minQueryLength - 検索を実行する最小文字数（デフォルト: 1）
+ * 法人格を除去して正規化（重複排除用）
+ */
+function normalizeName(name: string): string {
+  return name
+    .replace(/[\s　]+/g, '')
+    .replace(/株式会社|有限会社|合同会社|合名会社|合資会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|特定非営利活動法人|独立行政法人|地方独立行政法人|国立大学法人/g, '')
+    .trim();
+}
+
+/**
+ * NTA結果をCompanySearchResultに変換
+ */
+function ntaToCompanySearchResult(nta: NtaCompanyResult): CompanySearchResult {
+  return {
+    id: `nta-${nta.corporateNumber}`,
+    name: nta.name,
+    nameKana: nta.nameKana,
+    isPopular: false,
+    similarityScore: 0,
+    source: 'nta',
+    corporateNumber: nta.corporateNumber,
+    address: nta.address,
+  };
+}
+
+/**
+ * NTA Edge Function を呼び出す
+ */
+async function searchNta(query: string, maxCount = 5): Promise<NtaCompanyResult[]> {
+  const url = `${SUPABASE_URL}/functions/v1/company-search-nta?q=${encodeURIComponent(query)}&maxCount=${maxCount}`;
+  const res = await fetch(url, { method: 'GET' });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.results ?? [];
+}
+
+/**
+ * 企業マスター検索Hook（NTA法人番号API統合）
+ * NTAは自動発火せず、searchNtaManually で明示的に呼び出す
  */
 export function useCompanySearch(
   options: UseCompanySearchOptions = {}
@@ -38,8 +80,12 @@ export function useCompanySearch(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // NTA補助検索用state
+  const [ntaResults, setNtaResults] = useState<CompanySearchResult[]>([]);
+  const [ntaLoading, setNtaLoading] = useState(false);
+
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const searchTokenRef = useRef(0);
 
   // Fetch popular companies on mount (once)
   useEffect(() => {
@@ -81,14 +127,12 @@ export function useCompanySearch(
 
   const executeSearch = useCallback(
     async (query: string) => {
-      // 前回のリクエストをキャンセル
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
+      const token = ++searchTokenRef.current;
 
       setLoading(true);
       setError(null);
+      // マスター検索開始時にNTA結果をクリア
+      setNtaResults([]);
 
       try {
         const supabase = getSupabase();
@@ -100,25 +144,22 @@ export function useCompanySearch(
           }
         );
 
-        // アボートされた場合は無視
-        if (abortControllerRef.current?.signal.aborted) {
-          return;
-        }
+        if (searchTokenRef.current !== token) return;
 
         if (rpcError) {
           throw new Error(rpcError.message);
         }
 
-        const searchResults = (data as CompanySearchResultRow[] | null) ?? [];
-        setResults(searchResults.map(toCompanySearchResult));
+        const masterResults = ((data as CompanySearchResultRow[] | null) ?? []).map(toCompanySearchResult);
+        setResults(masterResults);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
-          return;
-        }
+        if (searchTokenRef.current !== token) return;
         setError(err instanceof Error ? err.message : '検索中にエラーが発生しました');
         setResults([]);
       } finally {
-        setLoading(false);
+        if (searchTokenRef.current === token) {
+          setLoading(false);
+        }
       }
     },
     [limit]
@@ -126,19 +167,17 @@ export function useCompanySearch(
 
   const search = useCallback(
     (query: string) => {
-      // 既存のタイマーをクリア
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
-      // クエリが短すぎる場合は結果をクリア
       if (query.length < minQueryLength) {
         setResults([]);
+        setNtaResults([]);
         setLoading(false);
         return;
       }
 
-      // デバウンス
       debounceTimerRef.current = setTimeout(() => {
         executeSearch(query);
       }, debounceMs);
@@ -146,22 +185,61 @@ export function useCompanySearch(
     [debounceMs, minQueryLength, executeSearch]
   );
 
+  const searchNtaManually = useCallback(
+    async (query: string) => {
+      if (query.length < 2) return;
+
+      setNtaLoading(true);
+      try {
+        const rawResults = await searchNta(query, 5);
+
+        // マスター結果との重複排除
+        const masterNormalizedNames = new Set(
+          results.map((r) => normalizeName(r.name))
+        );
+        const unique = rawResults
+          .filter((nta) => !masterNormalizedNames.has(normalizeName(nta.name)))
+          .map(ntaToCompanySearchResult);
+
+        setNtaResults(unique);
+      } catch {
+        // NTA検索失敗は非致命的
+      } finally {
+        setNtaLoading(false);
+      }
+    },
+    [results]
+  );
+
   const clearResults = useCallback(() => {
     setResults([]);
+    setNtaResults([]);
     setError(null);
   }, []);
 
-  // クリーンアップ
+  const clearNtaResults = useCallback(() => {
+    setNtaResults([]);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      searchTokenRef.current++;
     };
   }, []);
 
-  return { results, popularCompanies, loading, error, search, clearResults };
+  return {
+    results,
+    popularCompanies,
+    loading,
+    error,
+    search,
+    clearResults,
+    ntaResults,
+    ntaLoading,
+    searchNtaManually,
+    clearNtaResults,
+  };
 }

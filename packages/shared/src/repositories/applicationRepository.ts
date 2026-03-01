@@ -94,6 +94,7 @@ export async function addCompany(company: Company): Promise<void> {
       website_domain: company.websiteDomain ?? null,
       recruit_url: company.recruitUrl ?? null,
       company_master_id: company.companyMasterId ?? null,
+      corporate_number: company.corporateNumber ?? null,
     })
     .select()
     .single();
@@ -117,6 +118,15 @@ export async function addCompany(company: Company): Promise<void> {
   }
 
   trackEventAsync('company.create', { companyId: company.id, name: company.name });
+
+  // NTA企業の場合、プロモーション申請を自動送信（fire-and-forget）
+  if (company.corporateNumber) {
+    import('./companyPromotionRepository')
+      .then(({ submitCompanyPromotion }) =>
+        submitCompanyPromotion(company.corporateNumber!, company.name)
+      )
+      .catch(() => {});
+  }
 }
 
 export async function updateCompany(company: Company): Promise<void> {
@@ -148,6 +158,7 @@ export async function updateCompany(company: Company): Promise<void> {
       website_domain: company.websiteDomain ?? null,
       recruit_url: company.recruitUrl ?? null,
       company_master_id: company.companyMasterId ?? null,
+      corporate_number: company.corporateNumber ?? null,
     })
     .eq('id', company.id);
 

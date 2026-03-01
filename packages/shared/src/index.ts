@@ -107,6 +107,7 @@ export {
   getExtensionDailyMetrics,
   getUserLoginHistory,
   getUserCompanies,
+  getRegisteredCompanyRanking,
 } from './repositories/analyticsRepository';
 
 export {

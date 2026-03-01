@@ -325,6 +325,71 @@ export function toUserActivitySummary(row: UserActivitySummaryRow): UserActivity
   };
 }
 
+// ── User Login History ──────────────────────────────────────────────
+
+export interface UserLoginHistoryRow {
+  event_id: string;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface UserLoginHistory {
+  eventId: string;
+  createdAt: string;
+  metadata: Record<string, unknown> | null;
+}
+
+export function toUserLoginHistory(row: UserLoginHistoryRow): UserLoginHistory {
+  return {
+    eventId: row.event_id,
+    createdAt: row.created_at,
+    metadata: row.metadata,
+  };
+}
+
+// ── User Company Detail ─────────────────────────────────────────────
+
+export interface UserCompanyDetailRow {
+  company_id: string;
+  company_name: string;
+  industry: string | null;
+  logo_url: string | null;
+  website_domain: string | null;
+  status: string | null;
+  stages: unknown;
+  deadlines: unknown;
+  application_created_at: string;
+  application_updated_at: string | null;
+}
+
+export interface UserCompanyDetail {
+  companyId: string;
+  companyName: string;
+  industry?: string;
+  logoUrl?: string;
+  websiteDomain?: string;
+  status?: string;
+  stages: unknown;
+  deadlines: unknown;
+  applicationCreatedAt: string;
+  applicationUpdatedAt?: string;
+}
+
+export function toUserCompanyDetail(row: UserCompanyDetailRow): UserCompanyDetail {
+  return {
+    companyId: row.company_id,
+    companyName: row.company_name,
+    industry: row.industry ?? undefined,
+    logoUrl: row.logo_url ?? undefined,
+    websiteDomain: row.website_domain ?? undefined,
+    status: row.status ?? undefined,
+    stages: row.stages,
+    deadlines: row.deadlines,
+    applicationCreatedAt: row.application_created_at,
+    applicationUpdatedAt: row.application_updated_at ?? undefined,
+  };
+}
+
 // ── Extension Daily Metrics ─────────────────────────────────────────
 export interface ExtensionDailyMetricsRow {
   date: string;
@@ -384,6 +449,31 @@ export function toFeaturePopularity(row: FeaturePopularityRow): FeaturePopularit
       count: e.count,
       users: e.users,
     })),
+  };
+}
+
+// ── Registered Company Ranking ───────────────────────────────────────
+
+export interface RegisteredCompanyRankingRow {
+  company_name: string;
+  industry: string | null;
+  website_domain: string | null;
+  user_count: number;
+}
+
+export interface RegisteredCompanyRanking {
+  companyName: string;
+  industry?: string;
+  websiteDomain?: string;
+  userCount: number;
+}
+
+export function toRegisteredCompanyRanking(row: RegisteredCompanyRankingRow): RegisteredCompanyRanking {
+  return {
+    companyName: row.company_name,
+    industry: row.industry ?? undefined,
+    websiteDomain: row.website_domain ?? undefined,
+    userCount: row.user_count,
   };
 }
 

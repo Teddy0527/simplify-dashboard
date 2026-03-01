@@ -38,6 +38,21 @@ export interface CompanySearchResult {
   recruitUrl?: string;
   isPopular: boolean;
   similarityScore: number;
+  source: 'master' | 'nta';
+  corporateNumber?: string;
+  address?: string;
+}
+
+/**
+ * NTA法人番号API検索結果
+ */
+export interface NtaCompanyResult {
+  corporateNumber: string;
+  name: string;
+  nameKana?: string;
+  address: string;
+  prefectureName: string;
+  cityName: string;
 }
 
 /**
@@ -73,5 +88,6 @@ export function toCompanySearchResult(row: CompanySearchResultRow): CompanySearc
     recruitUrl: row.recruit_url ?? undefined,
     isPopular: row.is_popular,
     similarityScore: row.similarity_score,
+    source: 'master',
   };
 }

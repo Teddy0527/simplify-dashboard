@@ -14,6 +14,9 @@ import type {
   RetentionTrendPoint, RetentionTrendRow,
   UserActivitySummary, UserActivitySummaryRow,
   ExtensionDailyMetrics, ExtensionDailyMetricsRow,
+  UserLoginHistory, UserLoginHistoryRow,
+  UserCompanyDetail, UserCompanyDetailRow,
+  RegisteredCompanyRanking, RegisteredCompanyRankingRow,
 } from '../types/analyticsTypes';
 import {
   toUserAnalyticsSummary,
@@ -29,6 +32,9 @@ import {
   toRetentionTrendPoint,
   toUserActivitySummary,
   toExtensionDailyMetrics,
+  toUserLoginHistory,
+  toUserCompanyDetail,
+  toRegisteredCompanyRanking,
 } from '../types/analyticsTypes';
 
 /**
@@ -233,4 +239,43 @@ export async function getExtensionDailyMetrics(days: number = 30): Promise<Exten
     return [];
   }
   return ((data as ExtensionDailyMetricsRow[]) ?? []).map(toExtensionDailyMetrics);
+}
+
+/**
+ * Get login history for a specific user (admin only).
+ */
+export async function getUserLoginHistory(userId: string): Promise<UserLoginHistory[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_user_login_history', { p_user_id: userId });
+  if (error) {
+    console.error('Failed to get user login history:', error.message);
+    return [];
+  }
+  return ((data as UserLoginHistoryRow[]) ?? []).map(toUserLoginHistory);
+}
+
+/**
+ * Get companies registered by a specific user (admin only).
+ */
+export async function getUserCompanies(userId: string): Promise<UserCompanyDetail[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_user_companies', { p_user_id: userId });
+  if (error) {
+    console.error('Failed to get user companies:', error.message);
+    return [];
+  }
+  return ((data as UserCompanyDetailRow[]) ?? []).map(toUserCompanyDetail);
+}
+
+/**
+ * Get registered company ranking across all users (admin only).
+ */
+export async function getRegisteredCompanyRanking(): Promise<RegisteredCompanyRanking[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_registered_company_ranking');
+  if (error) {
+    console.error('Failed to get registered company ranking:', error.message);
+    return [];
+  }
+  return ((data as RegisteredCompanyRankingRow[]) ?? []).map(toRegisteredCompanyRanking);
 }

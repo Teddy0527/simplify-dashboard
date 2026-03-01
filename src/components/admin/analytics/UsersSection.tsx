@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { UserAnalyticsSummary, UserActivitySummary, UserEventBreakdown } from '@jobsimplify/shared';
 import { SortableHeader } from './shared';
 import type { SortKey, SortDir } from './shared';
+import UserDetailDrawer from './UserDetailDrawer';
 
 export function UsersSection({
   users,
@@ -240,6 +241,7 @@ export function UsersSectionV2({
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [breakdown, setBreakdown] = useState<UserEventBreakdown[]>([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
+  const [detailUser, setDetailUser] = useState<UserActivitySummary | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -295,6 +297,7 @@ export function UsersSectionV2({
             <SortableHeader label="復帰率" sortKey="returnRate" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
             <SortableHeader label="直近7日" sortKey="last7dEvents" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
             <SortableHeader label="イベント" sortKey="totalEvents" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
+            <th className="px-2 py-3.5 font-semibold w-10" />
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -304,6 +307,7 @@ export function UsersSectionV2({
               user={u}
               isExpanded={expandedUserId === u.userId}
               onClick={() => handleRowClick(u.userId)}
+              onDetail={() => setDetailUser(u)}
               breakdown={expandedUserId === u.userId ? breakdown : []}
               breakdownLoading={expandedUserId === u.userId && breakdownLoading}
             />
@@ -315,6 +319,10 @@ export function UsersSectionV2({
           <p className="text-sm">ユーザーデータがありません</p>
         </div>
       )}
+
+      {detailUser && (
+        <UserDetailDrawer user={detailUser} onClose={() => setDetailUser(null)} />
+      )}
     </div>
   );
 }
@@ -323,12 +331,14 @@ function UserRowV2({
   user,
   isExpanded,
   onClick,
+  onDetail,
   breakdown,
   breakdownLoading,
 }: {
   user: UserActivitySummary;
   isExpanded: boolean;
   onClick: () => void;
+  onDetail: () => void;
   breakdown: UserEventBreakdown[];
   breakdownLoading: boolean;
 }) {
@@ -376,11 +386,22 @@ function UserRowV2({
           </span>
         </td>
         <td className="px-3 py-4 text-center tabular-nums">{user.totalEvents}</td>
+        <td className="px-2 py-4 text-center">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDetail(); }}
+            className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-primary-600"
+            title="詳細"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </td>
       </tr>
 
       {isExpanded && (
         <tr>
-          <td colSpan={8} className="px-4 py-3 bg-gray-50">
+          <td colSpan={9} className="px-4 py-3 bg-gray-50">
             {breakdownLoading ? (
               <div className="text-center py-4">
                 <div className="inline-block w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
