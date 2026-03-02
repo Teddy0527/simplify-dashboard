@@ -108,6 +108,9 @@ export {
   getUserLoginHistory,
   getUserCompanies,
   getRegisteredCompanyRanking,
+  getUserDailyActivity,
+  getAutofillDailyMetrics,
+  getAutofillSiteRanking,
 } from './repositories/analyticsRepository';
 
 export {

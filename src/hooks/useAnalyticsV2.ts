@@ -4,15 +4,17 @@ import {
   getRetentionTrend, getRetentionCohorts,
   getUserActivitySummary, getUserEventBreakdown,
   getFeaturePopularity,
+  getAutofillDailyMetrics, getAutofillSiteRanking,
 } from '@jobsimplify/shared';
 import type {
   AARRRData, GA4MetricsResponse, ExtensionDailyMetrics,
   RetentionTrendPoint, RetentionCohort,
   UserActivitySummary, UserEventBreakdown,
   FeaturePopularity,
+  AutofillDailyMetrics, AutofillSiteRanking,
 } from '@jobsimplify/shared';
 
-export type V2Tab = 'growth' | 'retention' | 'features' | 'users';
+export type V2Tab = 'growth' | 'retention' | 'features' | 'users' | 'autofill';
 
 /** Add a cumulative field to each item in the array. */
 export function withCumulative<T>(data: T[], getValue: (d: T) => number): (T & { cumulative: number })[] {
@@ -49,6 +51,10 @@ export function useAnalyticsV2(activeTab: V2Tab) {
   // Users state
   const [users, setUsers] = useState<UserActivitySummary[]>([]);
 
+  // Autofill state
+  const [autofillMetrics, setAutofillMetrics] = useState<AutofillDailyMetrics[]>([]);
+  const [autofillSites, setAutofillSites] = useState<AutofillSiteRanking[]>([]);
+
   const fetchGrowth = useCallback(async (d: number) => {
     const [aarrrData, ga4Data, extData] = await Promise.all([
       getAARRRMetrics(d),
@@ -80,6 +86,15 @@ export function useAnalyticsV2(activeTab: V2Tab) {
     setUsers(data);
   }, []);
 
+  const fetchAutofill = useCallback(async (d: number) => {
+    const [metricsData, sitesData] = await Promise.all([
+      getAutofillDailyMetrics(d),
+      getAutofillSiteRanking(d),
+    ]);
+    setAutofillMetrics(metricsData);
+    setAutofillSites(sitesData);
+  }, []);
+
   const refresh = useCallback(async () => {
     const isInitial = !hasLoadedOnce.current;
     if (isInitial) setLoading(true);
@@ -91,6 +106,7 @@ export function useAnalyticsV2(activeTab: V2Tab) {
         case 'retention': await fetchRetention(); break;
         case 'features': await fetchFeatures(days); break;
         case 'users': await fetchUsers(); break;
+        case 'autofill': await fetchAutofill(days); break;
       }
       hasLoadedOnce.current = true;
     } catch (err) {
@@ -99,7 +115,7 @@ export function useAnalyticsV2(activeTab: V2Tab) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [activeTab, days, fetchGrowth, fetchRetention, fetchFeatures, fetchUsers]);
+  }, [activeTab, days, fetchGrowth, fetchRetention, fetchFeatures, fetchUsers, fetchAutofill]);
 
   // Fetch on tab/days change
   useEffect(() => {
@@ -125,5 +141,7 @@ export function useAnalyticsV2(activeTab: V2Tab) {
     featurePopularity,
     // Users
     users, getUserBreakdown,
+    // Autofill
+    autofillMetrics, autofillSites,
   };
 }

@@ -17,6 +17,9 @@ import type {
   UserLoginHistory, UserLoginHistoryRow,
   UserCompanyDetail, UserCompanyDetailRow,
   RegisteredCompanyRanking, RegisteredCompanyRankingRow,
+  UserDailyActivity, UserDailyActivityRow,
+  AutofillDailyMetrics, AutofillDailyMetricsRow,
+  AutofillSiteRanking, AutofillSiteRankingRow,
 } from '../types/analyticsTypes';
 import {
   toUserAnalyticsSummary,
@@ -35,6 +38,9 @@ import {
   toUserLoginHistory,
   toUserCompanyDetail,
   toRegisteredCompanyRanking,
+  toUserDailyActivity,
+  toAutofillDailyMetrics,
+  toAutofillSiteRanking,
 } from '../types/analyticsTypes';
 
 /**
@@ -268,6 +274,19 @@ export async function getUserCompanies(userId: string): Promise<UserCompanyDetai
 }
 
 /**
+ * Get daily activity for a specific user (admin only).
+ */
+export async function getUserDailyActivity(userId: string): Promise<UserDailyActivity[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_user_daily_activity', { p_user_id: userId });
+  if (error) {
+    console.error('Failed to get user daily activity:', error.message);
+    return [];
+  }
+  return ((data as UserDailyActivityRow[]) ?? []).map(toUserDailyActivity);
+}
+
+/**
  * Get registered company ranking across all users (admin only).
  */
 export async function getRegisteredCompanyRanking(): Promise<RegisteredCompanyRanking[]> {
@@ -278,4 +297,30 @@ export async function getRegisteredCompanyRanking(): Promise<RegisteredCompanyRa
     return [];
   }
   return ((data as RegisteredCompanyRankingRow[]) ?? []).map(toRegisteredCompanyRanking);
+}
+
+/**
+ * Get autofill daily metrics (admin only).
+ */
+export async function getAutofillDailyMetrics(days: number = 30): Promise<AutofillDailyMetrics[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_autofill_daily_metrics', { p_days: days });
+  if (error) {
+    console.error('Failed to get autofill daily metrics:', error.message);
+    return [];
+  }
+  return ((data as AutofillDailyMetricsRow[]) ?? []).map(toAutofillDailyMetrics);
+}
+
+/**
+ * Get autofill site ranking (admin only).
+ */
+export async function getAutofillSiteRanking(days: number = 30): Promise<AutofillSiteRanking[]> {
+  const { data, error } = await getSupabase()
+    .rpc('get_autofill_site_ranking', { p_days: days });
+  if (error) {
+    console.error('Failed to get autofill site ranking:', error.message);
+    return [];
+  }
+  return ((data as AutofillSiteRankingRow[]) ?? []).map(toAutofillSiteRanking);
 }

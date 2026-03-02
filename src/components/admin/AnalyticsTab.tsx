@@ -11,6 +11,7 @@ import { AARRRSection } from './analytics/AARRRSection';
 import { GrowthSection } from './analytics/GrowthSection';
 import { RetentionSection } from './analytics/RetentionSection';
 import { FeaturePopularitySection } from './analytics/FeaturePopularitySection';
+import { AutofillSection } from './analytics/AutofillSection';
 import { PeriodSelector } from './analytics/shared';
 
 const USE_V2 = true;
@@ -33,7 +34,7 @@ function AnalyticsTabV2() {
       {/* 3-tab pills */}
       <div className="flex items-center justify-between">
         <div className="bg-gray-100 rounded-xl p-1 inline-flex gap-1">
-          {([['growth', 'グロース'], ['retention', 'リテンション'], ['features', '機能人気度'], ['users', 'ユーザー詳細']] as const).map(([key, label]) => (
+          {([['growth', 'グロース'], ['retention', 'リテンション'], ['features', '機能人気度'], ['users', 'ユーザー詳細'], ['autofill', 'オートフィル']] as const).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setV2Tab(key)}
@@ -55,6 +56,7 @@ function AnalyticsTabV2() {
           {v2Tab === 'retention' && <RetentionSection retentionTrend={v2.retentionTrend} cohorts={v2.cohorts} />}
           {v2Tab === 'features' && <FeaturePopularitySection features={v2.featurePopularity} />}
           {v2Tab === 'users' && <UsersSectionV2 users={v2.users} getUserBreakdown={v2.getUserBreakdown} />}
+          {v2Tab === 'autofill' && <AutofillSection metrics={v2.autofillMetrics} sites={v2.autofillSites} />}
         </>
       )}
     </div>

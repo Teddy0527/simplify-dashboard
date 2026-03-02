@@ -59,13 +59,17 @@ export type EventType =
   | 'onboarding.skipped'
   | 'onboarding.cta_click'
   | 'onboarding.reshown'
+  | 'onboarding_wizard.completed'
   // feedback
   | 'feedback.prompt_shown'
   | 'feedback.submitted'
   | 'feedback.skipped_text'
   | 'feedback.snoozed'
   | 'feedback.opted_out'
-  | 'feedback.manual_open';
+  | 'feedback.manual_open'
+  // autofill
+  | 'autofill.success'
+  | 'autofill.error';
 
 export type EventCategory =
   | 'company'
@@ -80,7 +84,9 @@ export type EventCategory =
   | 'session'
   | 'milestone'
   | 'onboarding'
-  | 'feedback';
+  | 'onboarding_wizard'
+  | 'feedback'
+  | 'autofill';
 
 /** DB row (snake_case) */
 export interface UserEventRow {

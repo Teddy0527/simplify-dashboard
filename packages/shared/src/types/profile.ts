@@ -35,6 +35,7 @@ export interface Profile {
   department: string;
   graduationYear: number;
   graduationMonth: number;
+  grade?: string;
   entranceYear?: number;
   entranceMonth?: number;
   highSchool?: string;

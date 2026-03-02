@@ -1,22 +1,22 @@
-import { useState, useEffect } from 'react';
-import type { UserActivitySummary, UserLoginHistory, UserCompanyDetail } from '@jobsimplify/shared';
-import { getUserLoginHistory, getUserCompanies } from '@jobsimplify/shared';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+} from 'recharts';
+import type { UserActivitySummary, UserCompanyDetail, UserDailyActivity } from '@jobsimplify/shared';
+import { getUserDailyActivity, getUserCompanies } from '@jobsimplify/shared';
 import { CompanyLogo } from '../../ui/CompanyLogo';
+import { CHART_TOOLTIP_STYLE } from './shared';
 
 interface UserDetailDrawerProps {
   user: UserActivitySummary;
   onClose: () => void;
 }
 
-type Tab = 'login' | 'companies';
-
 export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
   const [visible, setVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('login');
-  const [loginHistory, setLoginHistory] = useState<UserLoginHistory[]>([]);
+  const [dailyActivity, setDailyActivity] = useState<UserDailyActivity[]>([]);
   const [companies, setCompanies] = useState<UserCompanyDetail[]>([]);
-  const [loadingLogin, setLoadingLogin] = useState(false);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -30,17 +30,16 @@ export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProp
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  // Fetch data on mount
+  // Fetch data in parallel
   useEffect(() => {
-    setLoadingLogin(true);
-    getUserLoginHistory(user.userId).then((data) => {
-      setLoginHistory(data);
-      setLoadingLogin(false);
-    });
-    setLoadingCompanies(true);
-    getUserCompanies(user.userId).then((data) => {
-      setCompanies(data);
-      setLoadingCompanies(false);
+    setLoading(true);
+    Promise.all([
+      getUserDailyActivity(user.userId),
+      getUserCompanies(user.userId),
+    ]).then(([daily, comps]) => {
+      setDailyActivity(daily);
+      setCompanies(comps);
+      setLoading(false);
     });
   }, [user.userId]);
 
@@ -49,12 +48,14 @@ export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProp
     setTimeout(onClose, 250);
   }
 
-  const tabClass = (tab: Tab) =>
-    `px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-      activeTab === tab
-        ? 'border-primary-600 text-primary-600'
-        : 'border-transparent text-gray-500 hover:text-gray-700'
-    }`;
+  // Derived stats from daily activity
+  const activityStats = useMemo(() => {
+    const activeDays = dailyActivity.filter((d) => d.eventCount > 0).length;
+    const loginDays = dailyActivity.filter((d) => d.loginCount > 0).length;
+    const totalDays = dailyActivity.length;
+    const totalEvents = dailyActivity.reduce((s, d) => s + d.eventCount, 0);
+    return { activeDays, loginDays, totalDays, totalEvents };
+  }, [dailyActivity]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -66,10 +67,10 @@ export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProp
 
       {/* Drawer panel */}
       <div
-        className={`relative w-full lg:w-2/3 max-w-2xl bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`relative w-full lg:w-3/4 max-w-4xl bg-white shadow-xl flex flex-col transition-transform duration-250 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="px-6 py-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-4">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
@@ -94,42 +95,23 @@ export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProp
               </svg>
             </button>
           </div>
-
-          {/* Info badges */}
-          <div className="flex items-center gap-3 mt-3 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              登録: {user.createdAt?.slice(0, 10)}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              最終活動: {user.lastActiveAt?.slice(0, 10) ?? '-'}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium">
-              企業 {user.companyCount}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium">
-              イベント {user.totalEvents}
-            </span>
-          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-white px-6">
-          <button className={tabClass('login')} onClick={() => setActiveTab('login')}>
-            ログイン履歴
-          </button>
-          <button className={tabClass('companies')} onClick={() => setActiveTab('companies')}>
-            登録企業
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-          {activeTab === 'login' ? (
-            <LoginHistoryTab history={loginHistory} loading={loadingLogin} />
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+          {loading ? (
+            <Spinner />
           ) : (
-            <CompaniesTab companies={companies} loading={loadingCompanies} />
+            <>
+              {/* Summary cards */}
+              <SummaryCards user={user} stats={activityStats} companyCount={companies.length} />
+
+              {/* Daily activity bar chart */}
+              <DailyActivityChart data={dailyActivity} />
+
+              {/* Registered companies */}
+              <CompaniesSection companies={companies} />
+            </>
           )}
         </div>
       </div>
@@ -137,61 +119,139 @@ export default function UserDetailDrawer({ user, onClose }: UserDetailDrawerProp
   );
 }
 
-function LoginHistoryTab({ history, loading }: { history: UserLoginHistory[]; loading: boolean }) {
-  if (loading) return <Spinner />;
-  if (history.length === 0) return <EmptyState text="ログイン履歴がありません" />;
+// ── Summary Cards ───────────────────────────────────────────────────
+
+function SummaryCards({
+  user,
+  stats,
+  companyCount,
+}: {
+  user: UserActivitySummary;
+  stats: { activeDays: number; loginDays: number; totalDays: number; totalEvents: number };
+  companyCount: number;
+}) {
+  const returnRate = stats.totalDays > 0
+    ? Math.round((stats.activeDays / stats.totalDays) * 100)
+    : 0;
+
+  const cards = [
+    { label: '登録日', value: user.createdAt?.slice(0, 10) ?? '-', color: 'bg-gray-50' },
+    { label: '最終活動', value: user.lastActiveAt?.slice(0, 10) ?? '-', color: 'bg-gray-50' },
+    { label: '活動日数', value: `${stats.activeDays} / ${stats.totalDays}日`, color: 'bg-blue-50' },
+    { label: '復帰率', value: `${returnRate}%`, color: 'bg-green-50' },
+    { label: '企業数', value: String(companyCount), color: 'bg-purple-50' },
+    { label: 'ES数', value: String(user.esCount), color: 'bg-indigo-50' },
+    { label: '総イベント', value: stats.totalEvents.toLocaleString(), color: 'bg-orange-50' },
+  ];
 
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-xs text-gray-400 border-b border-gray-100">
-          <th className="text-left pb-2 font-medium">#</th>
-          <th className="text-left pb-2 font-medium">日時</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {history.map((h, i) => (
-          <tr key={h.eventId} className="text-gray-600">
-            <td className="py-2 tabular-nums text-gray-400 w-10">{i + 1}</td>
-            <td className="py-2 tabular-nums">{formatDateTime(h.createdAt)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function CompaniesTab({ companies, loading }: { companies: UserCompanyDetail[]; loading: boolean }) {
-  if (loading) return <Spinner />;
-  if (companies.length === 0) return <EmptyState text="登録企業がありません" />;
-
-  return (
-    <div className="space-y-3">
-      {companies.map((c) => (
-        <div key={c.companyId} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-          <CompanyLogo
-            name={c.companyName}
-            logoUrl={c.logoUrl}
-            websiteDomain={c.websiteDomain}
-            size="md"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{c.companyName}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              {c.industry && (
-                <span className="text-xs text-gray-500">{c.industry}</span>
-              )}
-              {c.applicationUpdatedAt && (
-                <span className="text-xs text-gray-400">更新: {c.applicationUpdatedAt.slice(0, 10)}</span>
-              )}
-            </div>
-          </div>
-          {c.status && <StatusBadge status={c.status} />}
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      {cards.map((c) => (
+        <div key={c.label} className={`${c.color} rounded-xl px-3 py-3 text-center`}>
+          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">{c.label}</p>
+          <p className="text-sm font-bold text-gray-900 tabular-nums">{c.value}</p>
         </div>
       ))}
     </div>
   );
 }
+
+// ── Daily Activity Chart ────────────────────────────────────────────
+
+function DailyActivityChart({ data }: { data: UserDailyActivity[] }) {
+  if (data.length === 0) return null;
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">日別アクティビティ</h3>
+      <div className="admin-card p-4">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={data} barCategoryGap={1}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+            <XAxis
+              dataKey="activityDate"
+              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tickFormatter={(v: string) => {
+                const d = new Date(v);
+                return `${d.getMonth() + 1}/${d.getDate()}`;
+              }}
+              interval={Math.max(0, Math.floor(data.length / 15))}
+            />
+            <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} width={32} />
+            <Tooltip
+              {...CHART_TOOLTIP_STYLE}
+              labelFormatter={(v) => String(v)}
+              formatter={(value, name) => [
+                value ?? 0,
+                name === 'eventCount' ? 'イベント数' : 'ログイン数',
+              ]}
+            />
+            <Bar dataKey="eventCount" radius={[2, 2, 0, 0]} maxBarSize={12}>
+              {data.map((entry, idx) => (
+                <Cell
+                  key={idx}
+                  fill={entry.loginCount > 0 ? '#3b82f6' : '#d1d5db'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-blue-500" />
+            ログインあり
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-gray-300" />
+            ログインなし
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Companies Section ───────────────────────────────────────────────
+
+function CompaniesSection({ companies }: { companies: UserCompanyDetail[] }) {
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        登録企業 <span className="text-gray-400 font-normal">({companies.length})</span>
+      </h3>
+      {companies.length === 0 ? (
+        <EmptyState text="登録企業がありません" />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {companies.map((c) => (
+            <div key={c.companyId} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+              <CompanyLogo
+                name={c.companyName}
+                logoUrl={c.logoUrl}
+                websiteDomain={c.websiteDomain}
+                size="md"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{c.companyName}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {c.industry && (
+                    <span className="text-xs text-gray-500">{c.industry}</span>
+                  )}
+                  {c.applicationUpdatedAt && (
+                    <span className="text-xs text-gray-400">更新: {c.applicationUpdatedAt.slice(0, 10)}</span>
+                  )}
+                </div>
+              </div>
+              {c.status && <StatusBadge status={c.status} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
@@ -212,8 +272,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function Spinner() {
   return (
-    <div className="text-center py-8">
-      <div className="inline-block w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
+    <div className="text-center py-12">
+      <div className="inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
     </div>
   );
 }
@@ -222,10 +282,4 @@ function EmptyState({ text }: { text: string }) {
   return (
     <p className="text-center py-8 text-sm text-gray-400">{text}</p>
   );
-}
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

@@ -494,6 +494,28 @@ export interface GA4MetricsResponse {
   error?: string;
 }
 
+// ── User Daily Activity ─────────────────────────────────────────────
+
+export interface UserDailyActivityRow {
+  activity_date: string;
+  login_count: number;
+  event_count: number;
+}
+
+export interface UserDailyActivity {
+  activityDate: string;
+  loginCount: number;
+  eventCount: number;
+}
+
+export function toUserDailyActivity(row: UserDailyActivityRow): UserDailyActivity {
+  return {
+    activityDate: row.activity_date,
+    loginCount: row.login_count,
+    eventCount: row.event_count,
+  };
+}
+
 // ── AARRR Metrics ─────────────────────────────────────────────────────
 
 export interface AARRRMetricsRow {
@@ -519,6 +541,65 @@ export interface RetentionDayRate {
 export interface AARRRData {
   activation: ActivationDataPoint[];
   retention: RetentionDayRate[];
+}
+
+// ── Autofill Daily Metrics ───────────────────────────────────────────
+
+export interface AutofillDailyMetricsRow {
+  date: string;
+  total_runs: number;
+  success: number;
+  errors: number;
+  unique_users: number;
+  filled_fields: number;
+}
+
+export interface AutofillDailyMetrics {
+  date: string;
+  totalRuns: number;
+  success: number;
+  errors: number;
+  uniqueUsers: number;
+  filledFields: number;
+}
+
+export function toAutofillDailyMetrics(row: AutofillDailyMetricsRow): AutofillDailyMetrics {
+  return {
+    date: row.date,
+    totalRuns: row.total_runs,
+    success: row.success,
+    errors: row.errors,
+    uniqueUsers: row.unique_users,
+    filledFields: row.filled_fields,
+  };
+}
+
+// ── Autofill Site Ranking ───────────────────────────────────────────
+
+export interface AutofillSiteRankingRow {
+  domain: string;
+  total_runs: number;
+  unique_users: number;
+  filled_fields: number;
+  top_urls: string[];
+}
+
+export interface AutofillSiteRanking {
+  domain: string;
+  totalRuns: number;
+  uniqueUsers: number;
+  filledFields: number;
+  topUrls: string[];
+}
+
+export function toAutofillSiteRanking(row: AutofillSiteRankingRow): AutofillSiteRanking {
+  return {
+    domain: row.domain,
+    totalRuns: row.total_runs,
+    uniqueUsers: row.unique_users,
+    filledFields: row.filled_fields,
+    topUrls: row.top_urls ?? [],
+  };
 }
 
 export function toAARRRData(rows: AARRRMetricsRow[]): AARRRData {
