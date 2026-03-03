@@ -1,119 +1,110 @@
-import type { GoogleCalendarEvent } from '../types/googleCalendar';
-import type { CreateEventPayload } from './googleCalendar';
+import type { GoogleCalendarEvent, GCalEventPayload, GoogleCalendarListEntry } from '../types/googleCalendar';
 
-export class GoogleCalendarAuthError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'GoogleCalendarAuthError';
+const GCAL_BASE = 'https://www.googleapis.com/calendar/v3';
+
+async function gcalFetch(token: string, url: string, options?: RequestInit): Promise<Response> {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown error');
+    throw new Error(`Google Calendar API error (${res.status}): ${err}`);
   }
+  return res;
 }
 
-const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
-
-interface GoogleApiErrorBody {
-  error?: {
-    message?: string;
-    errors?: Array<{ reason?: string }>;
-  };
+export async function createSubCalendar(token: string): Promise<string> {
+  const res = await gcalFetch(token, `${GCAL_BASE}/calendars`, {
+    method: 'POST',
+    body: JSON.stringify({
+      summary: 'Simplify 就活',
+      description: 'Simplifyで管理している就活の締切・予定',
+      timeZone: 'Asia/Tokyo',
+    }),
+  });
+  const data = await res.json();
+  return data.id;
 }
 
-async function parseGoogleApiError(res: Response): Promise<GoogleApiErrorBody> {
-  try {
-    return await res.json();
-  } catch {
-    return {};
-  }
+export async function findSimplifyCalendar(token: string): Promise<string | null> {
+  const res = await gcalFetch(token, `${GCAL_BASE}/users/me/calendarList`);
+  const data = await res.json();
+  const found = data.items?.find((c: GoogleCalendarListEntry) => c.summary === 'Simplify 就活');
+  return found?.id ?? null;
 }
 
-async function throwGoogleCalendarError(res: Response): Promise<never> {
-  const body = await parseGoogleApiError(res);
-  const reason = body.error?.errors?.[0]?.reason;
-  const message = body.error?.message || `Google Calendar API error: ${res.status}`;
-
-  if (res.status === 401) {
-    throw new GoogleCalendarAuthError('Google calendar token expired');
-  }
-
-  if (res.status === 403) {
-    if (reason === 'insufficientPermissions' || reason === 'authError') {
-      throw new GoogleCalendarAuthError('Google calendar permissions are missing');
-    }
-    if (reason === 'accessNotConfigured' || reason === 'serviceDisabled') {
-      throw new Error('Google Calendar API is disabled in Google Cloud project');
-    }
-    throw new GoogleCalendarAuthError(message);
-  }
-
-  throw new Error(message);
+export async function createEvent(
+  token: string,
+  calendarId: string,
+  payload: GCalEventPayload,
+): Promise<string> {
+  const res = await gcalFetch(token, `${GCAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  return data.id;
 }
 
-export async function fetchCalendarEvents(
-  accessToken: string,
+export async function updateEvent(
+  token: string,
+  calendarId: string,
+  eventId: string,
+  payload: GCalEventPayload,
+): Promise<void> {
+  await gcalFetch(
+    token,
+    `${GCAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    { method: 'PUT', body: JSON.stringify(payload) },
+  );
+}
+
+export async function deleteEvent(
+  token: string,
+  calendarId: string,
+  eventId: string,
+): Promise<void> {
+  await gcalFetch(
+    token,
+    `${GCAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    { method: 'DELETE' },
+  );
+}
+
+export async function listEvents(
+  token: string,
+  calendarIds: string[],
   timeMin: string,
   timeMax: string,
 ): Promise<GoogleCalendarEvent[]> {
-  const params = new URLSearchParams({
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    timeMin,
-    timeMax,
-    maxResults: '250',
-  });
-
-  const res = await fetch(
-    `${CALENDAR_API_BASE}/calendars/primary/events?${params}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-
-  if (!res.ok) {
-    await throwGoogleCalendarError(res);
+  const allEvents: GoogleCalendarEvent[] = [];
+  for (const calendarId of calendarIds) {
+    const params = new URLSearchParams({
+      timeMin,
+      timeMax,
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '250',
+    });
+    const res = await gcalFetch(
+      token,
+      `${GCAL_BASE}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    );
+    const data = await res.json();
+    if (data.items) {
+      allEvents.push(...data.items);
+    }
   }
+  return allEvents;
+}
 
+export async function listCalendars(token: string): Promise<GoogleCalendarListEntry[]> {
+  const res = await gcalFetch(token, `${GCAL_BASE}/users/me/calendarList`);
   const data = await res.json();
   return data.items ?? [];
-}
-
-export async function createCalendarEvent(
-  accessToken: string,
-  event: CreateEventPayload,
-): Promise<GoogleCalendarEvent> {
-  const res = await fetch(
-    `${CALENDAR_API_BASE}/calendars/primary/events`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
-    },
-  );
-
-  if (!res.ok) {
-    await throwGoogleCalendarError(res);
-  }
-
-  return res.json();
-}
-
-export async function deleteCalendarEvent(
-  accessToken: string,
-  eventId: string,
-): Promise<void> {
-  const res = await fetch(
-    `${CALENDAR_API_BASE}/calendars/primary/events/${encodeURIComponent(eventId)}`,
-    {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-
-  // 404 = already deleted, treat as success
-  if (res.status === 404) return;
-
-  if (!res.ok) {
-    await throwGoogleCalendarError(res);
-  }
 }
