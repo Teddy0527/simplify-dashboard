@@ -1,5 +1,15 @@
 import type { GoogleCalendarEvent } from '../types/googleCalendar';
-import type { CreateEventPayload } from './googleCalendar';
+
+export interface CreateEventPayload {
+  summary: string;
+  description: string;
+  start: { date?: string; dateTime?: string; timeZone: string };
+  end: { date?: string; dateTime?: string; timeZone: string };
+  reminders?: {
+    useDefault: boolean;
+    overrides?: Array<{ method: 'popup' | 'email'; minutes: number }>;
+  };
+}
 
 export class GoogleCalendarAuthError extends Error {
   constructor(message: string) {

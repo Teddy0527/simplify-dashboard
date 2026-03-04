@@ -11,6 +11,7 @@ export interface CompanyDeadline {
   memo?: string;
   createdAt: string;
   isPreset?: boolean;
+  syncToCalendar?: boolean;  // デフォルトtrue（連携オン時）、明示的falseで同期オフ
 }
 
 export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
