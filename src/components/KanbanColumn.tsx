@@ -17,12 +17,12 @@ interface KanbanColumnProps {
   companies: Company[];
   onCardClick: (company: Company) => void;
   isOver?: boolean;
-  esCountMap?: Map<string, number>;
-  onESClick?: (companyId: string) => void;
-  onCardDelete?: (company: Company) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (company: Company) => void;
+  hasSelection?: boolean;
 }
 
-const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick, isOver, esCountMap, onESClick, onCardDelete }: KanbanColumnProps) {
+const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick, isOver, selectedIds, onToggleSelect, hasSelection }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: column.id });
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
@@ -55,10 +55,10 @@ const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick
                 key={company.id}
                 company={company}
                 onClick={onCardClick}
-                esCount={esCountMap?.get(company.id)}
-                onESClick={onESClick}
-                onDelete={onCardDelete}
                 isSelectionColumn={column.id === 'selection'}
+                isSelected={selectedIds?.has(company.id)}
+                onToggleSelect={onToggleSelect}
+                hasSelection={hasSelection}
               />
             ))
           )}

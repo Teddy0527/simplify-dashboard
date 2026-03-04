@@ -5,12 +5,10 @@ import { useAuth } from '../shared/hooks/useAuth';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { useOnboardingContext } from '../contexts/OnboardingContext';
-import FilterBar, { ViewMode } from '../components/FilterBar';
+import FilterBar from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
-import DeadlineCalendarView from '../components/DeadlineCalendarView';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
-import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
@@ -23,12 +21,9 @@ export default function TrackerPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
-
   const [showAddModal, setShowAddModal] = useState(false);
   const addModalHadInput = useRef(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Auto-open drawer from ?company=<id> query param
   useEffect(() => {
@@ -74,17 +69,6 @@ export default function TrackerPage() {
     deleteCompany(id);
     setDrawerCompanyId(null);
     showToast('削除しました');
-  }
-
-  function handleCardDelete(company: Company) {
-    setDeleteTarget({ id: company.id, name: company.name });
-  }
-
-  function confirmCardDelete() {
-    if (!deleteTarget) return;
-    deleteCompany(deleteTarget.id);
-    showToast('削除しました');
-    setDeleteTarget(null);
   }
 
   // Handle ?action=add query param to auto-open AddCompanyDrawer
@@ -181,11 +165,6 @@ export default function TrackerPage() {
           setIndustryFilter(v);
           if (v) trackEventAsync('interaction.filter_use', { type: 'industry', value: v });
         }}
-        viewMode={viewMode}
-        onViewModeChange={(v) => {
-          setViewMode(v);
-          trackEventAsync('interaction.view_mode_change', { from: viewMode, to: v, page: 'tracker' });
-        }}
         industries={industries}
         onAddClick={() => {
           setShowAddModal(true);
@@ -197,11 +176,7 @@ export default function TrackerPage() {
       />
 
       {/* View */}
-      <div className={`flex-1 overflow-hidden flex ${
-        viewMode === 'calendar'
-          ? 'bg-white'
-          : 'pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]'
-      }`}>
+      <div className="flex-1 overflow-hidden flex pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
         {companies.length === 0 ? (
           <EmptyState
             icon={
@@ -217,7 +192,7 @@ export default function TrackerPage() {
               </button>
             }
           />
-        ) : viewMode === 'kanban' ? (
+        ) : (
           <KanbanBoard
             companies={filtered}
             onReorder={(newCompanies) => {
@@ -231,12 +206,6 @@ export default function TrackerPage() {
               }
               reorder(newCompanies);
             }}
-            onCardClick={handleCardClick}
-            onCardDelete={handleCardDelete}
-          />
-        ) : (
-          <DeadlineCalendarView
-            companies={filtered}
             onCardClick={handleCardClick}
           />
         )}
@@ -267,13 +236,6 @@ export default function TrackerPage() {
         />
       )}
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="企業を削除"
-        message={`「${deleteTarget?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
-        onConfirm={confirmCardDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </>
   );
 }

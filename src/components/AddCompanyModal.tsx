@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry, CompanyDeadline, createDeadline, getPresetsByMasterId } from '@jobsimplify/shared';
+import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS, createCompany, CompanySearchResult, mapMasterIndustry } from '@jobsimplify/shared';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
 import { normalizeWebsiteDomain } from '../utils/url';
 
@@ -32,8 +32,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [selectedSource, setSelectedSource] = useState<'master' | 'nta' | null>(null);
   const [selectedCorporateNumber, setSelectedCorporateNumber] = useState<string | undefined>(undefined);
-  const [presetDeadlines, setPresetDeadlines] = useState<CompanyDeadline[]>([]);
-  const [loadingPresets, setLoadingPresets] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -62,25 +60,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       setRecruitUrl(company.recruitUrl);
     }
 
-    // NTA結果の場合はプリセット取得をスキップ
-    if (company.source === 'nta') {
-      setPresetDeadlines([]);
-      return;
-    }
-
-    // プリセット締切を取得
-    setLoadingPresets(true);
-    try {
-      const presets = await getPresetsByMasterId(company.id);
-      const deadlines = presets.map(p =>
-        ({ ...createDeadline(p.deadlineType, p.label, p.deadlineDate, p.deadlineTime, p.memo), isPreset: true })
-      );
-      setPresetDeadlines(deadlines);
-    } catch {
-      setPresetDeadlines([]);
-    } finally {
-      setLoadingPresets(false);
-    }
   }, []);
 
   useEffect(() => {
@@ -109,7 +88,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
       recruitUrl: recruitUrl.trim() || undefined,
       companyMasterId: selectedSource === 'master' ? (selectedCompanyId || undefined) : undefined,
       corporateNumber: selectedSource === 'nta' ? selectedCorporateNumber : undefined,
-      deadlines: presetDeadlines.length > 0 ? presetDeadlines : [],
     });
     handleClose();
   }
@@ -158,14 +136,6 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
             {selectedCompanyId && (
               <p className="mt-1 text-xs text-success-600">
                 {selectedSource === 'nta' ? '法人番号データベースから選択しました' : 'マスターデータから選択しました'}
-              </p>
-            )}
-            {loadingPresets && (
-              <p className="mt-1 text-xs text-gray-500">締切情報を取得中...</p>
-            )}
-            {!loadingPresets && presetDeadlines.length > 0 && (
-              <p className="mt-1 text-xs text-primary-600">
-                {presetDeadlines.length}件の締切が自動登録されます
               </p>
             )}
           </div>

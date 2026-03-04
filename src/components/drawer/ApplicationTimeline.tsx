@@ -6,6 +6,7 @@ import {
   CompanyDeadline,
   DeadlineType,
   DEADLINE_TYPE_LABELS,
+  DEADLINE_STAGE_MAP,
   createDeadline,
 } from '@jobsimplify/shared';
 import {
@@ -25,8 +26,73 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { TimelineEntry, TimelineEntryState } from './types';
 import MiniCalendar from '../ui/MiniCalendar';
-import { bindDeadlinesToStages, getDeadlineUrgency, formatDeadlineShort } from '../../utils/deadlineHelpers';
-import { buildGoogleCalendarUrl } from '../../utils/googleCalendar';
+import { getDeadlineUrgency, formatDeadlineShort } from '../../utils/deadlineUtils';
+
+function buildGoogleCalendarUrl(companyName: string, deadline: CompanyDeadline): string {
+  const title = `${companyName} - ${deadline.label}`;
+  let dates: string;
+  if (deadline.time) {
+    const time = deadline.time.slice(0, 5);
+    const start = `${deadline.date.replace(/-/g, '')}T${time.replace(':', '')}00`;
+    dates = `${start}/${start}`;
+  } else {
+    const startStr = deadline.date.replace(/-/g, '');
+    const nextDay = new Date(deadline.date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const endStr =
+      nextDay.getFullYear().toString() +
+      String(nextDay.getMonth() + 1).padStart(2, '0') +
+      String(nextDay.getDate()).padStart(2, '0');
+    dates = `${startStr}/${endStr}`;
+  }
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates,
+    ctz: 'Asia/Tokyo',
+  });
+  if (deadline.memo) params.set('details', deadline.memo);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function bindDeadlinesToStages(
+  deadlines: CompanyDeadline[],
+  stages: SelectionStage[],
+): { matched: Map<number, CompanyDeadline[]>; unmatched: CompanyDeadline[] } {
+  const matched = new Map<number, CompanyDeadline[]>();
+  const unmatched: CompanyDeadline[] = [];
+  const usedStageIndices = new Set<number>();
+  const sorted = [...deadlines].sort((a, b) => a.date.localeCompare(b.date));
+  for (const dl of sorted) {
+    const candidateTypes = DEADLINE_STAGE_MAP[dl.type];
+    if (!candidateTypes || candidateTypes.length === 0) {
+      unmatched.push(dl);
+      continue;
+    }
+    let bestIdx = -1;
+    for (let i = 0; i < stages.length; i++) {
+      if (!candidateTypes.includes(stages[i].type)) continue;
+      if (candidateTypes.length === 1) {
+        bestIdx = i;
+        break;
+      }
+      if (!usedStageIndices.has(i)) {
+        if (bestIdx === -1 || stages[i].result === 'pending') {
+          bestIdx = i;
+        }
+      }
+    }
+    if (bestIdx >= 0) {
+      usedStageIndices.add(bestIdx);
+      const arr = matched.get(bestIdx) || [];
+      arr.push(dl);
+      matched.set(bestIdx, arr);
+    } else {
+      unmatched.push(dl);
+    }
+  }
+  return { matched, unmatched };
+}
 
 interface ApplicationTimelineProps {
   entries: TimelineEntry[];
@@ -99,9 +165,11 @@ function MoreButton({ onClick, title }: { onClick: () => void; title?: string })
 function DeadlineSubItem({
   deadline,
   onExpand,
+  onToggleSync,
 }: {
   deadline: CompanyDeadline;
   onExpand: () => void;
+  onToggleSync?: () => void;
 }) {
   const urgency = getDeadlineUrgency(deadline.date);
 
@@ -120,7 +188,23 @@ function DeadlineSubItem({
         }`}>
           {formatDeadlineShort(deadline.date)}
         </span>
-        <div className="ml-auto flex-shrink-0">
+        <div className="ml-auto flex-shrink-0 flex items-center gap-1">
+          {onToggleSync && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleSync(); }}
+              className={`p-1 transition-colors opacity-0 group-hover/dl:opacity-100 ${
+                deadline.syncToCalendar === false ? 'text-gray-300 hover:text-blue-500' : 'text-blue-500 hover:text-gray-300'
+              }`}
+              title={deadline.syncToCalendar === false ? 'カレンダー同期をオンにする' : 'カレンダー同期をオフにする'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </button>
+          )}
           <MoreButton onClick={onExpand} title="締切を編集" />
         </div>
       </div>

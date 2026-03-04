@@ -66,15 +66,8 @@ export {
   addCompany,
   updateCompany,
   deleteCompany,
+  deleteCompanies,
 } from './repositories/applicationRepository';
-export {
-  getPresetsByMasterId,
-  searchDeadlinePresets,
-} from './repositories/deadlinePresetRepository';
-export {
-  contributeDeadlineSignal,
-  getMyContributions,
-} from './repositories/deadlineContributionRepository';
 export {
   checkIsAdmin,
   getPendingContributionsSummary,

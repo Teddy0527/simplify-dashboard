@@ -98,12 +98,12 @@ interface KanbanBoardProps {
   companies: Company[];
   onReorder: (companies: Company[]) => void;
   onCardClick: (company: Company) => void;
-  esCountMap?: Map<string, number>;
-  onESClick?: (companyId: string) => void;
-  onCardDelete?: (company: Company) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (company: Company) => void;
+  hasSelection?: boolean;
 }
 
-export default function KanbanBoard({ companies, onReorder, onCardClick, esCountMap, onESClick, onCardDelete }: KanbanBoardProps) {
+export default function KanbanBoard({ companies, onReorder, onCardClick, selectedIds, onToggleSelect, hasSelection }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const lastOverId = useRef<string | null>(null);
@@ -305,9 +305,9 @@ export default function KanbanBoard({ companies, onReorder, onCardClick, esCount
               companies={filtered}
               onCardClick={onCardClick}
               isOver={overColumnId === col.id}
-              esCountMap={esCountMap}
-              onESClick={onESClick}
-              onCardDelete={onCardDelete}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
+              hasSelection={hasSelection}
             />
           );
         })}

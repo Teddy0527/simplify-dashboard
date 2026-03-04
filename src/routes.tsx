@@ -4,7 +4,6 @@ import DashboardLayout from './components/Layout/DashboardLayout';
 
 const TrackerPage = lazy(() => import('./pages/TrackerPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const DeadlinePresetsPage = lazy(() => import('./pages/DeadlinePresetsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const OnboardingWizardPage = lazy(() => import('./pages/OnboardingWizardPage'));
 
@@ -28,7 +27,6 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <TrackerPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'deadlines', element: <DeadlinePresetsPage /> },
       { path: 'admin', element: <AdminPage /> },
     ],
   },
