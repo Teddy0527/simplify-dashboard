@@ -285,6 +285,9 @@ export interface UserActivitySummaryRow {
   days_since_signup: number;
   return_rate: number;
   last_7d_events: number;
+  university: string | null;
+  graduation_year: number | null;
+  grade: string | null;
 }
 
 export interface UserActivitySummary {
@@ -303,6 +306,9 @@ export interface UserActivitySummary {
   daysSinceSignup: number;
   returnRate: number;
   last7dEvents: number;
+  university?: string;
+  graduationYear?: number;
+  grade?: string;
 }
 
 export function toUserActivitySummary(row: UserActivitySummaryRow): UserActivitySummary {
@@ -322,6 +328,9 @@ export function toUserActivitySummary(row: UserActivitySummaryRow): UserActivity
     daysSinceSignup: row.days_since_signup,
     returnRate: row.return_rate,
     last7dEvents: row.last_7d_events,
+    university: row.university ?? undefined,
+    graduationYear: row.graduation_year ?? undefined,
+    grade: row.grade ?? undefined,
   };
 }
 
@@ -360,6 +369,10 @@ export interface UserCompanyDetailRow {
   deadlines: unknown;
   application_created_at: string;
   application_updated_at: string | null;
+  login_url: string | null;
+  login_password: string | null;
+  my_page_id: string | null;
+  memo: string | null;
 }
 
 export interface UserCompanyDetail {
@@ -373,6 +386,10 @@ export interface UserCompanyDetail {
   deadlines: unknown;
   applicationCreatedAt: string;
   applicationUpdatedAt?: string;
+  loginUrl?: string;
+  hasLoginPassword: boolean;
+  myPageId?: string;
+  memo?: string;
 }
 
 export function toUserCompanyDetail(row: UserCompanyDetailRow): UserCompanyDetail {
@@ -387,6 +404,10 @@ export function toUserCompanyDetail(row: UserCompanyDetailRow): UserCompanyDetai
     deadlines: row.deadlines,
     applicationCreatedAt: row.application_created_at,
     applicationUpdatedAt: row.application_updated_at ?? undefined,
+    loginUrl: row.login_url ?? undefined,
+    hasLoginPassword: !!row.login_password,
+    myPageId: row.my_page_id ?? undefined,
+    memo: row.memo ?? undefined,
   };
 }
 
