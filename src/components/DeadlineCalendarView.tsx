@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef, forwardRef } from 'r
 import { Company, CompanyDeadline, DEADLINE_TYPE_LABELS } from '@jobsimplify/shared';
 import type { DeadlineType } from '@jobsimplify/shared';
 import { getDeadlineUrgency, getDeadlineTypeColor, DEADLINE_TYPE_COLORS, formatTimeJP } from '../utils/deadlineHelpers';
-import { useGoogleCalendar, useGoogleCalendarEventMap } from '../hooks/useGoogleCalendar';
 import type { CalendarEventDisplay } from '../types/googleCalendar';
 
 interface DeadlineCalendarViewProps {
@@ -51,8 +50,8 @@ export default function DeadlineCalendarView({ companies, onCardClick }: Deadlin
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const { events: gcalEvents, enabled: gcalEnabled } = useGoogleCalendar(year, month);
-  const gcalEventMap = useGoogleCalendarEventMap(gcalEvents);
+  const gcalEnabled = false;
+  const gcalEventMap = new Map<string, CalendarEventDisplay[]>();
 
   // Build deadline map
   const deadlineMap = useMemo(() => {

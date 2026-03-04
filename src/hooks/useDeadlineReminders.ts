@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { getSupabase } from '@jobsimplify/shared';
 import type { DeadlinePresetWithCompany } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getStoredToken } from './useGoogleCalendar';
+import { useGoogleCalendar } from './useGoogleCalendar';
 import { presetToCalendarEvent } from '../utils/googleCalendar';
-import { createCalendarEvent, deleteCalendarEvent, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
+import { createEvent, deleteEvent } from '../utils/googleCalendarApi';
 
 export interface DeadlineReminder {
   id: string;
@@ -38,6 +38,7 @@ function computeRemindAt(deadlineDate: string, daysBefore: number): string {
 
 export function useDeadlineReminders(): UseDeadlineRemindersReturn {
   const { user } = useAuth();
+  const { isConnected, getAccessToken, calendarId } = useGoogleCalendar();
   const [reminders, setReminders] = useState<DeadlineReminder[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -81,24 +82,16 @@ export function useDeadlineReminders(): UseDeadlineRemindersReturn {
     async (entry: DeadlinePresetWithCompany, daysBefore: number) => {
       if (!user) return;
 
-      const token = getStoredToken();
-      if (!token) throw new Error('No calendar token');
+      if (!isConnected || !calendarId) throw new Error('No calendar connection');
+      const token = await getAccessToken();
 
       const remindAt = computeRemindAt(entry.deadlineDate, daysBefore);
       let calendarEventId: string | undefined;
-      let status: 'sent' | 'failed' = 'sent';
-      let failureReason: string | null = null;
+      const status: 'sent' | 'failed' = 'sent';
+      const failureReason: string | null = null;
 
-      try {
-        const payload = presetToCalendarEvent(entry, daysBefore);
-        const event = await createCalendarEvent(token, payload);
-        calendarEventId = event.id;
-      } catch (err) {
-        if (err instanceof GoogleCalendarAuthError) {
-          localStorage.removeItem('simplify:gcal-token');
-        }
-        throw err;
-      }
+      const payload = presetToCalendarEvent(entry, daysBefore);
+      calendarEventId = await createEvent(token, calendarId, payload as any);
 
       const { data, error } = await getSupabase()
         .from('deadline_reminders')
@@ -149,16 +142,13 @@ export function useDeadlineReminders(): UseDeadlineRemindersReturn {
       const reminder = reminders.find((r) => r.id === reminderId);
 
       // Try to delete the calendar event if we have an ID
-      if (reminder?.calendarEventId) {
-        const token = getStoredToken();
-        if (token) {
-          try {
-            await deleteCalendarEvent(token, reminder.calendarEventId);
-          } catch (err) {
-            // Token expired — just update DB, calendar event stays
-            if (!(err instanceof GoogleCalendarAuthError)) throw err;
-            console.warn('Token expired, calendar event not deleted');
-          }
+      if (reminder?.calendarEventId && isConnected && calendarId) {
+        try {
+          const token = await getAccessToken();
+          await deleteEvent(token, calendarId, reminder.calendarEventId);
+        } catch (err) {
+          // Token expired or API error — just update DB, calendar event stays
+          console.warn('Failed to delete calendar event:', err);
         }
       }
 
@@ -180,8 +170,7 @@ export function useDeadlineReminders(): UseDeadlineRemindersReturn {
     async (entries: DeadlinePresetWithCompany[], daysBefore: number) => {
       if (!user) return 0;
 
-      const token = getStoredToken();
-      if (!token) throw new Error('No calendar token');
+      if (!isConnected || !calendarId) throw new Error('No calendar connection');
 
       const now = new Date();
       const validEntries = entries.filter((entry) => {
@@ -198,8 +187,8 @@ export function useDeadlineReminders(): UseDeadlineRemindersReturn {
           successCount++;
           // 100ms delay between API calls
           await new Promise((r) => setTimeout(r, 100));
-        } catch (err) {
-          if (err instanceof GoogleCalendarAuthError) throw err;
+        } catch {
+          // Continue with remaining entries
         }
       }
 
@@ -210,8 +199,8 @@ export function useDeadlineReminders(): UseDeadlineRemindersReturn {
   );
 
   const hasCalendarToken = useCallback(() => {
-    return !!getStoredToken();
-  }, []);
+    return isConnected;
+  }, [isConnected]);
 
   const getReminderForPreset = useCallback(
     (presetId: string, daysBefore: number) => {

@@ -3,7 +3,7 @@ import { getCompanies } from '@jobsimplify/shared';
 import type { DeadlineType } from '@jobsimplify/shared';
 import { useGoogleCalendar } from './useGoogleCalendar';
 import { listEvents, listCalendars } from '../utils/googleCalendarApi';
-import { getDeadlineUrgency } from '../utils/deadlineUtils';
+import { getDeadlineUrgency } from '../utils/deadlineHelpers';
 import type { CalendarEventDisplay } from '../types/googleCalendar';
 
 const DEADLINE_TYPE_COLORS: Record<DeadlineType, string> = {

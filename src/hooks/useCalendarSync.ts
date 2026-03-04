@@ -6,7 +6,7 @@ import { useGoogleCalendar } from './useGoogleCalendar';
 import { useAuth } from '../shared/hooks/useAuth';
 import * as gcalApi from '../utils/googleCalendarApi';
 import { getReminderOverrides } from '../utils/reminderPresets';
-import { DEADLINE_EMOJI } from '../utils/deadlineUtils';
+import { DEADLINE_EMOJI } from '../utils/deadlineHelpers';
 import type { GCalEventPayload } from '../types/googleCalendar';
 
 /** Maximum number of pending queue items to process per retry batch */
@@ -134,7 +134,7 @@ export function useCalendarSync(): UseCalendarSyncReturn {
       } catch {
         // Queue all changes for retry
         for (const dl of newDeadlines) {
-          if (!oldMap.has(dl.id) && dl.syncToCalendar !== false) {
+          if (!oldMap.has(dl.id)) {
             await enqueueFailedSync(applicationId, dl.id, 'create', buildGCalEventPayload(company, dl), 'Token unavailable');
           }
         }
@@ -143,7 +143,7 @@ export function useCalendarSync(): UseCalendarSyncReturn {
 
       // Detect added deadlines
       for (const [id, dl] of newMap) {
-        if (!oldMap.has(id) && dl.syncToCalendar !== false) {
+        if (!oldMap.has(id)) {
           try {
             const payload = buildGCalEventPayload(company, dl);
             const eventId = await gcalApi.createEvent(token, calendarId, payload);
@@ -165,7 +165,6 @@ export function useCalendarSync(): UseCalendarSyncReturn {
       for (const [id, newDl] of newMap) {
         const oldDl = oldMap.get(id);
         if (!oldDl) continue;
-        if (newDl.syncToCalendar === false) continue;
         const changed = oldDl.date !== newDl.date || oldDl.time !== newDl.time || oldDl.label !== newDl.label || oldDl.memo !== newDl.memo || oldDl.type !== newDl.type;
         if (!changed) continue;
         if (!syncedRef.current.has(id)) continue;

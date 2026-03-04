@@ -1,6 +1,18 @@
 import type { CompanyDeadline, SelectionStage, DeadlineType } from '@jobsimplify/shared';
 import { STATUS_LABELS, DEADLINE_STAGE_MAP } from '@jobsimplify/shared';
 
+/** DeadlineType別の絵文字 */
+export const DEADLINE_EMOJI: Record<DeadlineType, string> = {
+  es_submission: '📝',
+  document: '📄',
+  interview: '🎤',
+  internship: '💼',
+  event: '📅',
+  webtest: '💻',
+  offer_response: '✉️',
+  other: '📌',
+};
+
 /** DeadlineType別のカラーマップ */
 export const DEADLINE_TYPE_COLORS: Record<DeadlineType, string> = {
   es_submission: '#1a73e8',
