@@ -343,28 +343,6 @@ export default function OnboardingWizardPage() {
           )}
         </div>
 
-        {/* Skip link */}
-        {step >= 1 && <div className="text-center mt-4">
-          <button
-            type="button"
-            onClick={async () => {
-              if (!user) return;
-              await getSupabase()
-                .from('profiles')
-                .update({
-                  onboarding_status: 'skipped',
-                  onboarding_version: 2,
-                  onboarding_skipped_at: new Date().toISOString(),
-                })
-                .eq('id', user.id);
-              trackEventAsync('onboarding.skipped', { onboarding_version: 2 });
-              navigate('/', { replace: true });
-            }}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            スキップして始める
-          </button>
-        </div>}
       </div>
     </div>
   );
