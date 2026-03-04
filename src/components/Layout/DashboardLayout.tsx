@@ -10,6 +10,7 @@ import { OnboardingProvider } from '../../contexts/OnboardingContext';
 import OnboardingChecklist from '../onboarding/OnboardingChecklist';
 import WelcomeModal from '../onboarding/WelcomeModal';
 import FeedbackModal from '../feedback/FeedbackModal';
+import CalendarConnectModal, { useCalendarConnectModalAutoShow } from '../CalendarConnectModal';
 
 function LoadingSpinner() {
   return (
@@ -27,6 +28,7 @@ export default function DashboardLayout() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const handleFeedbackClick = useCallback(() => setFeedbackOpen(true), []);
   const handleFeedbackClose = useCallback(() => setFeedbackOpen(false), []);
+  const { show: showCalendarModal, dismiss: dismissCalendarModal } = useCalendarConnectModalAutoShow();
 
   if (checking) {
     return (
@@ -53,6 +55,7 @@ export default function DashboardLayout() {
         <OnboardingChecklist />
         <WelcomeModal />
         <FeedbackModal externalOpen={feedbackOpen} onExternalClose={handleFeedbackClose} />
+        {showCalendarModal && <CalendarConnectModal onClose={dismissCalendarModal} />}
       </OnboardingProvider>
     </ToastProvider>
   );

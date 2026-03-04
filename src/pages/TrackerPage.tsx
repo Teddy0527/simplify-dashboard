@@ -5,6 +5,7 @@ import { useAuth } from '../shared/hooks/useAuth';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { useOnboardingContext } from '../contexts/OnboardingContext';
+import { useCalendarSync } from '../hooks/useCalendarSync';
 import FilterBar, { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import DeadlineCalendarView from '../components/DeadlineCalendarView';
@@ -19,6 +20,7 @@ export default function TrackerPage() {
   const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany } = useCompanies();
   const { showToast } = useToast();
   const { completeChecklistItem } = useOnboardingContext();
+  const { syncDeadlineChanges, unsyncSingleDeadline } = useCalendarSync();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,10 +66,12 @@ export default function TrackerPage() {
   }
 
   function handleDrawerSave(company: Company) {
+    const oldDeadlines = drawerCompany?.deadlines ?? [];
     updateCompany(company);
     setDrawerCompanyId(null);
     showToast('保存しました');
     trackEventAsync('interaction.drawer_save', { companyId: company.id });
+    syncDeadlineChanges(oldDeadlines, company.deadlines ?? [], company, company.id);
   }
 
   function handleDrawerDelete(id: string) {
@@ -82,6 +86,12 @@ export default function TrackerPage() {
 
   function confirmCardDelete() {
     if (!deleteTarget) return;
+    const targetCompany = companies.find(c => c.id === deleteTarget.id);
+    if (targetCompany?.deadlines) {
+      for (const dl of targetCompany.deadlines) {
+        unsyncSingleDeadline(targetCompany.id, dl.id);
+      }
+    }
     deleteCompany(deleteTarget.id);
     showToast('削除しました');
     setDeleteTarget(null);

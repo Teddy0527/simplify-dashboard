@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Profile, DEFAULT_PROFILE, Qualification } from '@jobsimplify/shared';
 import { getProfile, saveProfile } from '@jobsimplify/shared';
 import { hiraganaToKatakana } from '@jobsimplify/shared';
+import CalendarConnectButton from '../components/CalendarConnectButton';
 
 
 /**
@@ -240,6 +241,15 @@ export default function ProfilePage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Googleカレンダー連携 */}
+        <section className="paper-card p-6 animate-in">
+          <h3 className="section-heading">Googleカレンダー連携</h3>
+          <p className="text-sm mb-4" style={{ color: 'var(--color-gray-500)' }}>
+            Googleカレンダーと連携すると、締切や選考予定が自動で同期されます
+          </p>
+          <CalendarConnectButton />
+        </section>
+
         {/* 基本情報 */}
         <section className="paper-card p-6 animate-in">
           <h3 className="section-heading">基本情報</h3>

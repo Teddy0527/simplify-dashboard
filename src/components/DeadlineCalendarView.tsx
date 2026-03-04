@@ -3,6 +3,8 @@ import { Company, CompanyDeadline, DEADLINE_TYPE_LABELS } from '@jobsimplify/sha
 import type { DeadlineType } from '@jobsimplify/shared';
 import { getDeadlineUrgency, getDeadlineTypeColor, DEADLINE_TYPE_COLORS, formatTimeJP } from '../utils/deadlineHelpers';
 import type { CalendarEventDisplay } from '../types/googleCalendar';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import { useCalendarEvents } from '../hooks/useCalendarEvents';
 
 interface DeadlineCalendarViewProps {
   companies: Company[];
@@ -50,8 +52,28 @@ export default function DeadlineCalendarView({ companies, onCardClick }: Deadlin
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const gcalEnabled = false;
-  const gcalEventMap = new Map<string, CalendarEventDisplay[]>();
+  // Google Calendar integration
+  const { isConnected: gcalEnabled } = useGoogleCalendar();
+  const timeMin = useMemo(() => {
+    const d = new Date(year, month, 1);
+    return d.toISOString();
+  }, [year, month]);
+  const timeMax = useMemo(() => {
+    const d = new Date(year, month + 1, 0, 23, 59, 59);
+    return d.toISOString();
+  }, [year, month]);
+  const { events: calendarEvents } = useCalendarEvents(timeMin, timeMax);
+  const gcalEventMap = useMemo(() => {
+    const map = new Map<string, CalendarEventDisplay[]>();
+    if (!gcalEnabled) return map;
+    for (const ev of calendarEvents) {
+      if (ev.source !== 'google') continue;
+      const list = map.get(ev.dateStr) || [];
+      list.push(ev);
+      map.set(ev.dateStr, list);
+    }
+    return map;
+  }, [calendarEvents, gcalEnabled]);
 
   // Build deadline map
   const deadlineMap = useMemo(() => {
@@ -278,7 +300,7 @@ export default function DeadlineCalendarView({ companies, onCardClick }: Deadlin
             </button>
           </div>
 
-          <span className="text-xs text-gray-400">Google同期は一時停止中</span>
+          {gcalEnabled && <span className="text-xs text-gray-400">Google連携中</span>}
         </div>
       </div>
 
