@@ -55,7 +55,8 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, i
             onChange={(e) => { e.stopPropagation(); onToggleSelect(company); }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
-            className={`w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer flex-shrink-0 transition-opacity ${hasSelection || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            style={{ accentColor: 'var(--color-primary-600)' }}
+            className={`w-4 h-4 rounded cursor-pointer flex-shrink-0 transition-opacity ${hasSelection || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           />
         )}
         <CompanyLogo
