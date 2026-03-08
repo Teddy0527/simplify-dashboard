@@ -6,6 +6,7 @@ import {
   addCompany as addCompanyRepo,
   updateCompany as updateCompanyRepo,
   deleteCompany as deleteCompanyRepo,
+  deleteCompanies as deleteCompaniesRepo,
   trackEventAsync,
   trackMilestoneOnce,
 } from '@jobsimplify/shared';
@@ -98,5 +99,12 @@ export function useCompanies() {
     await deleteCompanyRepo(id).catch(console.error);
   }, []);
 
-  return { companies, loaded, updateStatus, reorder, addCompany, updateCompany, deleteCompany };
+  const deleteCompanies = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    setCompanies((prev) => prev.filter((c) => !idSet.has(c.id)));
+    await deleteCompaniesRepo(ids).catch(console.error);
+  }, []);
+
+  return { companies, loaded, updateStatus, reorder, addCompany, updateCompany, deleteCompany, deleteCompanies };
 }

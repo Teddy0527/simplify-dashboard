@@ -66,6 +66,7 @@ export {
   addCompany,
   updateCompany,
   deleteCompany,
+  deleteCompanies,
 } from './repositories/applicationRepository';
 export {
   checkIsAdmin,

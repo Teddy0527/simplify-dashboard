@@ -59,6 +59,8 @@ export default function AddCompanyDrawer({ onSave, onClose }: AddCompanyDrawerPr
     if (company.recruitUrl) {
       setRecruitUrl(company.recruitUrl);
     }
+
+
   }, []);
 
   useEffect(() => {

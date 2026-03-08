@@ -1,7 +1,26 @@
 import { getSupabase } from '../lib/supabase';
 import type { CompanyPromotionRequest } from '../types/companyPromotion';
 
-function dbToPromotion(row: any): CompanyPromotionRequest {
+interface CompanyPromotionRow {
+  id: string;
+  corporate_number: string;
+  name: string;
+  name_kana: string | null;
+  address: string | null;
+  prefecture_name: string | null;
+  city_name: string | null;
+  industry: string | null;
+  website_url: string | null;
+  website_domain: string | null;
+  recruit_url: string | null;
+  request_count: number;
+  status: 'pending' | 'approved' | 'rejected';
+  promoted_master_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function dbToPromotion(row: CompanyPromotionRow): CompanyPromotionRequest {
   return {
     id: row.id,
     corporateNumber: row.corporate_number,

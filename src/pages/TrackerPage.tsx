@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Company, INDUSTRY_OPTIONS, trackEventAsync, trackEventDebounced } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
@@ -9,27 +9,51 @@ import FilterBar from '../components/FilterBar';
 import type { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import CalendarView from '../components/CalendarView';
+import BulkActionBar from '../components/BulkActionBar';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
-import ConfirmDialog from '../components/Common/ConfirmDialog';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
 export default function TrackerPage() {
   const { user, signIn } = useAuth();
-  const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany } = useCompanies();
+  const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany, deleteCompanies } = useCompanies();
   const { showToast } = useToast();
   const { completeChecklistItem } = useOnboardingContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
-
   const [showAddModal, setShowAddModal] = useState(false);
   const addModalHadInput = useRef(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleToggleSelect = useCallback((company: Company) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(company.id)) {
+        next.delete(company.id);
+      } else {
+        next.add(company.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (!window.confirm(`${count}件の企業を削除しますか？この操作は取り消せません。`)) return;
+    deleteCompanies([...selectedIds]);
+    setSelectedIds(new Set());
+    showToast(`${count}件を削除しました`);
+  }, [selectedIds, deleteCompanies, showToast]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
   // Auto-open drawer from ?company=<id> query param
   useEffect(() => {
@@ -75,17 +99,6 @@ export default function TrackerPage() {
     deleteCompany(id);
     setDrawerCompanyId(null);
     showToast('削除しました');
-  }
-
-  function handleCardDelete(company: Company) {
-    setDeleteTarget({ id: company.id, name: company.name });
-  }
-
-  function confirmCardDelete() {
-    if (!deleteTarget) return;
-    deleteCompany(deleteTarget.id);
-    showToast('削除しました');
-    setDeleteTarget(null);
   }
 
   // Handle ?action=add query param to auto-open AddCompanyDrawer
@@ -228,7 +241,9 @@ export default function TrackerPage() {
               reorder(newCompanies);
             }}
             onCardClick={handleCardClick}
-            onCardDelete={handleCardDelete}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            hasSelection={selectedIds.size > 0}
           />
         )}
       </div>
@@ -249,6 +264,12 @@ export default function TrackerPage() {
         />
       )}
 
+      <BulkActionBar
+        count={selectedIds.size}
+        onDelete={handleBulkDelete}
+        onClear={handleClearSelection}
+      />
+
       {drawerCompany && (
         <CompanyDrawer
           company={drawerCompany}
@@ -258,13 +279,6 @@ export default function TrackerPage() {
         />
       )}
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="企業を削除"
-        message={`「${deleteTarget?.name ?? ''}」を削除しますか？この操作は取り消せません。`}
-        onConfirm={confirmCardDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </>
   );
 }

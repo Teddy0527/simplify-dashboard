@@ -5,8 +5,8 @@ import { getSupabase } from '@jobsimplify/shared';
 
 /**
  * 新規ユーザーをオンボーディングウィザードにリダイレクトするガード。
+ * - 未ログインユーザー → /onboarding へリダイレクト
  * - onboarding_status が completed / skipped 以外 → /onboarding へ
- * - 未ログインユーザーは対象外（ガード通過）
  */
 export function useOnboardingGuard() {
   const { user, loading: authLoading } = useAuth();
@@ -17,6 +17,7 @@ export function useOnboardingGuard() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
+      navigate('/onboarding', { replace: true });
       setChecking(false);
       return;
     }

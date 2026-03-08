@@ -166,3 +166,27 @@ export async function deleteCompany(id: string): Promise<void> {
 
   trackEventAsync('company.delete', { companyId: id });
 }
+
+export async function deleteCompanies(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  if (!(await isAuthenticated())) {
+    const companies = await getLocalCompanies();
+    const idSet = new Set(ids);
+    return saveLocalCompanies(companies.filter((c) => !idSet.has(c.id)));
+  }
+
+  // applicationsはON DELETE CASCADEで自動削除
+  const { error } = await getSupabase()
+    .from('companies')
+    .delete()
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(`Failed to delete companies: ${error.message}`);
+  }
+
+  for (const id of ids) {
+    trackEventAsync('company.delete', { companyId: id });
+  }
+}

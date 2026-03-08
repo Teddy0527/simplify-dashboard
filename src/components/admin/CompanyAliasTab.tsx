@@ -66,12 +66,13 @@ export default function CompanyAliasTab() {
       if (error) throw error;
 
       setCompanies(
-        (data ?? []).map((row: any) => ({
+        (data ?? []).map((row) => ({
           id: row.id,
           name: row.name,
           industry: row.industry,
           logo_url: row.logo_url,
-          alias_count: row.company_name_aliases?.[0]?.count ?? 0,
+          alias_count:
+            (row.company_name_aliases as unknown as { count: number }[])?.[0]?.count ?? 0,
         }))
       );
     } catch {
