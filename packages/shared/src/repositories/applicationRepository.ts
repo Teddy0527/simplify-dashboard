@@ -5,34 +5,7 @@ import {
 } from '../storage/chromeStorage';
 import type { Company } from '../types/company';
 import { dbToCompany } from '../types/database';
-import { contributeDeadlineSignal } from './deadlineContributionRepository';
-import { getCurrentRecruitmentYear } from '../utils/recruitmentYear';
 import { trackEventAsync } from './eventRepository';
-
-/**
- * Emit deadline signals for a company's non-preset deadlines.
- * Fire-and-forget with structured error logging.
- */
-async function emitDeadlineSignals(company: Company): Promise<void> {
-  if (!company.companyMasterId || !company.deadlines) return;
-  const year = getCurrentRecruitmentYear();
-
-  for (const d of company.deadlines) {
-    if (d.isPreset || !d.date) continue;
-    try {
-      await contributeDeadlineSignal(
-        company.companyMasterId, year, d.type, d.label, d.date, d.time
-      );
-    } catch (err) {
-      console.error('[SignalEmission] Failed:', {
-        companyMasterId: company.companyMasterId,
-        deadlineType: d.type,
-        label: d.label,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-}
 
 export async function getCompanies(): Promise<Company[]> {
   if (!(await isAuthenticated())) {
@@ -109,7 +82,6 @@ export async function addCompany(company: Company): Promise<void> {
     company_id: companyRow.id,
     status: company.status,
     stages: company.stages as any,
-    deadlines: (company.deadlines ?? []) as any,
     memo: company.memo ?? null,
   });
 
@@ -168,14 +140,10 @@ export async function updateCompany(company: Company): Promise<void> {
     .update({
       status: company.status,
       stages: company.stages as any,
-      deadlines: (company.deadlines ?? []) as any,
       memo: company.memo ?? null,
     })
     .eq('company_id', company.id)
     .eq('user_id', user.id);
-
-  // Emit deadline signals (fire-and-forget)
-  emitDeadlineSignals(company).catch(() => {});
 
   trackEventAsync('company.update', { companyId: company.id });
 }

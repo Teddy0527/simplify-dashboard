@@ -68,24 +68,14 @@ export {
   deleteCompany,
 } from './repositories/applicationRepository';
 export {
-  getPresetsByMasterId,
-  searchDeadlinePresets,
-} from './repositories/deadlinePresetRepository';
-export {
-  contributeDeadlineSignal,
-  getMyContributions,
-} from './repositories/deadlineContributionRepository';
-export {
   checkIsAdmin,
-  getPendingContributionsSummary,
-  verifyContribution,
-  rejectContributions,
-  recalculateContributorCounts,
 } from './repositories/adminRepository';
 export {
   trackEvent,
   trackEventAsync,
+  setEventTrackingListener,
 } from './repositories/eventRepository';
+export type { EventTrackingListener } from './repositories/eventRepository';
 export {
   submitFeedback,
   getAllFeedback,

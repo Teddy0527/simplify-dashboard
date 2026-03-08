@@ -19,9 +19,8 @@ export interface CalendarEventDisplay {
   endTime?: string;      // HH:mm
   isAllDay: boolean;
   htmlLink: string;
-  source: 'simplify' | 'google';
+  source: 'google';
   companyId?: string;
-  urgency?: 'overdue' | 'urgent' | 'soon' | 'normal';
   color?: string;
 }
 
@@ -34,16 +33,6 @@ export interface CalendarSettings {
   googleTokenExpiresAt: string | null;
 }
 
-export interface CalendarSyncEvent {
-  id: string;
-  userId: string;
-  applicationId: string;
-  deadlineId: string;
-  googleEventId: string;
-  calendarId: string;
-  lastSyncedAt: string;
-}
-
 export interface GCalEventPayload {
   summary: string;
   description?: string;
@@ -53,20 +42,6 @@ export interface GCalEventPayload {
     useDefault: boolean;
     overrides?: { method: string; minutes: number }[];
   };
-}
-
-export interface CalendarSyncQueueItem {
-  id: string;
-  userId: string;
-  applicationId: string;
-  deadlineId: string;
-  action: 'create' | 'update' | 'delete';
-  payload: GCalEventPayload | null;
-  retryCount: number;
-  maxRetries: number;
-  nextRetryAt: string;
-  errorMessage: string | null;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
 export interface GoogleCalendarListEntry {

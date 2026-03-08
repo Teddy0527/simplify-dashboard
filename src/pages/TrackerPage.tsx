@@ -5,10 +5,10 @@ import { useAuth } from '../shared/hooks/useAuth';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { useOnboardingContext } from '../contexts/OnboardingContext';
-import { useCalendarSync } from '../hooks/useCalendarSync';
-import FilterBar, { ViewMode } from '../components/FilterBar';
+import FilterBar from '../components/FilterBar';
+import type { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
-import DeadlineCalendarView from '../components/DeadlineCalendarView';
+import CalendarView from '../components/CalendarView';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
@@ -20,7 +20,6 @@ export default function TrackerPage() {
   const { companies, loaded, reorder, addCompany, updateCompany, deleteCompany } = useCompanies();
   const { showToast } = useToast();
   const { completeChecklistItem } = useOnboardingContext();
-  const { syncDeadlineChanges, unsyncSingleDeadline } = useCalendarSync();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,12 +65,10 @@ export default function TrackerPage() {
   }
 
   function handleDrawerSave(company: Company) {
-    const oldDeadlines = drawerCompany?.deadlines ?? [];
     updateCompany(company);
     setDrawerCompanyId(null);
     showToast('保存しました');
     trackEventAsync('interaction.drawer_save', { companyId: company.id });
-    syncDeadlineChanges(oldDeadlines, company.deadlines ?? [], company, company.id);
   }
 
   function handleDrawerDelete(id: string) {
@@ -86,12 +83,6 @@ export default function TrackerPage() {
 
   function confirmCardDelete() {
     if (!deleteTarget) return;
-    const targetCompany = companies.find(c => c.id === deleteTarget.id);
-    if (targetCompany?.deadlines) {
-      for (const dl of targetCompany.deadlines) {
-        unsyncSingleDeadline(targetCompany.id, dl.id);
-      }
-    }
     deleteCompany(deleteTarget.id);
     showToast('削除しました');
     setDeleteTarget(null);
@@ -136,7 +127,7 @@ export default function TrackerPage() {
             </h2>
             <p className="text-sm text-gray-500 leading-relaxed mb-8">
               Googleアカウントでログインして、<br />
-              応募管理・締切管理・選考トラッキングを<br />
+              応募管理・選考トラッキングを<br />
               始めましょう。
             </p>
 
@@ -191,11 +182,6 @@ export default function TrackerPage() {
           setIndustryFilter(v);
           if (v) trackEventAsync('interaction.filter_use', { type: 'industry', value: v });
         }}
-        viewMode={viewMode}
-        onViewModeChange={(v) => {
-          setViewMode(v);
-          trackEventAsync('interaction.view_mode_change', { from: viewMode, to: v, page: 'tracker' });
-        }}
         industries={industries}
         onAddClick={() => {
           setShowAddModal(true);
@@ -204,14 +190,12 @@ export default function TrackerPage() {
         }}
         companies={companies}
         onCompanyClick={handleCardClick}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* View */}
-      <div className={`flex-1 overflow-hidden flex ${
-        viewMode === 'calendar'
-          ? 'bg-white'
-          : 'pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]'
-      }`}>
+      <div className="flex-1 overflow-hidden flex pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
         {companies.length === 0 ? (
           <EmptyState
             icon={
@@ -227,7 +211,9 @@ export default function TrackerPage() {
               </button>
             }
           />
-        ) : viewMode === 'kanban' ? (
+        ) : viewMode === 'calendar' ? (
+          <CalendarView companies={filtered} onCardClick={handleCardClick} />
+        ) : (
           <KanbanBoard
             companies={filtered}
             onReorder={(newCompanies) => {
@@ -243,11 +229,6 @@ export default function TrackerPage() {
             }}
             onCardClick={handleCardClick}
             onCardDelete={handleCardDelete}
-          />
-        ) : (
-          <DeadlineCalendarView
-            companies={filtered}
-            onCardClick={handleCardClick}
           />
         )}
       </div>

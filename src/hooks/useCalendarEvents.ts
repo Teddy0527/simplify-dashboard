@@ -1,21 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getCompanies } from '@jobsimplify/shared';
-import type { DeadlineType } from '@jobsimplify/shared';
 import { useGoogleCalendar } from './useGoogleCalendar';
 import { listEvents, listCalendars } from '../utils/googleCalendarApi';
-import { getDeadlineUrgency } from '../utils/deadlineHelpers';
 import type { CalendarEventDisplay } from '../types/googleCalendar';
-
-const DEADLINE_TYPE_COLORS: Record<DeadlineType, string> = {
-  es_submission: '#ea4335',
-  internship: '#4285f4',
-  webtest: '#fbbc05',
-  interview: '#34a853',
-  offer_response: '#ff6d01',
-  document: '#46bdc6',
-  event: '#7986cb',
-  other: '#9ca3af',
-};
 
 interface UseCalendarEventsReturn {
   events: CalendarEventDisplay[];
@@ -25,50 +11,8 @@ interface UseCalendarEventsReturn {
 
 export function useCalendarEvents(timeMin: string, timeMax: string): UseCalendarEventsReturn {
   const { isConnected, getAccessToken, calendarId } = useGoogleCalendar();
-  const [simplifyEvents, setSimplifyEvents] = useState<CalendarEventDisplay[]>([]);
   const [googleEvents, setGoogleEvents] = useState<CalendarEventDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  async function loadSimplifyDeadlines() {
-    try {
-      const companies = await getCompanies();
-      const events: CalendarEventDisplay[] = [];
-
-      for (const company of companies) {
-        if (!company.deadlines) continue;
-        for (const dl of company.deadlines) {
-          if (dl.date < timeMin.slice(0, 10) || dl.date > timeMax.slice(0, 10)) continue;
-
-          const urgency = getDeadlineUrgency(dl.date);
-          // Calculate endTime: default 1 hour after startTime
-          let endTime: string | undefined;
-          if (dl.time) {
-            const [h, m] = dl.time.split(':').map(Number);
-            const endH = h + 1;
-            endTime = endH < 24 ? `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}` : '23:59';
-          }
-
-          events.push({
-            id: `${dl.type}-${dl.id}`,
-            title: `${company.name} - ${dl.label}`,
-            dateStr: dl.date,
-            startTime: dl.time || undefined,
-            endTime,
-            isAllDay: !dl.time,
-            htmlLink: `/?company=${company.id}`,
-            source: 'simplify',
-            companyId: company.id,
-            urgency,
-            color: DEADLINE_TYPE_COLORS[dl.type] || DEADLINE_TYPE_COLORS.other,
-          });
-        }
-      }
-
-      setSimplifyEvents(events);
-    } catch (err) {
-      console.error('Failed to load Simplify deadlines:', err);
-    }
-  }
 
   async function loadGoogleEvents() {
     if (!isConnected) {
@@ -117,7 +61,7 @@ export function useCalendarEvents(timeMin: string, timeMax: string): UseCalendar
   async function refresh() {
     setIsLoading(true);
     try {
-      await Promise.all([loadSimplifyDeadlines(), loadGoogleEvents()]);
+      await loadGoogleEvents();
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +72,7 @@ export function useCalendarEvents(timeMin: string, timeMax: string): UseCalendar
   }, [timeMin, timeMax, isConnected]);
 
   const events = useMemo(() => {
-    const all = [...simplifyEvents, ...googleEvents];
+    const all = [...googleEvents];
     all.sort((a, b) => {
       if (a.dateStr !== b.dateStr) return a.dateStr.localeCompare(b.dateStr);
       if (a.isAllDay && !b.isAllDay) return -1;
@@ -136,8 +80,7 @@ export function useCalendarEvents(timeMin: string, timeMax: string): UseCalendar
       return (a.startTime || '').localeCompare(b.startTime || '');
     });
     return all;
-  }, [simplifyEvents, googleEvents]);
+  }, [googleEvents]);
 
   return { events, isLoading, refresh };
 }
-

@@ -575,6 +575,29 @@
     background-color: #f1f3f4;
   }
 
+  /* Deadline chip - pill style with colored background + left border */
+  .gcal-deadline-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 22px;
+    color: #3c4043;
+    cursor: pointer;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 3px solid transparent;
+    transition: background-color 0.15s, box-shadow 0.15s;
+  }
+
+  .gcal-deadline-chip:hover {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
   .gcal-event-dot {
     width: 8px;
     height: 8px;

@@ -1,60 +1,9 @@
-export type DeadlineType =
-  | 'es_submission' | 'internship' | 'webtest' | 'interview'
-  | 'offer_response' | 'document' | 'event' | 'other';
-
-export interface CompanyDeadline {
-  id: string;
-  type: DeadlineType;
-  label: string;
-  date: string;         // YYYY-MM-DD
-  time?: string;        // HH:mm（24h）
-  memo?: string;
-  createdAt: string;
-  isPreset?: boolean;
-}
-
-export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
-  es_submission: 'ES提出',
-  internship: 'インターン',
-  webtest: 'Webテスト',
-  interview: '面接',
-  offer_response: '内定承諾',
-  document: '書類提出',
-  event: '説明会・イベント',
-  other: 'その他',
-};
-
-export const DEADLINE_STAGE_MAP: Record<DeadlineType, SelectionStatus[]> = {
-  es_submission: ['es_submitted'],
-  webtest: ['webtest'],
-  interview: ['interview_1', 'interview_2', 'interview_3', 'interview_final'],
-  offer_response: ['offer'],
-  internship: [],
-  document: [],
-  event: [],
-  other: [],
-};
-
-export function createDeadline(type: DeadlineType, label: string, date: string, time?: string, memo?: string): CompanyDeadline {
-  return {
-    id: crypto.randomUUID(),
-    type,
-    label,
-    date,
-    time: time || undefined,
-    memo: memo || undefined,
-    createdAt: new Date().toISOString(),
-  };
-}
-
 export interface Company {
   id: string;
   name: string;
   industry?: string;
   status: SelectionStatus;
   stages: SelectionStage[];
-  deadline?: string;
-  deadlines?: CompanyDeadline[];
   memo?: string;
   loginUrl?: string;
   myPageId?: string;
@@ -172,7 +121,6 @@ export function createCompany(name: string): Company {
     name,
     status: 'interested',
     stages: DEFAULT_STAGES.map((s) => ({ ...s })),
-    deadlines: [],
     createdAt: now,
     updatedAt: now,
   };

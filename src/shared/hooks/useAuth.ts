@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, migrateLocalToCloud, trackEventAsync } from '@jobsimplify/shared';
+import { posthog } from '@/lib/posthog';
 
 interface AuthState {
   user: User | null;
@@ -51,8 +52,16 @@ export function useAuthProvider(): AuthState {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (_event === 'SIGNED_IN') trackEventAsync('auth.login');
-      if (_event === 'SIGNED_OUT') trackEventAsync('auth.logout');
+      if (_event === 'SIGNED_IN') {
+        trackEventAsync('auth.login');
+        if (session?.user) {
+          posthog.identify(session.user.id, { email: session.user.email });
+        }
+      }
+      if (_event === 'SIGNED_OUT') {
+        trackEventAsync('auth.logout');
+        posthog.reset();
+      }
     });
 
     return () => subscription.unsubscribe();
