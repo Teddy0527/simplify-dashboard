@@ -78,7 +78,9 @@ export {
 export {
   trackEvent,
   trackEventAsync,
+  setEventTrackingListener,
 } from './repositories/eventRepository';
+export type { EventTrackingListener } from './repositories/eventRepository';
 export {
   submitFeedback,
   getAllFeedback,
