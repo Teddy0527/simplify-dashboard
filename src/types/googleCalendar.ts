@@ -1,9 +1,14 @@
 export interface GoogleCalendarEvent {
   id: string;
   summary: string;
-  start: { dateTime?: string; date?: string };
-  end: { dateTime?: string; date?: string };
+  description?: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
   htmlLink: string;
+  reminders?: {
+    useDefault: boolean;
+    overrides?: { method: string; minutes: number }[];
+  };
 }
 
 export interface CalendarEventDisplay {
@@ -11,6 +16,37 @@ export interface CalendarEventDisplay {
   title: string;
   dateStr: string;       // YYYY-MM-DD
   startTime?: string;    // HH:mm
+  endTime?: string;      // HH:mm
   isAllDay: boolean;
   htmlLink: string;
+  source: 'google';
+  companyId?: string;
+  color?: string;
+}
+
+export interface CalendarSettings {
+  id: string;
+  userId: string;
+  isConnected: boolean;
+  calendarId: string | null;
+  connectedAt: string | null;
+  googleTokenExpiresAt: string | null;
+}
+
+export interface GCalEventPayload {
+  summary: string;
+  description?: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
+  reminders?: {
+    useDefault: boolean;
+    overrides?: { method: string; minutes: number }[];
+  };
+}
+
+export interface GoogleCalendarListEntry {
+  id: string;
+  summary: string;
+  primary?: boolean;
+  accessRole: string;
 }

@@ -70,15 +70,13 @@ export {
 } from './repositories/applicationRepository';
 export {
   checkIsAdmin,
-  getPendingContributionsSummary,
-  verifyContribution,
-  rejectContributions,
-  recalculateContributorCounts,
 } from './repositories/adminRepository';
 export {
   trackEvent,
   trackEventAsync,
+  setEventTrackingListener,
 } from './repositories/eventRepository';
+export type { EventTrackingListener } from './repositories/eventRepository';
 export {
   submitFeedback,
   getAllFeedback,
