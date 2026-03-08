@@ -1,234 +1,126 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getSupabase } from '@jobsimplify/shared';
-import { useAuth } from '../shared/hooks/useAuth';
-import type { CalendarSettings } from '../types/googleCalendar';
+import { fetchCalendarEvents, GoogleCalendarAuthError } from '../utils/googleCalendarApi';
+import type { CalendarEventDisplay, GoogleCalendarEvent } from '../types/googleCalendar';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const POPUP_POLL_INTERVAL_MS = 500;
-const POPUP_MAX_WAIT_MS = 2 * 60 * 1000;
+const STORAGE_KEY_ENABLED = 'simplify:gcal-enabled';
+const STORAGE_KEY_TOKEN = 'simplify:gcal-token';
 
-interface UseGoogleCalendarReturn {
-  isConnected: boolean;
-  isLoading: boolean;
-  connect: () => void;
-  disconnect: () => Promise<void>;
-  getAccessToken: () => Promise<string>;
-  calendarId: string | null;
-  settings: CalendarSettings | null;
+interface StoredToken {
+  token: string;
+  expiresAt: number;
 }
 
-export function useGoogleCalendar(): UseGoogleCalendarReturn {
-  const { user, session } = useAuth();
-  const [settings, setSettings] = useState<CalendarSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const refreshPromiseRef = useRef<Promise<string> | null>(null);
-  const popupPollRef = useRef<number | null>(null);
-
-  const loadSettings = useCallback(async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      const { data } = await getSupabase()
-        .from('user_calendar_settings')
-        .select('id, user_id, is_connected, calendar_id, connected_at, google_token_expires_at')
-        .eq('user_id', user.id)
-        .single();
-      if (data) {
-        setSettings({
-          id: data.id,
-          userId: data.user_id,
-          isConnected: data.is_connected,
-          calendarId: data.calendar_id,
-          connectedAt: data.connected_at,
-          googleTokenExpiresAt: data.google_token_expires_at,
-        });
-      } else {
-        setSettings(null);
-      }
-    } catch {
-      setSettings(null);
-    } finally {
-      setIsLoading(false);
+export function getStoredToken(): string | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TOKEN);
+    if (!raw) return null;
+    const parsed: StoredToken = JSON.parse(raw);
+    if (Date.now() > parsed.expiresAt) {
+      localStorage.removeItem(STORAGE_KEY_TOKEN);
+      return null;
     }
-  }, [user]);
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
 
-  // Load settings on mount
-  useEffect(() => {
-    if (!user) {
-      setSettings(null);
-      setIsLoading(false);
-      return;
-    }
-    loadSettings();
-  }, [user, loadSettings]);
+function normalizeEvent(event: GoogleCalendarEvent): CalendarEventDisplay {
+  const isAllDay = !event.start.dateTime;
+  let dateStr: string;
+  let startTime: string | undefined;
 
-  const stopPopupPolling = useCallback(() => {
-    if (popupPollRef.current !== null) {
-      window.clearInterval(popupPollRef.current);
-      popupPollRef.current = null;
-    }
-  }, []);
-
-  // Listen for postMessage from OAuth popup
-  useEffect(() => {
-    const allowedOrigins = new Set<string>([window.location.origin]);
-    try {
-      allowedOrigins.add(new URL(SUPABASE_URL).origin);
-    } catch {
-      // Ignore invalid SUPABASE_URL and fallback to same-origin only.
-    }
-
-    function handleMessage(event: MessageEvent) {
-      if (!allowedOrigins.has(event.origin)) return;
-      if (event.data?.type === 'google-calendar-connected') {
-        stopPopupPolling();
-        loadSettings();
-        return;
-      }
-      if (event.data?.type === 'google-calendar-error') {
-        stopPopupPolling();
-        console.error('Google Calendar OAuth error:', event.data?.error ?? 'Unknown error');
-        loadSettings();
-      }
-    }
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-      stopPopupPolling();
-    };
-  }, [loadSettings, stopPopupPolling]);
-
-  const connect = useCallback(() => {
-    if (!session?.access_token) return;
-
-    const payload: Record<string, string> = {
-      action: 'start',
-      app_origin: window.location.origin,
-    };
-    try {
-      payload.redirect_uri = new URL('/functions/v1/google-calendar-auth/callback', SUPABASE_URL).toString();
-    } catch {
-      // Ignore invalid SUPABASE_URL and let backend use default redirect_uri.
-    }
-
-    fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error ?? `google-calendar-auth failed (${res.status})`);
-        }
-        return data;
-      })
-      .then((data) => {
-        if (!data.authUrl) {
-          throw new Error('Missing authUrl in google-calendar-auth response');
-        }
-
-        const w = 500;
-        const h = 600;
-        const left = window.screenX + (window.outerWidth - w) / 2;
-        const top = window.screenY + (window.outerHeight - h) / 2;
-        const popup = window.open(
-          data.authUrl,
-          'google-calendar-auth',
-          `width=${w},height=${h},left=${left},top=${top}`,
-        );
-
-        if (!popup) {
-          throw new Error('Popup blocked');
-        }
-
-        stopPopupPolling();
-        const startedAt = Date.now();
-        popupPollRef.current = window.setInterval(() => {
-          if (popup.closed || Date.now() - startedAt > POPUP_MAX_WAIT_MS) {
-            stopPopupPolling();
-            loadSettings();
-          }
-        }, POPUP_POLL_INTERVAL_MS);
-      })
-      .catch((error) => {
-        console.error('Failed to start Google Calendar OAuth:', error);
-      });
-  }, [session, loadSettings, stopPopupPolling]);
-
-  const disconnect = useCallback(async () => {
-    if (!session?.access_token) return;
-
-    await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'disconnect' }),
-    });
-
-    setSettings(null);
-  }, [session]);
-
-  const getAccessToken = useCallback(async (): Promise<string> => {
-    // Use promise lock to prevent concurrent refresh requests
-    if (refreshPromiseRef.current) {
-      return refreshPromiseRef.current;
-    }
-
-    // Check if current token is still valid (with 5 min buffer)
-    if (settings?.googleTokenExpiresAt) {
-      const expiresAt = new Date(settings.googleTokenExpiresAt).getTime();
-      if (Date.now() < expiresAt - 5 * 60 * 1000) {
-        // Token still valid, fetch it from DB
-        const { data } = await getSupabase()
-          .from('user_calendar_settings')
-          .select('google_access_token')
-          .eq('user_id', user!.id)
-          .single();
-        if (data?.google_access_token) return data.google_access_token;
-      }
-    }
-
-    // Need to refresh
-    const refreshPromise = (async () => {
-      try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session!.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: 'refresh' }),
-        });
-        const data = await res.json();
-        if (data.access_token) {
-          setSettings((prev) =>
-            prev ? { ...prev, googleTokenExpiresAt: data.expires_at } : prev,
-          );
-          return data.access_token as string;
-        }
-        throw new Error('Failed to refresh token');
-      } finally {
-        refreshPromiseRef.current = null;
-      }
-    })();
-
-    refreshPromiseRef.current = refreshPromise;
-    return refreshPromise;
-  }, [settings, user, session]);
+  if (event.start.dateTime) {
+    const dt = new Date(event.start.dateTime);
+    dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    startTime = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+  } else {
+    dateStr = event.start.date!;
+  }
 
   return {
-    isConnected: settings?.isConnected ?? false,
-    isLoading,
-    connect,
-    disconnect,
-    getAccessToken,
-    calendarId: settings?.calendarId ?? null,
-    settings,
+    id: event.id,
+    title: event.summary || '(予定なし)',
+    dateStr,
+    startTime,
+    isAllDay,
+    htmlLink: event.htmlLink,
   };
+}
+
+interface UseGoogleCalendarReturn {
+  events: CalendarEventDisplay[];
+  loading: boolean;
+  enabled: boolean;
+  setEnabled: (v: boolean) => void;
+  tokenAvailable: boolean;
+  reconnect: () => void;
+}
+
+export function useGoogleCalendar(year: number, month: number): UseGoogleCalendarReturn {
+  const [enabled, _setEnabled] = useState(false);
+  const [events, setEvents] = useState<CalendarEventDisplay[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [tokenAvailable, setTokenAvailable] = useState(() => !!getStoredToken());
+
+  const setEnabled = useCallback((v: boolean) => {
+    _setEnabled(v);
+    localStorage.setItem(STORAGE_KEY_ENABLED, String(v));
+  }, []);
+
+  const reconnect = useCallback(() => {
+    getSupabase().auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname + window.location.search },
+    });
+  }, []);
+
+  // Fetch events when enabled + token available + month changes
+  useEffect(() => {
+    if (!enabled) {
+      setEvents([]);
+      return;
+    }
+
+    const token = getStoredToken();
+    if (!token) {
+      setTokenAvailable(false);
+      setEvents([]);
+      return;
+    }
+
+    setTokenAvailable(true);
+    setLoading(true);
+
+    const timeMin = new Date(year, month, 1).toISOString();
+    const timeMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+    fetchCalendarEvents(token, timeMin, timeMax)
+      .then(rawEvents => {
+        setEvents(rawEvents.map(normalizeEvent));
+      })
+      .catch(err => {
+        if (err instanceof GoogleCalendarAuthError) {
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          setTokenAvailable(false);
+        }
+        setEvents([]);
+      })
+      .finally(() => setLoading(false));
+  }, [enabled, year, month]);
+
+  return { events, loading, enabled, setEnabled, tokenAvailable, reconnect };
+}
+
+export function useGoogleCalendarEventMap(events: CalendarEventDisplay[]) {
+  return useMemo(() => {
+    const map = new Map<string, CalendarEventDisplay[]>();
+    for (const ev of events) {
+      const list = map.get(ev.dateStr) || [];
+      list.push(ev);
+      map.set(ev.dateStr, list);
+    }
+    return map;
+  }, [events]);
 }

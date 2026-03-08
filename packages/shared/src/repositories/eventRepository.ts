@@ -2,19 +2,6 @@ import { getSupabase, getCurrentUser } from '../lib/supabase';
 import type { EventType, EventCategory } from '../types/userEvent';
 import { getSessionId } from '../utils/sessionManager';
 
-export type EventTrackingListener = (eventType: EventType, metadata?: Record<string, unknown>) => void;
-
-let _onTrack: EventTrackingListener | null = null;
-
-/**
- * Register a listener that is called whenever an event is tracked.
- * Used by the dashboard to forward events to PostHog without
- * adding PostHog as a dependency in the shared package.
- */
-export function setEventTrackingListener(listener: EventTrackingListener): void {
-  _onTrack = listener;
-}
-
 function getCategoryFromType(eventType: EventType): EventCategory {
   return eventType.split('.')[0] as EventCategory;
 }
@@ -54,11 +41,5 @@ export async function trackEvent(eventType: EventType, metadata?: Record<string,
       eventType,
       error: error.message,
     });
-  }
-
-  try {
-    _onTrack?.(eventType, enrichedMetadata);
-  } catch {
-    // Listener errors must not break event tracking
   }
 }

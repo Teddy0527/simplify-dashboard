@@ -48,13 +48,14 @@ export function createDeadline(type: DeadlineType, label: string, date: string, 
   };
 }
 
-
 export interface Company {
   id: string;
   name: string;
   industry?: string;
   status: SelectionStatus;
   stages: SelectionStage[];
+  deadline?: string;
+  deadlines?: CompanyDeadline[];
   memo?: string;
   loginUrl?: string;
   myPageId?: string;
@@ -172,6 +173,7 @@ export function createCompany(name: string): Company {
     name,
     status: 'interested',
     stages: DEFAULT_STAGES.map((s) => ({ ...s })),
+    deadlines: [],
     createdAt: now,
     updatedAt: now,
   };

@@ -16,9 +16,7 @@
       "Bash(git status:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue close:*)",
-      "mcp__supabase__execute_sql",
-      "Bash(claude remote-control:*)",
-      "Bash(claude:*)"
+      "mcp__supabase__execute_sql"
     ]
   }
 }

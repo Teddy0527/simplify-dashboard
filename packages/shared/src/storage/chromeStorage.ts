@@ -76,7 +76,7 @@ export async function deleteTemplate(id: string): Promise<void> {
 // Companies
 export async function getCompanies(): Promise<Company[]> {
   const companies = await getItem<Company[]>(STORAGE_KEYS.COMPANIES, []);
-  return companies;
+  return companies.map(c => ({ ...c, deadlines: c.deadlines ?? [] }));
 }
 
 export async function saveCompanies(companies: Company[]): Promise<void> {

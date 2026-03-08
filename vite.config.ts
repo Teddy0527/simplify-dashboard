@@ -25,7 +25,6 @@ export default defineConfig({
           router: ['react-router-dom'],
           dndkit: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities', '@dnd-kit/modifiers'],
           supabase: ['@supabase/supabase-js'],
-          posthog: ['posthog-js'],
         },
       },
     },

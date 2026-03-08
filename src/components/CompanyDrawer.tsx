@@ -25,6 +25,7 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
     myPageId: company.myPageId || '',
     loginPassword: company.loginPassword || '',
     stages: company.stages ?? [],
+    deadlines: company.deadlines ?? [],
   }));
 
   const onFieldChange: OnFieldChange = (key, value) => {
@@ -61,6 +62,7 @@ export default function CompanyDrawer({ company, onSave, onDelete, onClose }: Co
       websiteDomain: company.websiteDomain,
       industry: draft.industry || undefined,
       stages: draft.stages,
+      deadlines: draft.deadlines,
       updatedAt: new Date().toISOString(),
     });
     handleClose();

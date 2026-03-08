@@ -12,6 +12,7 @@ function getActionForItem(id: ChecklistItemId): { hasAction: boolean; label?: st
   switch (id) {
     case 'add_company':       return { hasAction: true, label: '追加する' };
     case 'drag_card':         return { hasAction: true, label: 'やってみる' };
+    case 'check_deadlines':   return { hasAction: true, label: '確認する' };
     case 'install_extension': return { hasAction: true, label: '追加する' };
     default:                  return { hasAction: false };
   }
@@ -61,6 +62,8 @@ export default function OnboardingChecklist() {
         navigate('/');
         showToast('カードをドラッグして、ステータスを変更してみましょう');
       }
+    } else if (id === 'check_deadlines') {
+      navigate('/deadlines');
     } else if (id === 'install_extension') {
       window.open(CHROME_EXTENSION_URL, '_blank');
       completeChecklistItem('install_extension');

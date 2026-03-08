@@ -6,9 +6,7 @@ import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
 import { useOnboardingContext } from '../contexts/OnboardingContext';
 import FilterBar from '../components/FilterBar';
-import type { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
-import CalendarView from '../components/CalendarView';
 import BulkActionBar from '../components/BulkActionBar';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
@@ -27,7 +25,6 @@ export default function TrackerPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const addModalHadInput = useRef(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const handleToggleSelect = useCallback((company: Company) => {
@@ -140,7 +137,7 @@ export default function TrackerPage() {
             </h2>
             <p className="text-sm text-gray-500 leading-relaxed mb-8">
               Googleアカウントでログインして、<br />
-              応募管理・選考トラッキングを<br />
+              応募管理・締切管理・選考トラッキングを<br />
               始めましょう。
             </p>
 
@@ -203,8 +200,6 @@ export default function TrackerPage() {
         }}
         companies={companies}
         onCompanyClick={handleCardClick}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
       />
 
       {/* View */}
@@ -224,8 +219,6 @@ export default function TrackerPage() {
               </button>
             }
           />
-        ) : viewMode === 'calendar' ? (
-          <CalendarView companies={filtered} onCardClick={handleCardClick} />
         ) : (
           <KanbanBoard
             companies={filtered}

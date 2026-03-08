@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Profile, DEFAULT_PROFILE, Qualification } from '@jobsimplify/shared';
 import { getProfile, saveProfile } from '@jobsimplify/shared';
 import { hiraganaToKatakana } from '@jobsimplify/shared';
+
+
 /**
  * Extract hiragana characters from a string
  */

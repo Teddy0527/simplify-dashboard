@@ -81,7 +81,8 @@ export async function addCompany(company: Company): Promise<void> {
     user_id: user.id,
     company_id: companyRow.id,
     status: company.status,
-    stages: company.stages as any,
+    stages: company.stages,
+    deadlines: company.deadlines ?? [],
     memo: company.memo ?? null,
   });
 
@@ -139,7 +140,8 @@ export async function updateCompany(company: Company): Promise<void> {
     .from('applications')
     .update({
       status: company.status,
-      stages: company.stages as any,
+      stages: company.stages,
+      deadlines: company.deadlines ?? [],
       memo: company.memo ?? null,
     })
     .eq('company_id', company.id)

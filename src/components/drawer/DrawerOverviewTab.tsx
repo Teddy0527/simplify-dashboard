@@ -170,10 +170,12 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
           <ApplicationTimeline
             entries={timelineEntries}
             stages={draft.stages}
+            deadlines={draft.deadlines}
             companyName={company.name}
             showAll={showAll}
             onToggleShowAll={() => setShowAll((v) => !v)}
             onStagesChange={(stages) => onFieldChange('stages', stages)}
+            onDeadlinesChange={(deadlines) => onFieldChange('deadlines', deadlines)}
           />
         </div>
       </div>

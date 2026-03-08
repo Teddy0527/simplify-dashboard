@@ -1,7 +1,7 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Company } from '@jobsimplify/shared';
+import { Company, STATUS_LABELS } from '@jobsimplify/shared';
 import { CompanyLogo } from './ui/CompanyLogo';
 
 interface KanbanCardProps {
@@ -14,7 +14,7 @@ interface KanbanCardProps {
   hasSelection?: boolean;
 }
 
-const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, isSelectionColumn: _isSelectionColumn, isSelected, onToggleSelect, hasSelection }: KanbanCardProps) {
+const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, isSelectionColumn, isSelected, onToggleSelect, hasSelection }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -30,6 +30,12 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, i
         transform: CSS.Transform.toString(transform),
         transition,
       };
+
+  // サブステータス: 選考中列のみ表示
+  const subStatus = useMemo(() => {
+    if (!isSelectionColumn) return null;
+    return STATUS_LABELS[company.status];
+  }, [isSelectionColumn, company.status]);
 
   return (
     <div
@@ -65,9 +71,14 @@ const KanbanCard = memo(function KanbanCard({ company, onClick, isDragOverlay, i
               {company.name}
             </h4>
           </div>
-          {company.industry && (
-            <p className="text-xs text-gray-500 truncate mt-0.5">{company.industry}</p>
-          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {company.industry && (
+              <p className="text-xs text-gray-500 truncate">{company.industry}</p>
+            )}
+            {subStatus && (
+              <span className="text-[10px] text-gray-400 truncate">{subStatus}</span>
+            )}
+          </div>
         </div>
       </div>
 
