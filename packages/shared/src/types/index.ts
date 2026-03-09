@@ -2,7 +2,6 @@ export * from './profile';
 export * from './template';
 export * from './company';
 export * from './companyMaster';
-export * from './adminTypes';
 export * from './userEvent';
 export * from './analyticsTypes';
 export * from './companyPromotion';

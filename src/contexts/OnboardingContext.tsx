@@ -11,7 +11,6 @@ type TriggerSurface = 'first_login' | 'reshow_after_skip';
 const CHECKLIST_ITEMS = [
   { id: 'add_company',       label: '応募を追加する' },
   { id: 'drag_card',         label: 'カードを移動する' },
-  { id: 'check_deadlines',   label: '締切を確認する' },
   { id: 'install_extension', label: 'Chrome拡張機能を追加する' },
 ] as const;
 

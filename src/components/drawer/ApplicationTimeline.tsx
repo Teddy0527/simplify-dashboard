@@ -1,13 +1,8 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import {
   SelectionStage,
   SelectionStatus,
   STATUS_LABELS,
-  CompanyDeadline,
-  DeadlineType,
-  DEADLINE_TYPE_LABELS,
-  DEADLINE_STAGE_MAP,
-  createDeadline,
 } from '@jobsimplify/shared';
 import {
   DndContext,
@@ -26,83 +21,14 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { TimelineEntry, TimelineEntryState } from './types';
 import MiniCalendar from '../ui/MiniCalendar';
-import { getDeadlineUrgency, formatDeadlineShort } from '../../utils/deadlineUtils';
-
-function buildGoogleCalendarUrl(companyName: string, deadline: CompanyDeadline): string {
-  const title = `${companyName} - ${deadline.label}`;
-  let dates: string;
-  if (deadline.time) {
-    const time = deadline.time.slice(0, 5);
-    const start = `${deadline.date.replace(/-/g, '')}T${time.replace(':', '')}00`;
-    dates = `${start}/${start}`;
-  } else {
-    const startStr = deadline.date.replace(/-/g, '');
-    const nextDay = new Date(deadline.date);
-    nextDay.setDate(nextDay.getDate() + 1);
-    const endStr =
-      nextDay.getFullYear().toString() +
-      String(nextDay.getMonth() + 1).padStart(2, '0') +
-      String(nextDay.getDate()).padStart(2, '0');
-    dates = `${startStr}/${endStr}`;
-  }
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: title,
-    dates,
-    ctz: 'Asia/Tokyo',
-  });
-  if (deadline.memo) params.set('details', deadline.memo);
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function bindDeadlinesToStages(
-  deadlines: CompanyDeadline[],
-  stages: SelectionStage[],
-): { matched: Map<number, CompanyDeadline[]>; unmatched: CompanyDeadline[] } {
-  const matched = new Map<number, CompanyDeadline[]>();
-  const unmatched: CompanyDeadline[] = [];
-  const usedStageIndices = new Set<number>();
-  const sorted = [...deadlines].sort((a, b) => a.date.localeCompare(b.date));
-  for (const dl of sorted) {
-    const candidateTypes = DEADLINE_STAGE_MAP[dl.type];
-    if (!candidateTypes || candidateTypes.length === 0) {
-      unmatched.push(dl);
-      continue;
-    }
-    let bestIdx = -1;
-    for (let i = 0; i < stages.length; i++) {
-      if (!candidateTypes.includes(stages[i].type)) continue;
-      if (candidateTypes.length === 1) {
-        bestIdx = i;
-        break;
-      }
-      if (!usedStageIndices.has(i)) {
-        if (bestIdx === -1 || stages[i].result === 'pending') {
-          bestIdx = i;
-        }
-      }
-    }
-    if (bestIdx >= 0) {
-      usedStageIndices.add(bestIdx);
-      const arr = matched.get(bestIdx) || [];
-      arr.push(dl);
-      matched.set(bestIdx, arr);
-    } else {
-      unmatched.push(dl);
-    }
-  }
-  return { matched, unmatched };
-}
 
 interface ApplicationTimelineProps {
   entries: TimelineEntry[];
   stages: SelectionStage[];
-  deadlines: CompanyDeadline[];
   companyName: string;
   showAll: boolean;
   onToggleShowAll: () => void;
   onStagesChange: (stages: SelectionStage[]) => void;
-  onDeadlinesChange: (deadlines: CompanyDeadline[]) => void;
 }
 
 const RESULT_LABELS: Record<string, string> = {
@@ -130,18 +56,6 @@ const DOT_CLASSES: Record<TimelineEntryState, string> = {
   future: 'border-2 border-gray-300 bg-white',
 };
 
-const DEADLINE_TYPES: DeadlineType[] = [
-  'es_submission', 'internship', 'webtest', 'interview',
-  'offer_response', 'document', 'event', 'other',
-];
-
-const URGENCY_BORDER: Record<string, string> = {
-  overdue: 'border-l-red-500',
-  urgent: 'border-l-red-500',
-  soon: 'border-l-amber-500',
-  normal: 'border-l-gray-300',
-};
-
 // --- Three-dot menu button ---
 
 function MoreButton({ onClick, title }: { onClick: () => void; title?: string }) {
@@ -157,225 +71,6 @@ function MoreButton({ onClick, title }: { onClick: () => void; title?: string })
         <circle cx="12" cy="19" r="2.4" />
       </svg>
     </button>
-  );
-}
-
-// --- Deadline sub-item ---
-
-function DeadlineSubItem({
-  deadline,
-  onExpand,
-  onToggleSync,
-}: {
-  deadline: CompanyDeadline;
-  onExpand: () => void;
-  onToggleSync?: () => void;
-}) {
-  const urgency = getDeadlineUrgency(deadline.date);
-
-  return (
-    <div className={`ml-2 pl-3 border-l-2 ${URGENCY_BORDER[urgency]} py-1 group/dl`}>
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs text-gray-500">[締切]</span>
-        <span className="text-xs font-medium text-gray-700 truncate">{deadline.label}</span>
-        <span className="text-xs text-gray-400">
-          {deadline.date}{deadline.time ? ` ${deadline.time}` : ''}
-        </span>
-        <span className={`text-xs font-medium ${
-          urgency === 'overdue' || urgency === 'urgent' ? 'text-red-600'
-            : urgency === 'soon' ? 'text-amber-600'
-            : 'text-gray-500'
-        }`}>
-          {formatDeadlineShort(deadline.date)}
-        </span>
-        <div className="ml-auto flex-shrink-0 flex items-center gap-1">
-          {onToggleSync && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleSync(); }}
-              className={`p-1 transition-colors opacity-0 group-hover/dl:opacity-100 ${
-                deadline.syncToCalendar === false ? 'text-gray-300 hover:text-blue-500' : 'text-blue-500 hover:text-gray-300'
-              }`}
-              title={deadline.syncToCalendar === false ? 'カレンダー同期をオンにする' : 'カレンダー同期をオフにする'}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-            </button>
-          )}
-          <MoreButton onClick={onExpand} title="締切を編集" />
-        </div>
-      </div>
-      {deadline.memo && (
-        <p className="text-xs text-gray-400 mt-0.5 ml-[3.25rem] truncate">メモ: {deadline.memo}</p>
-      )}
-    </div>
-  );
-}
-
-// --- Deadline edit form (inline) ---
-
-function DeadlineEditForm({
-  mode,
-  initial,
-  onSave,
-  onCancel,
-  onGoogleCalendar,
-  onDelete,
-}: {
-  mode: 'add' | 'edit';
-  initial?: CompanyDeadline;
-  onSave: (type: DeadlineType, label: string, date: string, time: string, memo: string) => void;
-  onCancel: () => void;
-  onGoogleCalendar?: () => void;
-  onDelete?: () => void;
-}) {
-  const [dlType, setDlType] = useState<DeadlineType>(initial?.type || 'es_submission');
-  const [dlLabel, setDlLabel] = useState(initial?.label || DEADLINE_TYPE_LABELS[initial?.type || 'es_submission']);
-  const [dlDate, setDlDate] = useState(initial?.date || '');
-  const [dlTime, setDlTime] = useState(initial?.time || '');
-  const [dlMemo, setDlMemo] = useState(initial?.memo || '');
-  const [calOpen, setCalOpen] = useState(false);
-  const dateTriggerRef = useRef<HTMLButtonElement>(null);
-  const memoRef = useRef<HTMLTextAreaElement>(null);
-
-  function handleTypeChange(type: DeadlineType) {
-    setDlType(type);
-    setDlLabel(DEADLINE_TYPE_LABELS[type]);
-  }
-
-  function handleMemoInput(e: React.FormEvent<HTMLTextAreaElement>) {
-    const el = e.currentTarget;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }
-
-  function formatDateChip(date: string, time: string) {
-    const d = new Date(date);
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    return `${month}/${day}${time ? ` ${time}` : ''}`;
-  }
-
-  return (
-    <div className="mt-2 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-        <input
-          type="text"
-          value={dlLabel}
-          onChange={e => setDlLabel(e.target.value)}
-          className="flex-1 text-sm font-medium text-gray-900 border-b border-gray-200 focus:border-primary-500 outline-none pb-1 bg-transparent placeholder:text-gray-400"
-          placeholder="締切の名前を入力..."
-        />
-        <button
-          onClick={() => { if (dlDate) onSave(dlType, dlLabel, dlDate, dlTime, dlMemo); }}
-          className="px-4 py-1.5 text-sm font-medium text-white bg-primary-700 rounded-full hover:bg-primary-800 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!dlDate}
-        >
-          {mode === 'add' ? '追加' : '保存'}
-        </button>
-      </div>
-
-      {/* Content rows */}
-      <div className="px-4 pb-3 space-y-2.5">
-        {/* Date/time */}
-        <div className="flex items-center gap-3">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-          <button
-            ref={dateTriggerRef}
-            type="button"
-            onClick={() => setCalOpen(true)}
-            className={`text-sm px-3 py-1 rounded-full transition-colors ${
-              dlDate
-                ? 'bg-primary-50 text-primary-700 hover:bg-primary-100'
-                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-            }`}
-          >
-            {dlDate ? formatDateChip(dlDate, dlTime) : '日付を選択'}
-          </button>
-          <MiniCalendar
-            value={dlDate}
-            onChange={(d) => setDlDate(d)}
-            showTime
-            timeValue={dlTime}
-            onTimeChange={(t) => setDlTime(t)}
-            anchorRef={dateTriggerRef}
-            open={calOpen}
-            onClose={() => setCalOpen(false)}
-          />
-        </div>
-
-        {/* Type */}
-        <div className="flex items-center gap-3">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-          <select
-            value={dlType}
-            onChange={e => handleTypeChange(e.target.value as DeadlineType)}
-            className="text-sm py-1 px-2 rounded bg-gray-50 border-0 text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors focus:ring-1 focus:ring-primary-400 outline-none"
-          >
-            {DEADLINE_TYPES.map(t => (
-              <option key={t} value={t}>{DEADLINE_TYPE_LABELS[t]}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Memo */}
-        <div className="flex items-start gap-3">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="17" y1="10" x2="3" y2="10" />
-            <line x1="21" y1="6" x2="3" y2="6" />
-            <line x1="21" y1="14" x2="3" y2="14" />
-            <line x1="17" y1="18" x2="3" y2="18" />
-          </svg>
-          <textarea
-            ref={memoRef}
-            value={dlMemo}
-            onChange={e => setDlMemo(e.target.value)}
-            onInput={handleMemoInput}
-            className="flex-1 text-sm text-gray-700 bg-transparent border-0 resize-none outline-none placeholder:text-gray-400 min-h-[2rem]"
-            rows={1}
-            placeholder="メモを追加..."
-          />
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center pt-1">
-          <div className="flex items-center gap-3">
-            {onGoogleCalendar && (
-              <button
-                onClick={onGoogleCalendar}
-                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                Googleカレンダー
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={onDelete}
-                className="text-sm text-red-500 hover:text-red-700 transition-colors"
-              >
-                削除
-              </button>
-            )}
-          </div>
-          <button
-            onClick={onCancel}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors ml-auto"
-          >
-            取消
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -631,12 +326,10 @@ function SortableTimelineItem({
 export default function ApplicationTimeline({
   entries,
   stages,
-  deadlines,
-  companyName,
+  companyName: _companyName,
   showAll,
   onToggleShowAll,
   onStagesChange,
-  onDeadlinesChange,
 }: ApplicationTimelineProps) {
   // Expanded stage panel
   const [expandedStageIdx, setExpandedStageIdx] = useState<number | null>(null);
@@ -649,19 +342,9 @@ export default function ApplicationTimeline({
   const [addCalendarOpen, setAddCalendarOpen] = useState(false);
   const addDateTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // Deadline CRUD state
-  const [addingDeadline, setAddingDeadline] = useState(false);
-  const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
-
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
-
-  // Bind deadlines to stages
-  const { matched: matchedDeadlines, unmatched: unmatchedDeadlines } = useMemo(
-    () => bindDeadlinesToStages(deadlines, stages),
-    [deadlines, stages],
   );
 
   // Unified stage update handler
@@ -712,35 +395,6 @@ export default function ApplicationTimeline({
     onStagesChange(updated);
   }
 
-  // Deadline CRUD handlers
-  function handleAddDeadline(type: DeadlineType, label: string, date: string, time: string, memo: string) {
-    const dl = createDeadline(type, label, date, time || undefined, memo || undefined);
-    onDeadlinesChange([...deadlines, dl]);
-    setAddingDeadline(false);
-  }
-
-  function handleSaveDeadline(type: DeadlineType, label: string, date: string, time: string, memo: string) {
-    if (!editingDeadlineId) return;
-    onDeadlinesChange(
-      deadlines.map(d =>
-        d.id === editingDeadlineId
-          ? { ...d, type, label, date, time: time || undefined, memo: memo || undefined }
-          : d,
-      ),
-    );
-    setEditingDeadlineId(null);
-  }
-
-  function handleDeleteDeadline(id: string) {
-    onDeadlinesChange(deadlines.filter(d => d.id !== id));
-    if (editingDeadlineId === id) setEditingDeadlineId(null);
-  }
-
-  function handleGoogleCalendar(deadline: CompanyDeadline) {
-    const url = buildGoogleCalendarUrl(companyName, deadline);
-    window.open(url, '_blank');
-  }
-
   // DnD handler
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -782,30 +436,6 @@ export default function ApplicationTimeline({
   );
   const sortableIds = sortableEntries.map((e) => `stage-${e.stageIndex}`);
 
-  // Render deadline sub-items (shared between matched and unmatched)
-  function renderDeadline(dl: CompanyDeadline) {
-    if (editingDeadlineId === dl.id) {
-      return (
-        <DeadlineEditForm
-          key={dl.id}
-          mode="edit"
-          initial={dl}
-          onSave={handleSaveDeadline}
-          onCancel={() => setEditingDeadlineId(null)}
-          onGoogleCalendar={() => handleGoogleCalendar(dl)}
-          onDelete={() => handleDeleteDeadline(dl.id)}
-        />
-      );
-    }
-    return (
-      <DeadlineSubItem
-        key={dl.id}
-        deadline={dl}
-        onExpand={() => setEditingDeadlineId(dl.id)}
-      />
-    );
-  }
-
   return (
     <div>
       <h3 className="text-sm font-semibold text-gray-800 mb-3 tracking-wide">選考タイムライン</h3>
@@ -825,7 +455,6 @@ export default function ApplicationTimeline({
             {entries.map((entry, i) => {
               const isTerminal = entry.type === 'rejected' || entry.type === 'declined';
               const itemId = isTerminal ? `terminal-${entry.type}` : `stage-${entry.stageIndex}`;
-              const stageDeadlines = entry.stageIndex !== undefined ? (matchedDeadlines.get(entry.stageIndex) || []) : [];
               const stage = entry.stageIndex !== undefined ? stages[entry.stageIndex] : undefined;
 
               return (
@@ -845,33 +474,12 @@ export default function ApplicationTimeline({
                     isTerminal={isTerminal}
                     onDotClick={() => entry.stageIndex !== undefined && handleDotClick(entry.stageIndex)}
                   />
-                  {/* Matched deadline sub-items */}
-                  {stageDeadlines.map(dl => renderDeadline(dl))}
                 </div>
               );
             })}
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* Unmatched deadlines */}
-      {unmatchedDeadlines.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-dashed border-gray-300">
-          <p className="text-xs text-gray-400 mb-2">その他の締切</p>
-          <div className="space-y-1">
-            {unmatchedDeadlines.map(dl => renderDeadline(dl))}
-          </div>
-        </div>
-      )}
-
-      {/* Add deadline form */}
-      {addingDeadline && (
-        <DeadlineEditForm
-          mode="add"
-          onSave={handleAddDeadline}
-          onCancel={() => setAddingDeadline(false)}
-        />
-      )}
 
       <div className="flex items-center gap-3 mt-3">
         {stages.length > 3 && (
@@ -927,15 +535,6 @@ export default function ApplicationTimeline({
             className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
           >
             + ステージ追加
-          </button>
-        )}
-
-        {!addingDeadline && !adding && (
-          <button
-            onClick={() => setAddingDeadline(true)}
-            className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
-          >
-            + 締切を追加
           </button>
         )}
       </div>

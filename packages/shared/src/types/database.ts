@@ -1,6 +1,6 @@
 import type { Profile } from './profile';
 import type { Template, TemplateType } from './template';
-import type { Company, SelectionStatus, SelectionStage, CompanyDeadline } from './company';
+import type { Company, SelectionStatus, SelectionStage } from './company';
 // Supabase Database型定義
 export interface Database {
   public: {
@@ -126,7 +126,6 @@ export interface Database {
           company_id: string;
           status: string;
           stages: SelectionStage[];
-          deadlines: CompanyDeadline[] | null;
           memo: string | null;
           created_at: string;
           updated_at: string;
@@ -137,13 +136,11 @@ export interface Database {
           company_id: string;
           status?: string;
           stages?: SelectionStage[];
-          deadlines?: CompanyDeadline[] | null;
           memo?: string | null;
         };
         Update: {
           status?: string;
           stages?: SelectionStage[];
-          deadlines?: CompanyDeadline[] | null;
           memo?: string | null;
         };
       };
@@ -194,7 +191,6 @@ export function dbToCompany(
     industry: company.industry ?? undefined,
     status: (application.status === 'applied' ? 'es_submitted' : application.status) as SelectionStatus,
     stages: application.stages ?? [],
-    deadlines: application.deadlines ?? [],
     memo: application.memo ?? undefined,
     loginUrl: company.login_url ?? undefined,
     myPageId: company.my_page_id ?? undefined,

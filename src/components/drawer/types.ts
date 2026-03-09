@@ -1,4 +1,4 @@
-import { SelectionStatus, SelectionStage, CompanyDeadline, STATUS_LABELS } from '@jobsimplify/shared';
+import { SelectionStatus, SelectionStage, STATUS_LABELS } from '@jobsimplify/shared';
 
 // ── Shell → Tab data contract ──
 export type DraftCompany = {
@@ -10,7 +10,6 @@ export type DraftCompany = {
   myPageId: string;
   loginPassword: string;
   stages: SelectionStage[];
-  deadlines: CompanyDeadline[];
 };
 
 export type OnFieldChange = <K extends keyof DraftCompany>(key: K, value: DraftCompany[K]) => void;

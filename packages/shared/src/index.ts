@@ -70,10 +70,6 @@ export {
 } from './repositories/applicationRepository';
 export {
   checkIsAdmin,
-  getPendingContributionsSummary,
-  verifyContribution,
-  rejectContributions,
-  recalculateContributorCounts,
 } from './repositories/adminRepository';
 export {
   trackEvent,
