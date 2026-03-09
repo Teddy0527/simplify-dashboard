@@ -36,6 +36,7 @@ export type EventType =
   | 'interaction.filter_use'
   | 'interaction.add_modal_open'
   | 'interaction.add_modal_cancel'
+  | 'interaction.mobile_status_change'
   // deadline
   | 'deadline.add_to_tracker'
   | 'deadline.gcal_add'

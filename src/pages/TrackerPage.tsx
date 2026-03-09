@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Company, INDUSTRY_OPTIONS, trackEventAsync, trackEventDebounced } from '@jobsimplify/shared';
+import { Company, SelectionStatus, INDUSTRY_OPTIONS, trackEventAsync, trackEventDebounced } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
@@ -9,6 +9,7 @@ import FilterBar from '../components/FilterBar';
 import type { ViewMode } from '../components/FilterBar';
 import KanbanBoard from '../components/KanbanBoard';
 import CalendarView from '../components/CalendarView';
+import MobileTrackerView from '../components/mobile/MobileTrackerView';
 import BulkActionBar from '../components/BulkActionBar';
 import AddCompanyDrawer from '../components/AddCompanyModal';
 import CompanyDrawer from '../components/CompanyDrawer';
@@ -227,24 +228,39 @@ export default function TrackerPage() {
         ) : viewMode === 'calendar' ? (
           <CalendarView companies={filtered} onCardClick={handleCardClick} />
         ) : (
-          <KanbanBoard
-            companies={filtered}
-            onReorder={(newCompanies) => {
-              // Detect column (status) changes for onboarding checklist
-              const hasStatusChange = newCompanies.some(nc => {
-                const old = companies.find(c => c.id === nc.id);
-                return old && old.status !== nc.status;
-              });
-              if (hasStatusChange) {
-                completeChecklistItem('drag_card');
-              }
-              reorder(newCompanies);
-            }}
-            onCardClick={handleCardClick}
-            selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
-            hasSelection={selectedIds.size > 0}
-          />
+          <>
+            {/* Desktop: Kanban board */}
+            <div className="hidden md:block flex-1 overflow-hidden">
+              <KanbanBoard
+                companies={filtered}
+                onReorder={(newCompanies) => {
+                  const hasStatusChange = newCompanies.some(nc => {
+                    const old = companies.find(c => c.id === nc.id);
+                    return old && old.status !== nc.status;
+                  });
+                  if (hasStatusChange) {
+                    completeChecklistItem('drag_card');
+                  }
+                  reorder(newCompanies);
+                }}
+                onCardClick={handleCardClick}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                hasSelection={selectedIds.size > 0}
+              />
+            </div>
+            {/* Mobile: Action-priority view */}
+            <div className="block md:hidden flex-1 overflow-y-auto">
+              <MobileTrackerView
+                companies={filtered}
+                onCardClick={handleCardClick}
+                onStatusChange={(company: Company, newStatus: SelectionStatus) => {
+                  updateCompany({ ...company, status: newStatus, updatedAt: new Date().toISOString() });
+                  showToast('ステータスを変更しました');
+                }}
+              />
+            </div>
+          </>
         )}
       </div>
 

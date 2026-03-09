@@ -1,16 +1,9 @@
 import { memo, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Company, SelectionStatus } from '@jobsimplify/shared';
+import { Company } from '@jobsimplify/shared';
 import KanbanCard from './KanbanCard';
-
-export interface ColumnDef {
-  id: string;
-  label: string;
-  icon: string;
-  color: string;
-  statuses: SelectionStatus[];
-}
+import type { ColumnDef } from '../constants/kanbanColumns';
 
 interface KanbanColumnProps {
   column: ColumnDef;

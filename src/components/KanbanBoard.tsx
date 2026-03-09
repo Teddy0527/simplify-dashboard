@@ -14,59 +14,10 @@ import {
   CollisionDetection,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Company, SelectionStatus, trackEventAsync } from '@jobsimplify/shared';
-import KanbanColumn, { ColumnDef } from './KanbanColumn';
+import { Company, trackEventAsync } from '@jobsimplify/shared';
+import KanbanColumn from './KanbanColumn';
 import KanbanCard from './KanbanCard';
-
-const COLUMNS: ColumnDef[] = [
-  {
-    id: 'interested',
-    label: '興味あり',
-    icon: '◇',
-    color: 'var(--color-primary-500)',
-    statuses: ['interested'],
-  },
-  {
-    id: 'es_submitted',
-    label: 'ES提出',
-    icon: '→',
-    color: 'var(--color-success-600)',
-    statuses: ['es_submitted'],
-  },
-  {
-    id: 'selection',
-    label: '選考中',
-    icon: '⟳',
-    color: 'var(--color-warning-600)',
-    statuses: ['webtest', 'gd', 'interview_1', 'interview_2', 'interview_3', 'interview_final'],
-  },
-  {
-    id: 'offer',
-    label: '内定',
-    icon: '✓',
-    color: 'var(--color-success-600)',
-    statuses: ['offer'],
-  },
-  {
-    id: 'closed',
-    label: '不合格 / 辞退',
-    icon: '—',
-    color: 'var(--color-gray-400)',
-    statuses: ['rejected', 'declined'],
-  },
-];
-
-const COLUMN_DEFAULT_STATUS: Record<string, SelectionStatus> = {
-  interested: 'interested',
-  es_submitted: 'es_submitted',
-  selection: 'webtest',
-  offer: 'offer',
-  closed: 'rejected',
-};
-
-function findColumnId(status: SelectionStatus): string {
-  return COLUMNS.find((col) => col.statuses.includes(status))?.id ?? 'interested';
-}
+import { COLUMNS, COLUMN_DEFAULT_STATUS, findColumnId } from '../constants/kanbanColumns';
 
 const COLUMN_IDS = new Set(COLUMNS.map((c) => c.id));
 

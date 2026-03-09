@@ -1249,6 +1249,15 @@
   .stagger-3 { animation-delay: 0.15s; }
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
+
+  /* Hide scrollbar while allowing scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes fadeIn {
@@ -1370,4 +1379,23 @@
   50% {
     box-shadow: 0 0 0 8px rgba(51, 78, 104, 0);
   }
+}
+
+/* BottomSheet animations */
+.animate-slide-up-sheet {
+  animation: slideUpSheet 0.2s ease-out;
+}
+
+.animate-slide-down-sheet {
+  animation: slideDownSheet 0.2s ease-out forwards;
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideDownSheet {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }
