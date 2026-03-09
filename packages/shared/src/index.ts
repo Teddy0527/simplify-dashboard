@@ -117,5 +117,14 @@ export {
   deleteAlias,
 } from './repositories/companyNameAliasRepository';
 
+export {
+  getGmailSettings,
+  getCachedEmails,
+  upsertCachedEmails,
+  getEmailCountByCompany,
+  getAliasesByMasterIds,
+  updateLastSync,
+} from './repositories/gmailRepository';
+
 // Services
 export { migrateLocalToCloud } from './services/dataMigration';

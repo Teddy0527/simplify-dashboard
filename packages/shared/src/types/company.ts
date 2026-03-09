@@ -70,6 +70,7 @@ export interface Company {
 
 export type SelectionStatus =
   | 'interested'      // 興味あり
+  | 'info_session'    // 説明会
   | 'es_submitted'    // ES提出
   | 'webtest'         // Webテスト
   | 'gd'              // グループディスカッション
@@ -78,6 +79,7 @@ export type SelectionStatus =
   | 'interview_3'     // 3次面接
   | 'interview_final' // 最終面接
   | 'offer'           // 内定
+  | 'other'           // その他
   | 'rejected'        // 不合格
   | 'declined';       // 辞退
 
@@ -85,6 +87,7 @@ export interface SelectionStage {
   type: SelectionStatus;
   date?: string;
   time?: string;
+  endTime?: string;    // HH:mm — 選考の終了時間
   result?: 'pending' | 'passed' | 'failed';
   memo?: string;
   customLabel?: string;
@@ -92,6 +95,7 @@ export interface SelectionStage {
 
 export const STATUS_LABELS: Record<SelectionStatus, string> = {
   interested: '興味あり',
+  info_session: '説明会',
   es_submitted: 'ES提出',
   webtest: 'Webテスト',
   gd: 'GD',
@@ -100,6 +104,7 @@ export const STATUS_LABELS: Record<SelectionStatus, string> = {
   interview_3: '3次面接',
   interview_final: '最終面接',
   offer: '内定',
+  other: 'その他',
   rejected: '不合格',
   declined: '辞退',
 };
@@ -155,6 +160,18 @@ export function mapMasterIndustry(masterIndustry: string): string | undefined {
   }
   return undefined;
 }
+
+export const STAGE_PRESETS: { value: SelectionStatus; label: string }[] = [
+  { value: 'info_session', label: '説明会' },
+  { value: 'es_submitted', label: 'ES提出' },
+  { value: 'webtest', label: 'Webテスト' },
+  { value: 'gd', label: 'GD' },
+  { value: 'interview_1', label: '1次面接' },
+  { value: 'interview_2', label: '2次面接' },
+  { value: 'interview_3', label: '3次面接' },
+  { value: 'interview_final', label: '最終面接' },
+  { value: 'offer', label: '内定' },
+];
 
 const DEFAULT_STAGES: SelectionStage[] = [
   { type: 'es_submitted' },

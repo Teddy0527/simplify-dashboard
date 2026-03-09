@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Company, SelectionStatus, INDUSTRY_OPTIONS, trackEventAsync, trackEventDebounced } from '@jobsimplify/shared';
+import { Company, SelectionStatus, SelectionStage, createCompany, trackEventAsync } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
 import { useCompanies } from '../hooks/useCompanies';
 import { useToast } from '../hooks/useToast';
@@ -23,8 +23,6 @@ export default function TrackerPage() {
   const { completeChecklistItem } = useOnboardingContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [industryFilter, setIndustryFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const addModalHadInput = useRef(false);
   const [drawerCompanyId, setDrawerCompanyId] = useState<string | null>(null);
@@ -70,19 +68,7 @@ export default function TrackerPage() {
     [companies, drawerCompanyId],
   );
 
-  const industries = INDUSTRY_OPTIONS as unknown as string[];
-
-  const filtered = useMemo(() => {
-    let result = companies;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((c) => c.name.toLowerCase().includes(q));
-    }
-    if (industryFilter) {
-      result = result.filter((c) => c.industry === industryFilter);
-    }
-    return result;
-  }, [companies, searchQuery, industryFilter]);
+  const filtered = companies;
 
   function handleCardClick(company: Company) {
     setDrawerCompanyId(company.id);
@@ -100,6 +86,25 @@ export default function TrackerPage() {
     deleteCompany(id);
     setDrawerCompanyId(null);
     showToast('削除しました');
+  }
+
+  function handleAddStageFromCalendar(companyId: string, stage: SelectionStage) {
+    const company = companies.find((c) => c.id === companyId);
+    if (!company) return;
+    const updated = {
+      ...company,
+      stages: [...company.stages, stage],
+      updatedAt: new Date().toISOString(),
+    };
+    updateCompany(updated);
+    showToast('ステージを追加しました');
+  }
+
+  function handleCreateCompanyFromCalendar(name: string, stage: SelectionStage) {
+    const company = createCompany(name);
+    company.stages = [...company.stages, stage];
+    addCompany(company);
+    showToast(`${name}を追加しました`);
   }
 
   // Handle ?action=add query param to auto-open AddCompanyDrawer
@@ -185,31 +190,20 @@ export default function TrackerPage() {
 
   return (
     <>
-      <FilterBar
-        searchQuery={searchQuery}
-        onSearchChange={(q) => {
-          setSearchQuery(q);
-          if (q) trackEventDebounced('interaction.filter_use', { type: 'search', query: q.slice(0, 50) });
-        }}
-        industryFilter={industryFilter}
-        onIndustryChange={(v) => {
-          setIndustryFilter(v);
-          if (v) trackEventAsync('interaction.filter_use', { type: 'industry', value: v });
-        }}
-        industries={industries}
-        onAddClick={() => {
-          setShowAddModal(true);
-          addModalHadInput.current = false;
-          trackEventAsync('interaction.add_modal_open');
-        }}
-        companies={companies}
-        onCompanyClick={handleCardClick}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      {viewMode !== 'calendar' && (
+        <FilterBar
+          onAddClick={() => {
+            setShowAddModal(true);
+            addModalHadInput.current = false;
+            trackEventAsync('interaction.add_modal_open');
+          }}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      )}
 
       {/* View */}
-      <div className="flex-1 overflow-hidden flex pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className={`flex-1 overflow-hidden flex ${viewMode === 'calendar' ? 'bg-white' : 'pt-4 bg-gray-50 border-t border-gray-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]'}`}>
         {companies.length === 0 ? (
           <EmptyState
             icon={
@@ -226,7 +220,19 @@ export default function TrackerPage() {
             }
           />
         ) : viewMode === 'calendar' ? (
-          <CalendarView companies={filtered} onCardClick={handleCardClick} />
+          <CalendarView
+            companies={filtered}
+            onCardClick={handleCardClick}
+            onAddStage={handleAddStageFromCalendar}
+            onCreateCompanyAndStage={handleCreateCompanyFromCalendar}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onAddClick={() => {
+              setShowAddModal(true);
+              addModalHadInput.current = false;
+              trackEventAsync('interaction.add_modal_open');
+            }}
+          />
         ) : (
           <>
             {/* Desktop: Kanban board */}

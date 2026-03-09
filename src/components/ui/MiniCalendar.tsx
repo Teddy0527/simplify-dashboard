@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopoverPosition } from '../../hooks/usePopoverPosition';
+import TimeDropdown from './TimeDropdown';
 
 interface MiniCalendarProps {
   value: string;                          // YYYY-MM-DD
@@ -8,6 +9,9 @@ interface MiniCalendarProps {
   showTime?: boolean;
   timeValue?: string;
   onTimeChange?: (time: string) => void;
+  showEndTime?: boolean;       // trueで終了時間ドロップダウンも表示
+  endTimeValue?: string;       // HH:mm
+  onEndTimeChange?: (time: string) => void;
   anchorRef: React.RefObject<HTMLElement | null>;
   open: boolean;
   onClose: () => void;
@@ -77,12 +81,21 @@ function getTodayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function addOneHour(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const newH = Math.min(h + 1, 23);
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export default function MiniCalendar({
   value,
   onChange,
   showTime,
   timeValue,
   onTimeChange,
+  showEndTime,
+  endTimeValue,
+  onEndTimeChange,
   anchorRef,
   open,
   onClose,
@@ -176,11 +189,8 @@ export default function MiniCalendar({
   const handleDayClick = useCallback(
     (day: CalendarDay) => {
       onChange(day.dateStr);
-      if (!showTime) {
-        onClose();
-      }
     },
-    [onChange, onClose, showTime],
+    [onChange],
   );
 
   if (!open) return null;
@@ -262,18 +272,42 @@ export default function MiniCalendar({
         })}
       </div>
 
-      {/* Time input */}
-      {showTime && (
+      {/* Time selects */}
+      {showTime && !showEndTime && (
+        <TimeDropdown timeValue={timeValue} onTimeChange={onTimeChange} />
+      )}
+      {showTime && showEndTime && (
         <div className="mini-cal-time-row">
           <span className="text-xs text-gray-500 font-medium">時間</span>
-          <input
-            type="time"
-            value={timeValue || ''}
-            onChange={(e) => onTimeChange?.(e.target.value)}
-            className="mini-cal-time-input"
-          />
+          <div className="mini-cal-time-range">
+            <TimeDropdown
+              timeValue={timeValue}
+              onTimeChange={(t) => {
+                onTimeChange?.(t);
+                if (!endTimeValue || endTimeValue <= t) {
+                  onEndTimeChange?.(addOneHour(t));
+                }
+              }}
+              label="開始"
+            />
+            <span className="mini-cal-time-range-sep">〜</span>
+            <TimeDropdown
+              timeValue={endTimeValue}
+              onTimeChange={onEndTimeChange}
+              label="終了"
+            />
+          </div>
         </div>
       )}
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          className="mini-cal-ok-btn"
+          onClick={onClose}
+        >
+          保存
+        </button>
+      </div>
     </div>
   );
 

@@ -1,27 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getSupabase } from '@jobsimplify/shared';
+import { getSupabase, upsertCachedEmails, updateLastSync, getAliasesByMasterIds } from '@jobsimplify/shared';
+import type { Company, GmailSettings } from '@jobsimplify/shared';
 import { useAuth } from '../shared/hooks/useAuth';
-import type { CalendarSettings } from '../types/googleCalendar';
+import { syncEmails, fetchGmailProfile } from '../services/gmailSyncService';
+import type { SyncDiagnostics } from '../services/gmailSyncService';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const POPUP_POLL_INTERVAL_MS = 500;
 const POPUP_MAX_WAIT_MS = 2 * 60 * 1000;
 
-interface UseGoogleCalendarReturn {
+export interface SyncResult {
+  success: boolean;
+  emailCount: number;
+  error?: string;
+  connectedEmail?: string;
+  diagnostics?: SyncDiagnostics;
+}
+
+interface UseGmailReturn {
   isConnected: boolean;
   isLoading: boolean;
+  isSyncing: boolean;
+  syncProgress: { fetched: number; total: number } | null;
   connect: () => void;
   disconnect: () => Promise<void>;
   getAccessToken: () => Promise<string>;
-  calendarId: string | null;
-  settings: CalendarSettings | null;
-  googleEmail: string | null;
+  sync: (companies: Company[]) => Promise<SyncResult>;
+  settings: GmailSettings | null;
 }
 
-export function useGoogleCalendar(): UseGoogleCalendarReturn {
+export function useGmail(): UseGmailReturn {
   const { user, session } = useAuth();
-  const [settings, setSettings] = useState<CalendarSettings | null>(null);
+  const [settings, setSettings] = useState<GmailSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ fetched: number; total: number } | null>(null);
   const refreshPromiseRef = useRef<Promise<string> | null>(null);
   const popupPollRef = useRef<number | null>(null);
 
@@ -30,8 +43,8 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     setIsLoading(true);
     try {
       const { data } = await getSupabase()
-        .from('user_calendar_settings')
-        .select('id, user_id, is_connected, calendar_id, connected_at, google_token_expires_at, google_email')
+        .from('user_gmail_settings')
+        .select('id, user_id, is_connected, connected_at, last_sync_at, last_history_id, google_token_expires_at')
         .eq('user_id', user.id)
         .single();
       if (data) {
@@ -39,10 +52,10 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
           id: data.id,
           userId: data.user_id,
           isConnected: data.is_connected,
-          calendarId: data.calendar_id,
           connectedAt: data.connected_at,
+          lastSyncAt: data.last_sync_at,
+          lastHistoryId: data.last_history_id,
           googleTokenExpiresAt: data.google_token_expires_at,
-          googleEmail: data.google_email ?? null,
         });
       } else {
         setSettings(null);
@@ -54,7 +67,6 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     }
   }, [user]);
 
-  // Load settings on mount
   useEffect(() => {
     if (!user) {
       setSettings(null);
@@ -77,19 +89,19 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     try {
       allowedOrigins.add(new URL(SUPABASE_URL).origin);
     } catch {
-      // Ignore invalid SUPABASE_URL and fallback to same-origin only.
+      // fallback
     }
 
     function handleMessage(event: MessageEvent) {
       if (!allowedOrigins.has(event.origin)) return;
-      if (event.data?.type === 'google-calendar-connected') {
+      if (event.data?.type === 'gmail-connected') {
         stopPopupPolling();
         loadSettings();
         return;
       }
-      if (event.data?.type === 'google-calendar-error') {
+      if (event.data?.type === 'gmail-error') {
         stopPopupPolling();
-        console.error('Google Calendar OAuth error:', event.data?.error ?? 'Unknown error');
+        console.error('Gmail OAuth error:', event.data?.error ?? 'Unknown error');
         loadSettings();
       }
     }
@@ -103,34 +115,24 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
   const connect = useCallback(() => {
     if (!session?.access_token) return;
 
-    const payload: Record<string, string> = {
-      action: 'start',
-      app_origin: window.location.origin,
-    };
-    try {
-      payload.redirect_uri = new URL('/functions/v1/google-calendar-auth/callback', SUPABASE_URL).toString();
-    } catch {
-      // Ignore invalid SUPABASE_URL and let backend use default redirect_uri.
-    }
-
-    fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
+    fetch(`${SUPABASE_URL}/functions/v1/gmail-auth`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ action: 'start', app_origin: window.location.origin }),
     })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data.error ?? `google-calendar-auth failed (${res.status})`);
+          throw new Error(data.error ?? `gmail-auth failed (${res.status})`);
         }
         return data;
       })
       .then((data) => {
         if (!data.authUrl) {
-          throw new Error('Missing authUrl in google-calendar-auth response');
+          throw new Error('Missing authUrl in gmail-auth response');
         }
 
         const w = 500;
@@ -139,7 +141,7 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
         const top = window.screenY + (window.outerHeight - h) / 2;
         const popup = window.open(
           data.authUrl,
-          'google-calendar-auth',
+          'gmail-auth',
           `width=${w},height=${h},left=${left},top=${top}`,
         );
 
@@ -157,14 +159,14 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
         }, POPUP_POLL_INTERVAL_MS);
       })
       .catch((error) => {
-        console.error('Failed to start Google Calendar OAuth:', error);
+        console.error('Failed to start Gmail OAuth:', error);
       });
   }, [session, loadSettings, stopPopupPolling]);
 
   const disconnect = useCallback(async () => {
     if (!session?.access_token) return;
 
-    await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
+    await fetch(`${SUPABASE_URL}/functions/v1/gmail-auth`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${session.access_token}`,
@@ -177,7 +179,6 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
   }, [session]);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
-    // Use promise lock to prevent concurrent refresh requests
     if (refreshPromiseRef.current) {
       return refreshPromiseRef.current;
     }
@@ -186,9 +187,8 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     if (settings?.googleTokenExpiresAt) {
       const expiresAt = new Date(settings.googleTokenExpiresAt).getTime();
       if (Date.now() < expiresAt - 5 * 60 * 1000) {
-        // Token still valid, fetch it from DB
         const { data } = await getSupabase()
-          .from('user_calendar_settings')
+          .from('user_gmail_settings')
           .select('google_access_token')
           .eq('user_id', user!.id)
           .single();
@@ -196,10 +196,9 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
       }
     }
 
-    // Need to refresh
     const refreshPromise = (async () => {
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/google-calendar-auth`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/gmail-auth`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${session!.access_token}`,
@@ -208,6 +207,10 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
           body: JSON.stringify({ action: 'refresh' }),
         });
         const data = await res.json();
+        if (data.disconnected) {
+          setSettings((prev) => (prev ? { ...prev, isConnected: false } : prev));
+          throw new Error('Gmail disconnected — token revoked');
+        }
         if (data.access_token) {
           setSettings((prev) =>
             prev ? { ...prev, googleTokenExpiresAt: data.expires_at } : prev,
@@ -224,14 +227,75 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     return refreshPromise;
   }, [settings, user, session]);
 
+  const sync = useCallback(async (companies: Company[]): Promise<SyncResult> => {
+    if (isSyncing) return { success: false, emailCount: 0, error: '同期中です' };
+    setIsSyncing(true);
+    setSyncProgress(null);
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        return { success: false, emailCount: 0, error: 'アクセストークンを取得できませんでした。設定ページでGmailを再接続してください。' };
+      }
+
+      // Verify token validity and get connected account info
+      const profile = await fetchGmailProfile(accessToken);
+      if (!profile) {
+        return { success: false, emailCount: 0, error: 'Gmailトークンが無効です。設定ページでGmailを再接続してください。' };
+      }
+
+      // Build alias map for classification
+      const masterIds = companies
+        .map((c) => c.companyMasterId)
+        .filter((id): id is string => !!id);
+      let aliasMap = new Map<string, string[]>();
+      if (masterIds.length > 0) {
+        try {
+          aliasMap = await getAliasesByMasterIds(masterIds);
+        } catch {
+          // Non-critical — classification still works with company names only
+        }
+      }
+
+      const result = await syncEmails(
+        accessToken,
+        user!.id,
+        companies,
+        (fetched, total) => setSyncProgress({ fetched, total }),
+        aliasMap,
+      );
+
+      if (result.emails.length > 0) {
+        await upsertCachedEmails(result.emails);
+      }
+
+      if (result.historyId) {
+        await updateLastSync(result.historyId);
+      }
+
+      // Update lastSyncAt locally on success
+      setSettings(prev => prev ? { ...prev, lastSyncAt: new Date().toISOString() } : prev);
+
+      return { success: true, emailCount: result.emails.length, connectedEmail: profile.emailAddress, diagnostics: result.diagnostics };
+    } catch (error) {
+      console.error('[Gmail Sync] 同期中にエラーが発生しました:', error);
+      const message = error instanceof Error ? error.message : '同期に失敗しました';
+      return { success: false, emailCount: 0, error: message };
+    } finally {
+      setIsSyncing(false);
+      setSyncProgress(null);
+    }
+  }, [isSyncing, getAccessToken, user]);
+
   return {
     isConnected: settings?.isConnected ?? false,
     isLoading,
+    isSyncing,
+    syncProgress,
     connect,
     disconnect,
     getAccessToken,
-    calendarId: settings?.calendarId ?? null,
+    sync,
     settings,
-    googleEmail: settings?.googleEmail ?? null,
   };
 }

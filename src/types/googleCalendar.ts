@@ -19,7 +19,7 @@ export interface CalendarEventDisplay {
   endTime?: string;      // HH:mm
   isAllDay: boolean;
   htmlLink: string;
-  source: 'google';
+  source: 'google' | 'stage';
   companyId?: string;
   color?: string;
 }
@@ -31,6 +31,7 @@ export interface CalendarSettings {
   calendarId: string | null;
   connectedAt: string | null;
   googleTokenExpiresAt: string | null;
+  googleEmail: string | null;
 }
 
 export interface GCalEventPayload {

@@ -707,6 +707,98 @@
     color: var(--color-gray-600);
   }
 
+  /* Clickable cell (add from calendar) */
+  .gcal-cell-clickable {
+    cursor: pointer;
+    position: relative;
+  }
+
+  .gcal-cell-clickable:hover {
+    background-color: var(--gcal-hover-bg);
+  }
+
+  .gcal-cell-clickable.gcal-cell-today:hover {
+    background-color: #dce7fa;
+  }
+
+  .gcal-cell-header {
+    cursor: default;
+  }
+
+  /* "+" add hint on hover */
+  .gcal-cell-add-hint {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-gray-300);
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    pointer-events: none;
+    border-radius: 4px;
+  }
+
+  .gcal-cell-clickable:hover .gcal-cell-add-hint {
+    opacity: 1;
+    color: var(--color-primary-500);
+  }
+
+  /* Calendar Add Popover */
+  .gcal-add-popover {
+    background: white;
+    border: 1px solid var(--gcal-grid-border);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+    width: 360px;
+    max-height: 520px;
+    overflow-y: auto;
+    animation: gcalPopIn 0.15s ease-out;
+  }
+
+  /* Stage pill buttons */
+  .gcal-stage-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    border: 1px solid var(--color-gray-200);
+    background: white;
+    color: var(--color-gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .gcal-stage-pill:hover {
+    border-color: var(--color-primary-300);
+    color: var(--color-primary-700);
+    background: var(--color-primary-50);
+  }
+
+  .gcal-stage-pill-selected {
+    border-color: var(--color-primary-500);
+    background: var(--color-primary-50);
+    color: var(--color-primary-700);
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .gcal-add-popover {
+      width: 100%;
+      max-height: 85vh;
+      border-radius: 16px 16px 0 0;
+      animation: slideUpSheet 0.2s ease-out;
+    }
+  }
+
   /* Week view grid */
   .gcal-week-grid {
     display: grid;
@@ -1148,20 +1240,119 @@
     border-top: 1px solid var(--color-gray-100);
   }
 
-  .mini-cal-time-input {
+  .mini-cal-time-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
     font-size: 13px;
-    padding: 4px 8px;
+    padding: 5px 8px;
     border: 1px solid var(--color-gray-200);
     border-radius: 6px;
     outline: none;
     background: white;
     color: var(--color-gray-700);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .mini-cal-time-trigger:hover {
+    border-color: var(--color-gray-300);
+  }
+
+  .mini-cal-time-trigger:focus {
+    border-color: var(--color-primary-400);
+    box-shadow: 0 0 0 2px rgba(51, 78, 104, 0.1);
+  }
+
+  .mini-cal-time-trigger svg {
+    color: var(--color-gray-400);
+    flex-shrink: 0;
+  }
+
+  .mini-cal-time-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 70;
+  }
+
+  .mini-cal-time-list::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .mini-cal-time-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .mini-cal-time-list::-webkit-scrollbar-thumb {
+    background: var(--color-gray-200);
+    border-radius: 3px;
+  }
+
+  .mini-cal-time-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-300);
+  }
+
+  .mini-cal-time-option {
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--color-gray-700);
+    cursor: pointer;
+    transition: background-color 0.1s;
+  }
+
+  .mini-cal-time-option:hover {
+    background-color: var(--color-gray-50);
+  }
+
+  .mini-cal-time-option-selected {
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+    font-weight: 600;
+  }
+
+  .mini-cal-time-option-selected:hover {
+    background-color: var(--color-primary-100);
+  }
+
+  /* Time range (start ~ end) */
+  .mini-cal-time-range {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     flex: 1;
   }
 
-  .mini-cal-time-input:focus {
-    border-color: var(--color-primary-400);
-    box-shadow: 0 0 0 2px rgba(51, 78, 104, 0.1);
+  .mini-cal-time-range-sep {
+    font-size: 12px;
+    color: var(--color-gray-400);
+    flex-shrink: 0;
+  }
+
+  /* Mini Calendar OK button (showTime confirmation) */
+  .mini-cal-ok-btn {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: var(--color-primary-700);
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .mini-cal-ok-btn:hover {
+    background-color: var(--color-primary-800);
   }
 
   /* Mini Calendar trigger button */
@@ -1365,6 +1556,66 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
+}
+
+/* Timeline sections */
+.timeline-section {
+  border-left: 2px solid var(--color-gray-100);
+  padding-left: 12px;
+  margin-left: 2px;
+}
+
+.timeline-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-gray-400);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.timeline-inline-date-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary-500);
+  background: transparent;
+  border: 1px dashed var(--color-gray-300);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 18px;
+}
+
+.timeline-inline-date-btn:hover {
+  border-color: var(--color-primary-400);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+}
+
+.timeline-date-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary-700);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 18px;
+}
+
+.timeline-date-chip:hover {
+  background: var(--color-primary-100);
 }
 
 /* Pulse effect for autofill button */

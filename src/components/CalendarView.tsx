@@ -1,11 +1,22 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import type { Company } from '@jobsimplify/shared';
+import type { Company, SelectionStage } from '@jobsimplify/shared';
+import { STATUS_LABELS } from '@jobsimplify/shared';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { getStageColor, formatStageLabel, formatTimeJP } from '../utils/stageCalendarHelpers';
+import type { CalendarEventDisplay } from '../types/googleCalendar';
+import CalendarAddPopover from './calendar/CalendarAddPopover';
+import CalendarWeekView from './calendar/CalendarWeekView';
+import type { ViewMode } from './FilterBar';
 
 interface CalendarViewProps {
   companies: Company[];
   onCardClick: (company: Company) => void;
+  onAddStage?: (companyId: string, stage: SelectionStage) => void;
+  onCreateCompanyAndStage?: (companyName: string, stage: SelectionStage) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  onAddClick: () => void;
 }
 
 type CalendarMode = 'month' | 'week';
@@ -26,13 +37,25 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export default function CalendarView({ companies, onCardClick }: CalendarViewProps) {
+function addHour(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const newH = Math.min(h + 1, 23);
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export default function CalendarView({ companies, onCardClick, onAddStage, onCreateCompanyAndStage, viewMode, onViewModeChange, onAddClick }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [mode, setMode] = useState<CalendarMode>('month');
 
   // Popover state for overflow items
   const [popover, setPopover] = useState<{ dateStr: string; rect: DOMRect } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Add popover state
+  const [addPopover, setAddPopover] = useState<{ dateStr: string; rect: DOMRect } | null>(null);
+
+  // Google Calendar connection status
+  const { isConnected: gcalConnected, googleEmail: gcalEmail, connect: gcalConnect } = useGoogleCalendar();
 
   // Calculate time range for Google Calendar events
   const { timeMin, timeMax } = useMemo(() => {
@@ -80,6 +103,22 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
     return result;
   }, [companies]);
 
+  // Convert stage events to CalendarEventDisplay for week view
+  const stageCalendarEvents = useMemo<CalendarEventDisplay[]>(() => {
+    return stageEvents.map((se) => ({
+      id: `${se.companyId}-${se.stage.type}`,
+      title: `${se.companyName} - ${STATUS_LABELS[se.stage.type] ?? se.stage.type}`,
+      dateStr: se.dateStr,
+      startTime: se.stage.time,
+      endTime: se.stage.endTime || (se.stage.time ? addHour(se.stage.time) : undefined),
+      isAllDay: !se.stage.time,
+      htmlLink: '',
+      source: 'stage' as const,
+      companyId: se.companyId,
+      color: getStageColor(se.stage.type).border,
+    }));
+  }, [stageEvents]);
+
   // Group events by dateStr
   const eventsByDate = useMemo(() => {
     const map = new Map<string, { stages: StageEvent[]; gcal: typeof googleEvents }>();
@@ -115,11 +154,13 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
       return d;
     });
     setPopover(null);
+    setAddPopover(null);
   }
 
   function goToday() {
     setCurrentDate(new Date());
     setPopover(null);
+    setAddPopover(null);
   }
 
   // Header label
@@ -172,6 +213,9 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
     }
 
     const MAX_VISIBLE = 3;
+    const numRows = totalCells / 7;
+    const CALENDAR_CHROME_HEIGHT = 104;
+    const cellHeight = `calc((100vh - ${CALENDAR_CHROME_HEIGHT}px) / ${numRows})`;
 
     return (
       <div className="gcal-grid gcal-grid-tight">
@@ -179,7 +223,7 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
         {WEEKDAY_LABELS.map((label, i) => (
           <div
             key={label}
-            className={`gcal-cell gcal-cell-no-click text-center text-xs font-medium py-1.5 ${
+            className={`gcal-cell gcal-cell-header text-center text-xs font-medium py-1.5 ${
               i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'
             }`}
           >
@@ -205,13 +249,18 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
               key={ds}
               className={[
                 'gcal-cell',
-                'gcal-cell-no-click',
+                onAddStage ? 'gcal-cell-clickable' : 'gcal-cell-no-click',
                 isWeekend && 'gcal-cell-weekend',
                 isToday && 'gcal-cell-today',
               ]
                 .filter(Boolean)
                 .join(' ')}
-              style={{ minHeight: 90 }}
+              style={{ minHeight: cellHeight }}
+              onClick={(e) => {
+                if (!onAddStage) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                setAddPopover({ dateStr: ds, rect });
+              }}
             >
               {/* Day number */}
               <div
@@ -228,6 +277,9 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
                 {date.getDate()}
               </div>
 
+              {/* Add hint icon */}
+              {onAddStage && <div className="gcal-cell-add-hint">+</div>}
+
               {/* Events */}
               {visible.map((item) => {
                 if (item.type === 'stage') {
@@ -243,7 +295,7 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
                         borderLeftColor: colors.border,
                         color: colors.text,
                       }}
-                      onClick={() => company && onCardClick(company)}
+                      onClick={(e) => { e.stopPropagation(); company && onCardClick(company); }}
                       title={`${se.companyName} - ${formatStageLabel(se.stage)}`}
                     >
                       <span className="gcal-event-text">
@@ -261,7 +313,7 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
                   <div
                     key={ge.id}
                     className="gcal-event-chip"
-                    onClick={() => window.open(ge.htmlLink, '_blank')}
+                    onClick={(e) => { e.stopPropagation(); window.open(ge.htmlLink, '_blank'); }}
                     title={ge.title}
                   >
                     <span
@@ -282,6 +334,7 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
                 <button
                   className="gcal-overflow-link"
                   onClick={(e) => {
+                    e.stopPropagation();
                     const rect = e.currentTarget.getBoundingClientRect();
                     setPopover({ dateStr: ds, rect });
                   }}
@@ -297,112 +350,24 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
   }
 
   // ─── Week view ──────────────────────────────────────
-  function renderWeekGrid() {
-    const start = new Date(currentDate);
-    start.setDate(start.getDate() - start.getDay());
-    const days: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      days.push(d);
+  const weekStartDate = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  }, [currentDate]);
+
+  const weekViewEvents = useMemo<CalendarEventDisplay[]>(
+    () => [...googleEvents, ...stageCalendarEvents],
+    [googleEvents, stageCalendarEvents],
+  );
+
+  function handleWeekEventClick(event: CalendarEventDisplay) {
+    if (event.source === 'stage' && event.companyId) {
+      const company = findCompany(event.companyId);
+      if (company) onCardClick(company);
+    } else if (event.source === 'google' && event.htmlLink) {
+      window.open(event.htmlLink, '_blank');
     }
-
-    return (
-      <div className="gcal-week-grid">
-        {/* Header */}
-        {days.map((d) => {
-          const ds = toDateStr(d);
-          const dow = d.getDay();
-          const isToday = ds === todayStr;
-          return (
-            <div
-              key={ds + '-h'}
-              className={`gcal-week-header-cell ${dow === 0 || dow === 6 ? 'gcal-cell-weekend' : ''}`}
-            >
-              <div
-                className={`text-xs font-medium ${
-                  dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
-                }`}
-              >
-                {WEEKDAY_LABELS[dow]}
-              </div>
-              <div
-                className={`gcal-week-day-number ${isToday ? 'gcal-week-day-number-today' : ''}`}
-              >
-                {d.getDate()}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Body */}
-        {days.map((d) => {
-          const ds = toDateStr(d);
-          const dow = d.getDay();
-          const isToday = ds === todayStr;
-          const isWeekend = dow === 0 || dow === 6;
-          const data = eventsByDate.get(ds);
-          const stages = data?.stages ?? [];
-          const gcals = data?.gcal ?? [];
-
-          return (
-            <div
-              key={ds + '-b'}
-              className={[
-                'gcal-week-body-cell',
-                isToday && 'gcal-week-body-cell-today',
-                isWeekend && 'gcal-week-body-cell-weekend',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {stages.map((se) => {
-                const colors = getStageColor(se.stage.type);
-                const company = findCompany(se.companyId);
-                return (
-                  <div
-                    key={`${se.companyId}-${se.stage.type}`}
-                    className="gcal-week-event-chip"
-                    style={{
-                      backgroundColor: colors.bg,
-                      borderLeftColor: colors.border,
-                    }}
-                    onClick={() => company && onCardClick(company)}
-                  >
-                    <div className="font-medium" style={{ color: colors.text }}>
-                      {se.companyName}
-                    </div>
-                    <div className="text-gray-500 text-xs">
-                      {formatStageLabel(se.stage)}
-                      {se.stage.time && ` ${formatTimeJP(se.stage.time)}`}
-                    </div>
-                  </div>
-                );
-              })}
-              {gcals.map((ge) => (
-                <div
-                  key={ge.id}
-                  className="gcal-week-event-chip"
-                  style={{
-                    backgroundColor: 'var(--gcal-blue-light)',
-                    borderLeftColor: ge.color || 'var(--gcal-blue)',
-                  }}
-                  onClick={() => window.open(ge.htmlLink, '_blank')}
-                >
-                  <div className="font-medium text-gray-700">{ge.title}</div>
-                  {ge.startTime && (
-                    <div className="text-xs text-gray-500">
-                      {ge.startTime}
-                      {ge.endTime && ` - ${ge.endTime}`}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    );
   }
 
   // ─── Popover ────────────────────────────────────────
@@ -496,7 +461,37 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-200">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
+        {/* View mode toggle (kanban / calendar) */}
+        <div className="flex rounded-lg bg-gray-100 p-0.5">
+          <button
+            onClick={() => onViewModeChange('kanban')}
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              viewMode === 'kanban'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+            カンバン
+          </button>
+          <button
+            onClick={() => onViewModeChange('calendar')}
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            カレンダー
+          </button>
+        </div>
+
         {/* Navigation */}
         <button
           onClick={goToday}
@@ -524,6 +519,27 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
 
         <div className="flex-1" />
 
+        {/* Google Calendar connection status */}
+        {gcalConnected ? (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+            <span className="hidden sm:inline">Google連携中</span>
+            {gcalEmail && (
+              <span className="hidden md:inline text-gray-400 max-w-[140px] truncate">{gcalEmail}</span>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={gcalConnect}
+            className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-800 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13.8 12H3" />
+            </svg>
+            <span className="hidden sm:inline">Googleカレンダーを連携</span>
+          </button>
+        )}
+
         {/* Month / Week toggle */}
         <div className="flex rounded-lg bg-gray-100 p-0.5">
           <button
@@ -547,14 +563,39 @@ export default function CalendarView({ companies, onCardClick }: CalendarViewPro
             週
           </button>
         </div>
+
+        {/* Add button */}
+        <button
+          onClick={onAddClick}
+          className="btn-primary text-sm py-1.5 px-3 whitespace-nowrap"
+        >
+          + 追加
+        </button>
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-y-auto bg-white">
-        {mode === 'month' ? renderMonthGrid() : renderWeekGrid()}
+      <div className="flex-1 overflow-hidden bg-white">
+        {mode === 'month' ? renderMonthGrid() : (
+          <CalendarWeekView
+            weekStart={weekStartDate}
+            events={weekViewEvents}
+            onEventClick={handleWeekEventClick}
+          />
+        )}
       </div>
 
       {renderPopover()}
+
+      {addPopover && onAddStage && onCreateCompanyAndStage && (
+        <CalendarAddPopover
+          dateStr={addPopover.dateStr}
+          anchorRect={addPopover.rect}
+          companies={companies}
+          onAddStage={onAddStage}
+          onCreateCompanyAndStage={onCreateCompanyAndStage}
+          onClose={() => setAddPopover(null)}
+        />
+      )}
     </div>
   );
 }

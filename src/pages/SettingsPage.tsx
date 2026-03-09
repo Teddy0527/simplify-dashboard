@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import { useGmail } from '../hooks/useGmail';
+import { useToast } from '../hooks/useToast';
 
 type IntegrationStatus = 'available' | 'coming_soon';
 
@@ -22,7 +26,7 @@ const integrations: Integration[] = [
     id: 'gmail',
     name: 'Gmail',
     description: '企業からのメールを自動で取得・分類',
-    status: 'coming_soon',
+    status: 'available',
     iconSrc: '/icons/gmail.svg',
   },
 ];
@@ -30,6 +34,7 @@ const integrations: Integration[] = [
 function IntegrationCard({ integration }: { integration: Integration }) {
   const isComingSoon = integration.status === 'coming_soon';
   const isGoogleCalendar = integration.id === 'google-calendar';
+  const isGmail = integration.id === 'gmail';
 
   return (
     <div
@@ -65,6 +70,8 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 
       {isGoogleCalendar ? (
         <GoogleCalendarAction />
+      ) : isGmail ? (
+        <GmailAction />
       ) : (
         <button
           className="btn-primary text-sm"
@@ -79,7 +86,82 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 }
 
 function GoogleCalendarAction() {
-  const { isConnected, isLoading, connect, disconnect } = useGoogleCalendar();
+  const { isConnected, isLoading, connect, disconnect, googleEmail } = useGoogleCalendar();
+  const [changingAccount, setChangingAccount] = useState(false);
+
+  async function handleChangeAccount() {
+    setChangingAccount(true);
+    try {
+      await disconnect();
+      connect();
+    } finally {
+      setChangingAccount(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-gray-400)' }}>
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
+        </svg>
+        読み込み中...
+      </div>
+    );
+  }
+
+  if (isConnected) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: '#16a34a' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            連携中
+          </span>
+        </div>
+        {googleEmail && (
+          <p className="text-xs truncate max-w-[220px]" style={{ color: 'var(--color-gray-500)' }}>
+            {googleEmail}
+          </p>
+        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleChangeAccount}
+            disabled={changingAccount}
+            className="text-xs hover:underline focus-visible:ring-2 ring-offset-1"
+            style={{ color: 'var(--color-primary-600)' }}
+            aria-label="Googleアカウントを変更する"
+          >
+            {changingAccount ? '変更中...' : 'アカウントを変更'}
+          </button>
+          <button
+            onClick={disconnect}
+            className="text-xs hover:underline focus-visible:ring-2 ring-offset-1"
+            style={{ color: 'var(--color-gray-400)' }}
+            aria-label="Google Calendarの連携を解除する"
+          >
+            解除する
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={connect}
+      className="btn-primary text-sm focus-visible:ring-2 ring-offset-1"
+      aria-label="Google Calendarを連携する"
+    >
+      連携する
+    </button>
+  );
+}
+
+function GmailAction() {
+  const { isConnected, isLoading, connect, disconnect } = useGmail();
 
   if (isLoading) {
     return (
@@ -105,7 +187,7 @@ function GoogleCalendarAction() {
           onClick={disconnect}
           className="text-xs hover:underline focus-visible:ring-2 ring-offset-1"
           style={{ color: 'var(--color-gray-400)' }}
-          aria-label="Google Calendarの連携を解除する"
+          aria-label="Gmailの連携を解除する"
         >
           解除する
         </button>
@@ -117,7 +199,7 @@ function GoogleCalendarAction() {
     <button
       onClick={connect}
       className="btn-primary text-sm focus-visible:ring-2 ring-offset-1"
-      aria-label="Google Calendarを連携する"
+      aria-label="Gmailを連携する"
     >
       連携する
     </button>
@@ -125,6 +207,43 @@ function GoogleCalendarAction() {
 }
 
 export default function SettingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+    if (!connected && !error) return;
+
+    if (connected) {
+      const msgType = connected === 'gmail' ? 'gmail-connected' : 'google-calendar-connected';
+      const toastMsg = connected === 'gmail'
+        ? 'Gmailとの連携が完了しました'
+        : 'Google Calendarとの連携が完了しました';
+
+      if (window.opener) {
+        window.opener.postMessage({ type: msgType }, window.location.origin);
+        window.close();
+        return;
+      }
+      showToast(toastMsg, 'success');
+    }
+
+    if (error) {
+      const service = error === 'gmail' ? 'Gmail' : 'Google Calendar';
+      if (window.opener) {
+        const msgType = error === 'gmail' ? 'gmail-error' : 'google-calendar-error';
+        window.opener.postMessage({ type: msgType, error: '' }, window.location.origin);
+        window.close();
+        return;
+      }
+      showToast(`${service}との連携に失敗しました`, 'error');
+    }
+
+    setSearchParams({}, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto py-8 px-6">

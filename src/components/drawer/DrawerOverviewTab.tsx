@@ -3,6 +3,7 @@ import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@jobs
 import type { DraftCompany, OnFieldChange } from './types';
 import { buildTimeline } from './types';
 import ApplicationTimeline from './ApplicationTimeline';
+import CompanyEmailSection from './CompanyEmailSection';
 
 interface DrawerOverviewTabProps {
   company: Company;
@@ -11,9 +12,9 @@ interface DrawerOverviewTabProps {
 }
 
 const ALL_STATUSES: SelectionStatus[] = [
-  'interested', 'es_submitted', 'webtest', 'gd',
+  'interested', 'info_session', 'es_submitted', 'webtest', 'gd',
   'interview_1', 'interview_2', 'interview_3', 'interview_final',
-  'offer', 'rejected', 'declined',
+  'offer', 'other', 'rejected', 'declined',
 ];
 
 export default function DrawerOverviewTab({ company, draft, onFieldChange }: DrawerOverviewTabProps) {
@@ -148,6 +149,8 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
             placeholder="選考に関するメモ..."
           />
         </div>
+
+        <CompanyEmailSection companyId={company.id} />
 
       </div>
 

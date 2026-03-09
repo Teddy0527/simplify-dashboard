@@ -1,5 +1,26 @@
 import { SelectionStatus, SelectionStage, STATUS_LABELS } from '@jobsimplify/shared';
 
+// ── Stage category classification ──
+export type StageCategory = 'deadline' | 'schedule';
+
+const DEADLINE_TYPES = new Set<SelectionStatus>(['es_submitted', 'webtest']);
+const SCHEDULE_TYPES = new Set<SelectionStatus>(['info_session', 'gd', 'interview_1', 'interview_2', 'interview_3', 'interview_final', 'other']);
+
+export function getStageCategory(type: SelectionStatus): StageCategory {
+  if (DEADLINE_TYPES.has(type)) return 'deadline';
+  return 'schedule';
+}
+
+export function isDeadlineType(type: SelectionStatus): boolean {
+  return DEADLINE_TYPES.has(type);
+}
+
+export function isScheduleType(type: SelectionStatus): boolean {
+  return SCHEDULE_TYPES.has(type);
+}
+
+export { DEADLINE_TYPES, SCHEDULE_TYPES };
+
 // ── Shell → Tab data contract ──
 export type DraftCompany = {
   name: string;
@@ -22,6 +43,7 @@ export type TimelineEntry = {
   label: string;
   date?: string;
   time?: string;
+  endTime?: string;
   result?: 'pending' | 'passed' | 'failed';
   state: TimelineEntryState;
   stageIndex?: number;
@@ -78,6 +100,7 @@ export function buildTimeline(
       label: stage.customLabel || (STATUS_LABELS[stage.type] ?? stage.type),
       date: stage.date,
       time: stage.time,
+      endTime: stage.endTime,
       result: stage.result,
       state,
       stageIndex: i,

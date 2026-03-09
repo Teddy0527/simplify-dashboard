@@ -10,6 +10,7 @@ interface AddCompanyDrawerProps {
 
 const STATUS_ORDER: SelectionStatus[] = [
   'interested',
+  'info_session',
   'es_submitted',
   'webtest',
   'gd',
@@ -18,6 +19,7 @@ const STATUS_ORDER: SelectionStatus[] = [
   'interview_3',
   'interview_final',
   'offer',
+  'other',
   'rejected',
   'declined',
 ];

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, migrateLocalToCloud, trackEventAsync } from '@jobsimplify/shared';
-import { posthog } from '@/lib/posthog';
+import { posthog, enrichPostHogProfile } from '@/lib/posthog';
 
 interface AuthState {
   user: User | null;
@@ -56,6 +56,7 @@ export function useAuthProvider(): AuthState {
         trackEventAsync('auth.login');
         if (session?.user) {
           posthog.identify(session.user.id, { email: session.user.email });
+          enrichPostHogProfile(session.user.id).catch(() => {});
         }
       }
       if (_event === 'SIGNED_OUT') {

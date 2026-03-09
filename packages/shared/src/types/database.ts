@@ -144,6 +144,86 @@ export interface Database {
           memo?: string | null;
         };
       };
+      user_gmail_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          google_refresh_token: string | null;
+          google_access_token: string | null;
+          google_token_expires_at: string | null;
+          is_connected: boolean;
+          oauth_state: string | null;
+          pkce_code_verifier: string | null;
+          connected_at: string | null;
+          last_sync_at: string | null;
+          last_history_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          google_refresh_token?: string | null;
+          google_access_token?: string | null;
+          google_token_expires_at?: string | null;
+          is_connected?: boolean;
+          oauth_state?: string | null;
+          pkce_code_verifier?: string | null;
+          connected_at?: string | null;
+          last_sync_at?: string | null;
+          last_history_id?: string | null;
+        };
+        Update: {
+          google_refresh_token?: string | null;
+          google_access_token?: string | null;
+          google_token_expires_at?: string | null;
+          is_connected?: boolean;
+          oauth_state?: string | null;
+          pkce_code_verifier?: string | null;
+          connected_at?: string | null;
+          last_sync_at?: string | null;
+          last_history_id?: string | null;
+          updated_at?: string;
+        };
+      };
+      email_cache: {
+        Row: {
+          id: string;
+          user_id: string;
+          gmail_message_id: string;
+          gmail_thread_id: string;
+          company_id: string | null;
+          sender_email: string;
+          sender_name: string | null;
+          sender_domain: string;
+          subject: string;
+          received_at: string;
+          snippet: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          gmail_message_id: string;
+          gmail_thread_id: string;
+          company_id?: string | null;
+          sender_email: string;
+          sender_name?: string | null;
+          sender_domain: string;
+          subject: string;
+          received_at: string;
+          snippet?: string | null;
+          is_read?: boolean;
+        };
+        Update: {
+          company_id?: string | null;
+          sender_name?: string | null;
+          subject?: string;
+          snippet?: string | null;
+          is_read?: boolean;
+        };
+      };
 };
     Functions: Record<string, never>;
     Enums: Record<string, never>;

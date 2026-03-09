@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import {
   SelectionStage,
   SelectionStatus,
   STATUS_LABELS,
+  STAGE_PRESETS,
 } from '@jobsimplify/shared';
 import {
   DndContext,
@@ -20,6 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { TimelineEntry, TimelineEntryState } from './types';
+import { getStageCategory, isScheduleType } from './types';
 import MiniCalendar from '../ui/MiniCalendar';
 
 interface ApplicationTimelineProps {
@@ -37,16 +39,7 @@ const RESULT_LABELS: Record<string, string> = {
   pending: '結果待ち',
 };
 
-const STAGE_PRESETS: { value: SelectionStatus; label: string }[] = [
-  { value: 'es_submitted', label: 'ES提出' },
-  { value: 'webtest', label: 'Webテスト' },
-  { value: 'gd', label: 'GD' },
-  { value: 'interview_1', label: '1次面接' },
-  { value: 'interview_2', label: '2次面接' },
-  { value: 'interview_3', label: '3次面接' },
-  { value: 'interview_final', label: '最終面接' },
-  { value: 'offer', label: '内定' },
-];
+// STAGE_PRESETS is now imported from @jobsimplify/shared
 
 const DOT_CLASSES: Record<TimelineEntryState, string> = {
   passed: 'bg-primary-700',
@@ -109,10 +102,11 @@ function StageEditPanel({
     }
   }
 
-  function formatDateChip(date: string, time?: string) {
+  function formatDateChip(date: string, time?: string, endTime?: string) {
     const d = new Date(date);
     const month = d.getMonth() + 1;
     const day = d.getDate();
+    if (time && endTime) return `${month}/${day} ${time}〜${endTime}`;
     return `${month}/${day}${time ? ` ${time}` : ''}`;
   }
 
@@ -152,11 +146,17 @@ function StageEditPanel({
                 : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
             }`}
           >
-            {stage.date ? formatDateChip(stage.date, stage.time) : '日付を選択'}
+            {stage.date ? formatDateChip(stage.date, stage.time, stage.endTime) : '日付を選択'}
           </button>
           <MiniCalendar
             value={stage.date || ''}
             onChange={(d) => onUpdate({ date: d || undefined })}
+            showTime
+            timeValue={stage.time || ''}
+            onTimeChange={(t) => onUpdate({ time: t || undefined })}
+            showEndTime={isScheduleType(stage.type)}
+            endTimeValue={stage.endTime || ''}
+            onEndTimeChange={(t) => onUpdate({ endTime: t || undefined })}
             anchorRef={dateTriggerRef}
             open={calOpen}
             onClose={() => setCalOpen(false)}
@@ -212,6 +212,7 @@ interface SortableTimelineItemProps {
   onRemoveStage: () => void;
   isTerminal: boolean;
   onDotClick: () => void;
+  onInlineDateOpen?: (stageIdx: number, anchorEl: HTMLElement) => void;
 }
 
 function SortableTimelineItem({
@@ -224,6 +225,7 @@ function SortableTimelineItem({
   onRemoveStage,
   isTerminal,
   onDotClick,
+  onInlineDateOpen,
 }: SortableTimelineItemProps) {
   const {
     attributes,
@@ -283,12 +285,31 @@ function SortableTimelineItem({
           <span className="text-sm font-medium text-gray-900">
             {entry.label}
           </span>
-          {/* Date — display only */}
-          {entry.date && (
-            <span className="text-xs text-gray-400">
-              {`${parseInt(entry.date.split('-')[1])}/${parseInt(entry.date.split('-')[2])}`}
-              {entry.time ? ` ${entry.time}` : ''}
-            </span>
+          {/* Date — clickable chip or add button */}
+          {entry.date ? (
+            !isTerminal && entry.stageIndex !== undefined && onInlineDateOpen ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onInlineDateOpen(entry.stageIndex!, e.currentTarget); }}
+                className="timeline-date-chip"
+              >
+                {`${parseInt(entry.date.split('-')[1])}/${parseInt(entry.date.split('-')[2])}`}
+                {entry.time && entry.endTime ? ` ${entry.time}〜${entry.endTime}` : entry.time ? ` ${entry.time}` : ''}
+              </button>
+            ) : (
+              <span className="text-xs text-gray-400">
+                {`${parseInt(entry.date.split('-')[1])}/${parseInt(entry.date.split('-')[2])}`}
+                {entry.time && entry.endTime ? ` ${entry.time}〜${entry.endTime}` : entry.time ? ` ${entry.time}` : ''}
+              </span>
+            )
+          ) : (
+            !isTerminal && entry.stageIndex !== undefined && onInlineDateOpen && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onInlineDateOpen(entry.stageIndex!, e.currentTarget); }}
+                className="timeline-inline-date-btn"
+              >
+                + 日付
+              </button>
+            )
           )}
           {entry.result && (
             <span className={`text-xs font-medium ${
@@ -334,24 +355,35 @@ export default function ApplicationTimeline({
   // Expanded stage panel
   const [expandedStageIdx, setExpandedStageIdx] = useState<number | null>(null);
 
-  // Adding new stage
-  const [adding, setAdding] = useState(false);
+  // Adding new stage (per section)
+  const [addingSection, setAddingSection] = useState<'deadline' | 'schedule' | null>(null);
   const [newType, setNewType] = useState<SelectionStatus>('interview_1');
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [newEndTime, setNewEndTime] = useState('');
   const [addCalendarOpen, setAddCalendarOpen] = useState(false);
   const addDateTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Inline date picker
+  const [inlineDateIdx, setInlineDateIdx] = useState<number | null>(null);
+  const [inlineDateAnchor, setInlineDateAnchor] = useState<HTMLElement | null>(null);
 
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  // Ref to avoid stale closure when multiple sync calls happen (e.g. time + endTime)
+  const stagesRef = useRef(stages);
+  stagesRef.current = stages;
+
   // Unified stage update handler
   function handleStageUpdate(stageIndex: number, patch: Partial<SelectionStage>) {
-    const updated = stages.map((s, i) =>
+    const current = stagesRef.current;
+    const updated = current.map((s, i) =>
       i === stageIndex ? { ...s, ...patch } : s,
     );
+    stagesRef.current = updated;
     onStagesChange(updated);
   }
 
@@ -365,13 +397,21 @@ export default function ApplicationTimeline({
       type: newType,
       date: newDate || undefined,
       time: newTime || undefined,
+      endTime: newEndTime || undefined,
       result: 'pending',
     };
     onStagesChange([...stages, stage]);
-    setAdding(false);
+    setAddingSection(null);
     setNewType('interview_1');
     setNewDate('');
     setNewTime('');
+    setNewEndTime('');
+  }
+
+  function handleInlineDateChange(date: string) {
+    if (inlineDateIdx !== null) {
+      handleStageUpdate(inlineDateIdx, { date: date || undefined });
+    }
   }
 
   // Dot click handler — advance or revert progression
@@ -430,11 +470,140 @@ export default function ApplicationTimeline({
     onStagesChange(newStages);
   }
 
-  // Build sortable IDs (exclude terminal entries)
-  const sortableEntries = entries.filter(
-    (e) => e.type !== 'rejected' && e.type !== 'declined' && e.stageIndex !== undefined,
+  // Categorize entries into deadline and schedule
+  const deadlineEntries = entries.filter(
+    (e) => e.type !== 'rejected' && e.type !== 'declined' && getStageCategory(e.type) === 'deadline',
   );
-  const sortableIds = sortableEntries.map((e) => `stage-${e.stageIndex}`);
+  const scheduleEntries = entries.filter(
+    (e) => e.type !== 'rejected' && e.type !== 'declined' && getStageCategory(e.type) === 'schedule',
+  );
+  const terminalEntries = entries.filter(
+    (e) => e.type === 'rejected' || e.type === 'declined',
+  );
+
+  // Sortable IDs per section
+  const deadlineSortableIds = deadlineEntries
+    .filter((e) => e.stageIndex !== undefined)
+    .map((e) => `stage-${e.stageIndex}`);
+  const scheduleSortableIds = scheduleEntries
+    .filter((e) => e.stageIndex !== undefined)
+    .map((e) => `stage-${e.stageIndex}`);
+  // Presets per section
+  const deadlinePresets = STAGE_PRESETS.filter((p) => getStageCategory(p.value) === 'deadline');
+  const schedulePresets = STAGE_PRESETS.filter((p) => getStageCategory(p.value) === 'schedule');
+
+  function renderEntryList(sectionEntries: TimelineEntry[]) {
+    return sectionEntries.map((entry, i) => {
+      const isTerminal = entry.type === 'rejected' || entry.type === 'declined';
+      const itemId = isTerminal ? `terminal-${entry.type}` : `stage-${entry.stageIndex}`;
+      const stage = entry.stageIndex !== undefined ? stages[entry.stageIndex] : undefined;
+
+      return (
+        <div key={`${entry.type}-${i}`}>
+          <SortableTimelineItem
+            id={itemId}
+            entry={entry}
+            stage={stage}
+            isExpanded={entry.stageIndex !== undefined && expandedStageIdx === entry.stageIndex}
+            onToggleExpand={() => {
+              if (entry.stageIndex !== undefined) {
+                setExpandedStageIdx(expandedStageIdx === entry.stageIndex ? null : entry.stageIndex);
+              }
+            }}
+            onStageUpdate={(patch) => entry.stageIndex !== undefined && handleStageUpdate(entry.stageIndex, patch)}
+            onRemoveStage={() => entry.stageIndex !== undefined && handleRemoveStage(entry.stageIndex)}
+            isTerminal={isTerminal}
+            onDotClick={() => entry.stageIndex !== undefined && handleDotClick(entry.stageIndex)}
+            onInlineDateOpen={(idx, anchorEl) => { setInlineDateIdx(idx); setInlineDateAnchor(anchorEl); }}
+          />
+        </div>
+      );
+    });
+  }
+
+  function renderAddRow(section: 'deadline' | 'schedule', presets: typeof STAGE_PRESETS) {
+    if (addingSection === section) {
+      return (
+        <div className="flex items-center gap-2 flex-wrap mt-2 ml-6">
+          <select
+            value={newType}
+            onChange={(e) => setNewType(e.target.value as SelectionStatus)}
+            className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
+          >
+            {presets.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          <button
+            ref={addDateTriggerRef}
+            type="button"
+            onClick={() => setAddCalendarOpen(true)}
+            className="text-xs py-1 px-2 border border-gray-200 rounded bg-white hover:border-gray-300 transition-colors text-left min-w-[80px]"
+          >
+            {newDate
+              ? `${parseInt(newDate.split('-')[1])}/${parseInt(newDate.split('-')[2])}${newTime && newEndTime ? ` ${newTime}〜${newEndTime}` : newTime ? ` ${newTime}` : ''}`
+              : '日付'}
+          </button>
+          <MiniCalendar
+            value={newDate}
+            onChange={(d) => setNewDate(d)}
+            showTime
+            timeValue={newTime}
+            onTimeChange={(t) => setNewTime(t)}
+            showEndTime={section === 'schedule'}
+            endTimeValue={newEndTime}
+            onEndTimeChange={(t) => setNewEndTime(t)}
+            anchorRef={addDateTriggerRef}
+            open={addCalendarOpen}
+            onClose={() => setAddCalendarOpen(false)}
+          />
+          <button onClick={handleAddStage} className="text-xs py-1 px-2 bg-primary-700 text-white rounded">
+            追加
+          </button>
+          <button onClick={() => setAddingSection(null)} className="text-xs py-1 px-2 text-gray-500">
+            取消
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button
+        onClick={() => {
+          setAddingSection(section);
+          setNewType(presets[0]?.value || 'interview_1');
+          setNewDate('');
+          setNewTime('');
+        }}
+        className="text-xs text-primary-600 hover:text-primary-800 transition-colors mt-2 ml-6"
+      >
+        + {section === 'deadline' ? '締切を追加' : '選考を追加'}
+      </button>
+    );
+  }
+
+  // Inline date MiniCalendar (positioned via clicked anchor element)
+  const inlineDateAnchorRef = useMemo(
+    () => ({ current: inlineDateAnchor }),
+    [inlineDateAnchor],
+  );
+  const inlineStageIsSchedule = inlineDateIdx !== null && stages[inlineDateIdx]
+    ? isScheduleType(stages[inlineDateIdx].type)
+    : false;
+  const inlineDateTriggerEl = inlineDateIdx !== null ? (
+    <MiniCalendar
+      value={stages[inlineDateIdx]?.date || ''}
+      onChange={handleInlineDateChange}
+      anchorRef={inlineDateAnchorRef}
+      open={inlineDateIdx !== null}
+      onClose={() => { setInlineDateIdx(null); setInlineDateAnchor(null); }}
+      showTime
+      timeValue={stages[inlineDateIdx]?.time || ''}
+      onTimeChange={(t) => inlineDateIdx !== null && handleStageUpdate(inlineDateIdx, { time: t || undefined })}
+      showEndTime={inlineStageIsSchedule}
+      endTimeValue={stages[inlineDateIdx]?.endTime || ''}
+      onEndTimeChange={(t) => inlineDateIdx !== null && handleStageUpdate(inlineDateIdx, { endTime: t || undefined })}
+    />
+  ) : null;
 
   return (
     <div>
@@ -445,99 +614,108 @@ export default function ApplicationTimeline({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          <div className="relative pl-6">
-            {/* Vertical connection line */}
-            {entries.length > 1 && (
-              <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
-            )}
-
-            {entries.map((entry, i) => {
-              const isTerminal = entry.type === 'rejected' || entry.type === 'declined';
-              const itemId = isTerminal ? `terminal-${entry.type}` : `stage-${entry.stageIndex}`;
-              const stage = entry.stageIndex !== undefined ? stages[entry.stageIndex] : undefined;
-
-              return (
-                <div key={`${entry.type}-${i}`}>
-                  <SortableTimelineItem
-                    id={itemId}
-                    entry={entry}
-                    stage={stage}
-                    isExpanded={entry.stageIndex !== undefined && expandedStageIdx === entry.stageIndex}
-                    onToggleExpand={() => {
-                      if (entry.stageIndex !== undefined) {
-                        setExpandedStageIdx(expandedStageIdx === entry.stageIndex ? null : entry.stageIndex);
-                      }
-                    }}
-                    onStageUpdate={(patch) => entry.stageIndex !== undefined && handleStageUpdate(entry.stageIndex, patch)}
-                    onRemoveStage={() => entry.stageIndex !== undefined && handleRemoveStage(entry.stageIndex)}
-                    isTerminal={isTerminal}
-                    onDotClick={() => entry.stageIndex !== undefined && handleDotClick(entry.stageIndex)}
-                  />
-                </div>
-              );
-            })}
+        {/* Deadline section */}
+        {(deadlineEntries.length > 0 || addingSection === 'deadline') && (
+          <div className="timeline-section mb-4">
+            <div className="timeline-section-header">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              締切
+            </div>
+            <SortableContext items={deadlineSortableIds} strategy={verticalListSortingStrategy}>
+              <div className="relative pl-6">
+                {deadlineEntries.length > 1 && (
+                  <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+                )}
+                {renderEntryList(deadlineEntries)}
+              </div>
+            </SortableContext>
+            {renderAddRow('deadline', deadlinePresets)}
           </div>
-        </SortableContext>
+        )}
+
+        {/* Schedule section */}
+        {(scheduleEntries.length > 0 || addingSection === 'schedule') && (
+          <div className="timeline-section mb-4">
+            <div className="timeline-section-header">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              選考
+            </div>
+            <SortableContext items={scheduleSortableIds} strategy={verticalListSortingStrategy}>
+              <div className="relative pl-6">
+                {scheduleEntries.length > 1 && (
+                  <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+                )}
+                {renderEntryList(scheduleEntries)}
+              </div>
+            </SortableContext>
+            {renderAddRow('schedule', schedulePresets)}
+          </div>
+        )}
+
+        {/* Fallback: if no deadline/schedule entries exist, show both add buttons */}
+        {deadlineEntries.length === 0 && scheduleEntries.length === 0 && addingSection === null && (
+          <div className="space-y-3">
+            <div className="timeline-section">
+              <div className="timeline-section-header">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                締切
+              </div>
+              <SortableContext items={[]} strategy={verticalListSortingStrategy}>
+                <div className="relative pl-6" />
+              </SortableContext>
+              {renderAddRow('deadline', deadlinePresets)}
+            </div>
+            <div className="timeline-section">
+              <div className="timeline-section-header">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                選考
+              </div>
+              <SortableContext items={[]} strategy={verticalListSortingStrategy}>
+                <div className="relative pl-6" />
+              </SortableContext>
+              {renderAddRow('schedule', schedulePresets)}
+            </div>
+          </div>
+        )}
+
+        {/* Terminal entries (rejected/declined) */}
+        {terminalEntries.length > 0 && (
+          <SortableContext items={[]} strategy={verticalListSortingStrategy}>
+            <div className="relative pl-6 mt-2">
+              {renderEntryList(terminalEntries)}
+            </div>
+          </SortableContext>
+        )}
       </DndContext>
 
-      <div className="flex items-center gap-3 mt-3">
-        {stages.length > 3 && (
+      {inlineDateTriggerEl}
+
+      {stages.length > 3 && (
+        <div className="mt-3">
           <button
             onClick={onToggleShowAll}
             className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
           >
             {showAll ? '折りたたむ' : 'すべて表示'}
           </button>
-        )}
-
-        {adding ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as SelectionStatus)}
-              className="text-xs py-1 px-2 border border-gray-200 rounded bg-white"
-            >
-              {STAGE_PRESETS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <button
-              ref={addDateTriggerRef}
-              type="button"
-              onClick={() => setAddCalendarOpen(true)}
-              className="text-xs py-1 px-2 border border-gray-200 rounded bg-white hover:border-gray-300 transition-colors text-left min-w-[80px]"
-            >
-              {newDate
-                ? `${parseInt(newDate.split('-')[1])}/${parseInt(newDate.split('-')[2])}${newTime ? ` ${newTime}` : ''}`
-                : '日付'}
-            </button>
-            <MiniCalendar
-              value={newDate}
-              onChange={(d) => setNewDate(d)}
-              showTime
-              timeValue={newTime}
-              onTimeChange={(t) => setNewTime(t)}
-              anchorRef={addDateTriggerRef}
-              open={addCalendarOpen}
-              onClose={() => setAddCalendarOpen(false)}
-            />
-            <button onClick={handleAddStage} className="text-xs py-1 px-2 bg-primary-700 text-white rounded">
-              追加
-            </button>
-            <button onClick={() => setAdding(false)} className="text-xs py-1 px-2 text-gray-500">
-              取消
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setAdding(true)}
-            className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
-          >
-            + ステージ追加
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

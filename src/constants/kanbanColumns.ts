@@ -28,7 +28,7 @@ export const COLUMNS: ColumnDef[] = [
     label: '選考中',
     icon: '⟳',
     color: 'var(--color-warning-600)',
-    statuses: ['webtest', 'gd', 'interview_1', 'interview_2', 'interview_3', 'interview_final'],
+    statuses: ['webtest', 'gd', 'info_session', 'interview_1', 'interview_2', 'interview_3', 'interview_final', 'other'],
   },
   {
     id: 'offer',
