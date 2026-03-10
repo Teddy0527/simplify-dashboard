@@ -9,6 +9,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const EmailsPage = lazy(() => import('./pages/EmailsPage'));
 const OnboardingWizardPage = lazy(() => import('./pages/OnboardingWizardPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 
 export const routes: RouteObject[] = [
   {
@@ -22,6 +23,20 @@ export const routes: RouteObject[] = [
         }
       >
         <PrivacyPolicyPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: 'terms',
+    element: (
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <TermsOfServicePage />
       </Suspense>
     ),
   },

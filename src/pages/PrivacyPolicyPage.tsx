@@ -68,7 +68,7 @@ function JaContent() {
 
         <h3 className="font-semibold text-gray-800 mt-4 mb-2">2.2 Google Calendar データ</h3>
         <p>
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">calendar</code> スコープを使用して、以下の操作を行います:
+          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">calendar.events</code> スコープを使用して、以下の操作を行います:
         </p>
         <ul className="list-disc list-inside mt-2 space-y-1 ml-4">
           <li>カレンダーイベントの読み取り（面接・説明会の表示）</li>
@@ -170,7 +170,7 @@ function EnContent() {
 
         <h3 className="font-semibold text-gray-800 mt-4 mb-2">2.2 Google Calendar Data</h3>
         <p>
-          Using the <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">calendar</code> scope, we perform the following operations:
+          Using the <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">calendar.events</code> scope, we perform the following operations:
         </p>
         <ul className="list-disc list-inside mt-2 space-y-1 ml-4">
           <li>Read calendar events (to display interviews and info sessions)</li>

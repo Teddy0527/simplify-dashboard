@@ -3,9 +3,11 @@ import type { CalendarEventDisplay } from '../../types/googleCalendar';
 import { formatTimeJa, calculateEventPositions } from '../../utils/calendarUtils';
 
 interface CalendarWeekViewProps {
-  weekStart: Date; // Sunday of the week
+  weekStart?: Date; // Sunday of the week (required unless singleDay is set)
+  singleDay?: Date; // Single day mode (day view)
   events: CalendarEventDisplay[];
   onEventClick?: (event: CalendarEventDisplay) => void;
+  onSlotClick?: (dateStr: string, time: string, rect: DOMRect) => void;
 }
 
 const WEEKDAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -43,8 +45,8 @@ function getCurrentTimePosition(): number {
   return (now.getHours() + now.getMinutes() / 60) * HOUR_HEIGHT;
 }
 
-export default function CalendarWeekView({ weekStart, events, onEventClick }: CalendarWeekViewProps) {
-  const days = useMemo(() => getWeekDays(weekStart), [weekStart]);
+export default function CalendarWeekView({ weekStart, singleDay, events, onEventClick, onSlotClick }: CalendarWeekViewProps) {
+  const days = useMemo(() => singleDay ? [singleDay] : getWeekDays(weekStart!), [singleDay, weekStart]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Group events by date
@@ -106,14 +108,14 @@ export default function CalendarWeekView({ weekStart, events, onEventClick }: Ca
       const scrollTo = Math.max(0, (now.getHours() - 2) * HOUR_HEIGHT);
       scrollRef.current.scrollTop = scrollTo;
     }
-  }, [weekStart]);
+  }, [weekStart, singleDay]);
 
   // Current time indicator position
   const todayIndex = days.findIndex(isToday);
   const nowPosition = getCurrentTimePosition();
 
   return (
-    <div className="gcal-weekview">
+    <div className={`gcal-weekview${singleDay ? ' gcal-weekview-single' : ''}`}>
       {/* Header row: day names + numbers */}
       <div className="gcal-weekview-header">
         <div className="gcal-weekview-gutter" />
@@ -129,21 +131,21 @@ export default function CalendarWeekView({ weekStart, events, onEventClick }: Ca
                 style={{
                   color: today
                     ? 'var(--gcal-blue)'
-                    : i === 0
+                    : d.getDay() === 0
                       ? '#d50000'
-                      : i === 6
+                      : d.getDay() === 6
                         ? '#1a73e8'
                         : 'var(--color-gray-500)',
                 }}
               >
-                {WEEKDAY_NAMES[i]}
+                {WEEKDAY_NAMES[d.getDay()]}
               </div>
               <div
                 className={`gcal-weekview-day-number ${today ? 'gcal-weekview-day-number-today' : ''}`}
                 style={
                   !today
                     ? {
-                        color: i === 0 ? '#d50000' : i === 6 ? '#1a73e8' : 'var(--color-gray-800)',
+                        color: d.getDay() === 0 ? '#d50000' : d.getDay() === 6 ? '#1a73e8' : 'var(--color-gray-800)',
                       }
                     : undefined
                 }
@@ -214,12 +216,27 @@ export default function CalendarWeekView({ weekStart, events, onEventClick }: Ca
               const dateStr = toDateStr(d);
               const positioned = positionedByDate.get(dateStr) || [];
               const today = isToday(d);
-              const isWeekend = i === 0 || i === 6;
+              const dayOfWeek = d.getDay();
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
               return (
                 <div
                   key={i}
-                  className={`gcal-weekview-column ${today ? 'gcal-weekview-column-today' : ''} ${isWeekend && !today ? 'gcal-weekview-column-weekend' : ''}`}
+                  className={`gcal-weekview-column ${today ? 'gcal-weekview-column-today' : ''} ${isWeekend && !today ? 'gcal-weekview-column-weekend' : ''} ${onSlotClick ? 'gcal-weekview-column-clickable' : ''}`}
+                  onClick={onSlotClick ? (e) => {
+                    const scrollContainer = scrollRef.current;
+                    if (!scrollContainer) return;
+                    const scrollTop = scrollContainer.scrollTop;
+                    const bodyRect = scrollContainer.getBoundingClientRect();
+                    const yInGrid = (e.clientY - bodyRect.top) + scrollTop;
+                    const totalMinutes = (yInGrid / HOUR_HEIGHT) * 60;
+                    const snapped = Math.round(totalMinutes / 15) * 15;
+                    const hours = Math.max(0, Math.min(23, Math.floor(snapped / 60)));
+                    const mins = snapped % 60;
+                    const timeStr = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                    const syntheticRect = new DOMRect(e.clientX - 1, e.clientY - 1, 2, 2);
+                    onSlotClick(dateStr, timeStr, syntheticRect);
+                  } : undefined}
                 >
                   {positioned.map((pe) => {
                     const isGoogle = pe.event.source === 'google';
@@ -244,7 +261,7 @@ export default function CalendarWeekView({ weekStart, events, onEventClick }: Ca
                           backgroundColor: isGoogle ? '#e8eaed' : `${color}20`,
                           borderLeft: `3px solid ${isGoogle ? '#9ca3af' : color}`,
                         }}
-                        onClick={() => onEventClick?.(pe.event)}
+                        onClick={(e) => { e.stopPropagation(); onEventClick?.(pe.event); }}
                       >
                         <div className="gcal-weekview-event-title">{pe.event.title}</div>
                         {height >= 36 && startLabel && (

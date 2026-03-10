@@ -7,6 +7,7 @@ import { getStageColor, formatStageLabel, formatTimeJP } from '../utils/stageCal
 import type { CalendarEventDisplay } from '../types/googleCalendar';
 import CalendarAddPopover from './calendar/CalendarAddPopover';
 import CalendarWeekView from './calendar/CalendarWeekView';
+import CalendarViewSwitcher from './calendar/CalendarViewSwitcher';
 import type { ViewMode } from './FilterBar';
 
 interface CalendarViewProps {
@@ -19,7 +20,7 @@ interface CalendarViewProps {
   onAddClick: () => void;
 }
 
-type CalendarMode = 'month' | 'week';
+type CalendarMode = 'month' | 'week' | 'day';
 
 interface StageEvent {
   companyId: string;
@@ -52,13 +53,19 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Add popover state
-  const [addPopover, setAddPopover] = useState<{ dateStr: string; rect: DOMRect } | null>(null);
+  const [addPopover, setAddPopover] = useState<{ dateStr: string; rect: DOMRect; time?: string } | null>(null);
 
   // Google Calendar connection status
   const { isConnected: gcalConnected, googleEmail: gcalEmail, connect: gcalConnect } = useGoogleCalendar();
 
   // Calculate time range for Google Calendar events
   const { timeMin, timeMax } = useMemo(() => {
+    if (mode === 'day') {
+      return {
+        timeMin: toDateStr(currentDate) + 'T00:00:00Z',
+        timeMax: toDateStr(currentDate) + 'T23:59:59Z',
+      };
+    }
     if (mode === 'month') {
       const y = currentDate.getFullYear();
       const m = currentDate.getMonth();
@@ -150,7 +157,8 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
     setCurrentDate((prev) => {
       const d = new Date(prev);
       if (mode === 'month') d.setMonth(d.getMonth() + delta);
-      else d.setDate(d.getDate() + delta * 7);
+      else if (mode === 'week') d.setDate(d.getDate() + delta * 7);
+      else d.setDate(d.getDate() + delta);
       return d;
     });
     setPopover(null);
@@ -165,6 +173,9 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
 
   // Header label
   const headerLabel = useMemo(() => {
+    if (mode === 'day') {
+      return `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日（${WEEKDAY_LABELS[currentDate.getDay()]}）`;
+    }
     if (mode === 'month') {
       return `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`;
     }
@@ -370,6 +381,26 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
     }
   }
 
+  function handleSlotClick(dateStr: string, time: string, rect: DOMRect) {
+    if (!onAddStage) return;
+    setAddPopover({ dateStr, rect, time });
+  }
+
+  // Keyboard shortcuts: D/W/M to switch view
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'd') { setMode('day'); setPopover(null); setAddPopover(null); }
+      else if (key === 'w') { setMode('week'); setPopover(null); setAddPopover(null); }
+      else if (key === 'm') { setMode('month'); setPopover(null); setAddPopover(null); }
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
   // ─── Popover ────────────────────────────────────────
   function renderPopover() {
     if (!popover) return null;
@@ -540,29 +571,11 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
           </button>
         )}
 
-        {/* Month / Week toggle */}
-        <div className="flex rounded-lg bg-gray-100 p-0.5">
-          <button
-            onClick={() => { setMode('month'); setPopover(null); }}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-              mode === 'month'
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            月
-          </button>
-          <button
-            onClick={() => { setMode('week'); setPopover(null); }}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-              mode === 'week'
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            週
-          </button>
-        </div>
+        {/* View mode switcher (day/week/month) */}
+        <CalendarViewSwitcher
+          mode={mode}
+          onModeChange={(m) => { setMode(m); setPopover(null); setAddPopover(null); }}
+        />
 
         {/* Add button */}
         <button
@@ -575,13 +588,21 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
 
       {/* Grid */}
       <div className="flex-1 overflow-hidden bg-white">
-        {mode === 'month' ? renderMonthGrid() : (
+        {mode === 'day' ? (
+          <CalendarWeekView
+            singleDay={currentDate}
+            events={weekViewEvents}
+            onEventClick={handleWeekEventClick}
+            onSlotClick={onAddStage ? handleSlotClick : undefined}
+          />
+        ) : mode === 'week' ? (
           <CalendarWeekView
             weekStart={weekStartDate}
             events={weekViewEvents}
             onEventClick={handleWeekEventClick}
+            onSlotClick={onAddStage ? handleSlotClick : undefined}
           />
-        )}
+        ) : renderMonthGrid()}
       </div>
 
       {renderPopover()}
@@ -594,6 +615,7 @@ export default function CalendarView({ companies, onCardClick, onAddStage, onCre
           onAddStage={onAddStage}
           onCreateCompanyAndStage={onCreateCompanyAndStage}
           onClose={() => setAddPopover(null)}
+          initialTime={addPopover.time}
         />
       )}
     </div>

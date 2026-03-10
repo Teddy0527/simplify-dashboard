@@ -17,6 +17,7 @@ interface CalendarAddPopoverProps {
   onAddStage: (companyId: string, stage: SelectionStage) => void;
   onCreateCompanyAndStage: (companyName: string, stage: SelectionStage) => void;
   onClose: () => void;
+  initialTime?: string;
 }
 
 const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -35,6 +36,7 @@ export default function CalendarAddPopover({
   onAddStage,
   onCreateCompanyAndStage,
   onClose,
+  initialTime,
 }: CalendarAddPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +46,7 @@ export default function CalendarAddPopover({
   const [selectedCompanyName, setSelectedCompanyName] = useState('');
   const [selectedStageType, setSelectedStageType] = useState<SelectionStatus | null>(null);
   const [customLabel, setCustomLabel] = useState('');
-  const [time, setTime] = useState('');
+  const [time, setTime] = useState(initialTime ?? '');
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Deduplicate by company name (keep first occurrence)

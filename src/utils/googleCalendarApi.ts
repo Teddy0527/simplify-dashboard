@@ -18,24 +18,17 @@ async function gcalFetch(token: string, url: string, options?: RequestInit): Pro
   return res;
 }
 
-export async function createSubCalendar(token: string): Promise<string> {
-  const res = await gcalFetch(token, `${GCAL_BASE}/calendars`, {
-    method: 'POST',
-    body: JSON.stringify({
-      summary: 'Simplify 就活',
-      description: 'Simplifyで管理している就活の締切・予定',
-      timeZone: 'Asia/Tokyo',
-    }),
-  });
-  const data = await res.json();
-  return data.id;
-}
-
-export async function findSimplifyCalendar(token: string): Promise<string | null> {
+/**
+ * Find existing Simplify calendar or fall back to primary.
+ * With calendar.events scope, we cannot create new calendars.
+ */
+export async function getSimplifyCalendarId(token: string): Promise<string> {
   const res = await gcalFetch(token, `${GCAL_BASE}/users/me/calendarList`);
   const data = await res.json();
-  const found = data.items?.find((c: GoogleCalendarListEntry) => c.summary === 'Simplify 就活');
-  return found?.id ?? null;
+  const found = data.items?.find(
+    (c: GoogleCalendarListEntry) => c.summary === 'Simplify 就活' || c.summary === 'Simplify',
+  );
+  return found?.id ?? 'primary';
 }
 
 export async function createEvent(

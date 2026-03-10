@@ -67,7 +67,7 @@ async function handleStart(req: Request, body: Record<string, string>): Promise<
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: "code",
-    scope: "https://www.googleapis.com/auth/calendar",
+    scope: "https://www.googleapis.com/auth/calendar.events",
     access_type: "offline",
     prompt: "consent",
     state: state,
@@ -163,28 +163,14 @@ async function handleCallback(req: Request): Promise<Response> {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const calList = await listRes.json();
-    const existing = calList.items?.find((c: { summary: string }) => c.summary === "Simplify");
-
-    if (existing) {
-      calendarId = existing.id;
-    } else {
-      const createRes = await fetch("https://www.googleapis.com/calendar/v3/calendars", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          summary: "Simplify",
-          description: "Simplify - Job Application Deadlines",
-          timeZone: "Asia/Tokyo",
-        }),
-      });
-      const newCal = await createRes.json();
-      calendarId = newCal.id;
-    }
+    const existing = calList.items?.find(
+      (c: { summary: string }) => c.summary === "Simplify" || c.summary === "Simplify 就活"
+    );
+    // Use existing Simplify calendar if found, otherwise fall back to primary
+    calendarId = existing?.id ?? "primary";
   } catch (e) {
-    console.error("Calendar creation error:", e);
+    console.error("Calendar lookup error:", e);
+    calendarId = "primary";
   }
 
   await admin.from("user_calendar_settings").update({
