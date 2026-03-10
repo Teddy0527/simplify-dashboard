@@ -3,7 +3,6 @@ import { Company, SelectionStatus, STATUS_LABELS, INDUSTRY_OPTIONS } from '@jobs
 import type { DraftCompany, OnFieldChange } from './types';
 import { buildTimeline } from './types';
 import ApplicationTimeline from './ApplicationTimeline';
-import CompanyEmailSection from './CompanyEmailSection';
 
 interface DrawerOverviewTabProps {
   company: Company;
@@ -150,7 +149,6 @@ export default function DrawerOverviewTab({ company, draft, onFieldChange }: Dra
           />
         </div>
 
-        <CompanyEmailSection companyId={company.id} />
 
       </div>
 

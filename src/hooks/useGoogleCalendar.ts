@@ -10,6 +10,7 @@ const POPUP_MAX_WAIT_MS = 2 * 60 * 1000;
 interface UseGoogleCalendarReturn {
   isConnected: boolean;
   isLoading: boolean;
+  isTestUserApproved: boolean;
   connect: () => void;
   disconnect: () => Promise<void>;
   getAccessToken: () => Promise<string>;
@@ -31,7 +32,7 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
     try {
       const { data } = await getSupabase()
         .from('user_calendar_settings')
-        .select('id, user_id, is_connected, calendar_id, connected_at, google_token_expires_at, google_email')
+        .select('id, user_id, is_connected, calendar_id, connected_at, google_token_expires_at, google_email, is_test_user_approved')
         .eq('user_id', user.id)
         .single();
       if (data) {
@@ -39,6 +40,7 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
           id: data.id,
           userId: data.user_id,
           isConnected: data.is_connected,
+          isTestUserApproved: data.is_test_user_approved ?? false,
           calendarId: data.calendar_id,
           connectedAt: data.connected_at,
           googleTokenExpiresAt: data.google_token_expires_at,
@@ -227,6 +229,7 @@ export function useGoogleCalendar(): UseGoogleCalendarReturn {
   return {
     isConnected: settings?.isConnected ?? false,
     isLoading,
+    isTestUserApproved: settings?.isTestUserApproved ?? false,
     connect,
     disconnect,
     getAccessToken,

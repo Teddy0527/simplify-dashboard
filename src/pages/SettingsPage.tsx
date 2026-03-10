@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
-import { useGmail } from '../hooks/useGmail';
+import { useCalendarTestUser } from '../hooks/useCalendarTestUser';
 import { useToast } from '../hooks/useToast';
 
-type IntegrationStatus = 'available' | 'coming_soon';
+type IntegrationStatus = 'available' | 'coming_soon' | 'test_recruiting';
 
 interface Integration {
   id: string;
@@ -19,22 +19,22 @@ const integrations: Integration[] = [
     id: 'google-calendar',
     name: 'Google Calendar',
     description: '選考日程や締切をGoogleカレンダーに自動同期',
-    status: 'available',
+    status: 'test_recruiting',
     iconSrc: '/icons/google-calendar.svg',
   },
   {
     id: 'gmail',
     name: 'Gmail',
     description: '企業からのメールを自動で取得・分類',
-    status: 'available',
+    status: 'coming_soon',
     iconSrc: '/icons/gmail.svg',
   },
 ];
 
 function IntegrationCard({ integration }: { integration: Integration }) {
   const isComingSoon = integration.status === 'coming_soon';
+  const isTestRecruiting = integration.status === 'test_recruiting';
   const isGoogleCalendar = integration.id === 'google-calendar';
-  const isGmail = integration.id === 'gmail';
 
   return (
     <div
@@ -62,17 +62,18 @@ function IntegrationCard({ integration }: { integration: Integration }) {
             準備中
           </span>
         )}
+        {isTestRecruiting && (
+          <span className="bg-amber-50 text-amber-600 text-xs rounded-full px-2.5 py-0.5">
+            テストユーザー募集中
+          </span>
+        )}
       </div>
 
       <p className="text-sm mb-5" style={{ color: 'var(--color-gray-500)' }}>
         {integration.description}
       </p>
 
-      {isGoogleCalendar ? (
-        <GoogleCalendarAction />
-      ) : isGmail ? (
-        <GmailAction />
-      ) : (
+      {isComingSoon ? (
         <button
           className="btn-primary text-sm"
           disabled
@@ -80,8 +81,88 @@ function IntegrationCard({ integration }: { integration: Integration }) {
         >
           連携する
         </button>
-      )}
+      ) : isGoogleCalendar && isTestRecruiting ? (
+        <GoogleCalendarTestUserAction />
+      ) : isGoogleCalendar ? (
+        <GoogleCalendarAction />
+      ) : null}
     </div>
+  );
+}
+
+function GoogleCalendarTestUserAction() {
+  const { isConnected, isLoading: isCalLoading, isTestUserApproved } = useGoogleCalendar();
+  const { status: requestStatus, isLoading: isReqLoading, apply } = useCalendarTestUser();
+  const [applying, setApplying] = useState(false);
+  const { showToast } = useToast();
+
+  if (isCalLoading || isReqLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-gray-400)' }}>
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
+        </svg>
+        読み込み中...
+      </div>
+    );
+  }
+
+  // Approved test user or already connected: show full connect flow
+  if (isTestUserApproved || isConnected) {
+    return <GoogleCalendarAction />;
+  }
+
+  // Already submitted request
+  if (requestStatus === 'pending') {
+    return (
+      <div className="space-y-1.5">
+        <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: '#d97706' }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M8 5v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="8" cy="11" r="0.75" fill="currentColor" />
+          </svg>
+          申請済み
+        </span>
+        <p className="text-xs" style={{ color: 'var(--color-gray-500)' }}>
+          承認後、Googleカレンダーを連携できるようになります
+        </p>
+      </div>
+    );
+  }
+
+  if (requestStatus === 'rejected') {
+    return (
+      <div className="space-y-1.5">
+        <p className="text-xs" style={{ color: 'var(--color-gray-500)' }}>
+          現在テストユーザーの枠が埋まっています。今後の募集をお待ちください。
+        </p>
+      </div>
+    );
+  }
+
+  // Not yet applied
+  async function handleApply() {
+    setApplying(true);
+    try {
+      await apply();
+      showToast('テストユーザーに申請しました', 'success');
+    } catch {
+      showToast('申請に失敗しました。もう一度お試しください', 'error');
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleApply}
+      disabled={applying}
+      className="btn-primary text-sm focus-visible:ring-2 ring-offset-1"
+      aria-label="テストユーザーに申請する"
+    >
+      {applying ? '申請中...' : 'テストユーザーになる'}
+    </button>
   );
 }
 
@@ -160,52 +241,6 @@ function GoogleCalendarAction() {
   );
 }
 
-function GmailAction() {
-  const { isConnected, isLoading, connect, disconnect } = useGmail();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-gray-400)' }}>
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
-        </svg>
-        読み込み中...
-      </div>
-    );
-  }
-
-  if (isConnected) {
-    return (
-      <div className="flex items-center gap-3">
-        <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: '#16a34a' }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          連携中
-        </span>
-        <button
-          onClick={disconnect}
-          className="text-xs hover:underline focus-visible:ring-2 ring-offset-1"
-          style={{ color: 'var(--color-gray-400)' }}
-          aria-label="Gmailの連携を解除する"
-        >
-          解除する
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={connect}
-      className="btn-primary text-sm focus-visible:ring-2 ring-offset-1"
-      aria-label="Gmailを連携する"
-    >
-      連携する
-    </button>
-  );
-}
-
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -216,28 +251,21 @@ export default function SettingsPage() {
     if (!connected && !error) return;
 
     if (connected) {
-      const msgType = connected === 'gmail' ? 'gmail-connected' : 'google-calendar-connected';
-      const toastMsg = connected === 'gmail'
-        ? 'Gmailとの連携が完了しました'
-        : 'Google Calendarとの連携が完了しました';
-
       if (window.opener) {
-        window.opener.postMessage({ type: msgType }, window.location.origin);
+        window.opener.postMessage({ type: 'google-calendar-connected' }, window.location.origin);
         window.close();
         return;
       }
-      showToast(toastMsg, 'success');
+      showToast('Google Calendarとの連携が完了しました', 'success');
     }
 
     if (error) {
-      const service = error === 'gmail' ? 'Gmail' : 'Google Calendar';
       if (window.opener) {
-        const msgType = error === 'gmail' ? 'gmail-error' : 'google-calendar-error';
-        window.opener.postMessage({ type: msgType, error: '' }, window.location.origin);
+        window.opener.postMessage({ type: 'google-calendar-error', error: '' }, window.location.origin);
         window.close();
         return;
       }
-      showToast(`${service}との連携に失敗しました`, 'error');
+      showToast('Google Calendarとの連携に失敗しました', 'error');
     }
 
     setSearchParams({}, { replace: true });

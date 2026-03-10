@@ -28,6 +28,7 @@ export interface CalendarSettings {
   id: string;
   userId: string;
   isConnected: boolean;
+  isTestUserApproved: boolean;
   calendarId: string | null;
   connectedAt: string | null;
   googleTokenExpiresAt: string | null;

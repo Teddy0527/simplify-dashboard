@@ -58,9 +58,16 @@ export function CompanyAutocomplete({
   // Determine which list to show
   const showingPopular = results.length === 0 && ntaResults.length === 0 && value.length === 0 && popularCompanies.length > 0;
 
-  // Master results (or popular companies)
+  // Master results (or popular companies, shuffled for variety)
   const masterResults = useMemo(() => {
-    if (showingPopular) return popularCompanies;
+    if (showingPopular) {
+      const arr = [...popularCompanies];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.slice(0, 8);
+    }
     return results;
   }, [results, popularCompanies, showingPopular]);
 

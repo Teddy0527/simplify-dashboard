@@ -100,11 +100,13 @@ export default function TrackerPage() {
     showToast('ステージを追加しました');
   }
 
-  function handleCreateCompanyFromCalendar(name: string, stage: SelectionStage) {
+  async function handleCreateCompanyFromCalendar(name: string, stage: SelectionStage) {
     const company = createCompany(name);
     company.stages = [...company.stages, stage];
-    addCompany(company);
-    showToast(`${name}を追加しました`);
+    const added = await addCompany(company);
+    if (!added) {
+      showToast('この企業は既に追加されています', 'error');
+    }
   }
 
   // Handle ?action=add query param to auto-open AddCompanyDrawer
@@ -272,11 +274,14 @@ export default function TrackerPage() {
 
       {showAddModal && (
         <AddCompanyDrawer
-          onSave={(company) => {
-            addCompany(company);
+          onSave={async (company) => {
+            const added = await addCompany(company);
+            if (!added) {
+              showToast('この企業は既に追加されています', 'error');
+              return;
+            }
             setShowAddModal(false);
             setDrawerCompanyId(company.id);
-            showToast('企業を追加しました');
             completeChecklistItem('add_company');
           }}
           onClose={() => {

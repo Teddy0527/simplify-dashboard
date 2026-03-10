@@ -11,6 +11,14 @@ import {
   trackMilestoneOnce,
 } from '@jobsimplify/shared';
 
+function normalizeName(name: string): string {
+  return name
+    .replace(/[\s　]+/g, '')
+    .replace(/株式会社|有限会社|合同会社|合名会社|合資会社|一般社団法人|一般財団法人|公益社団法人|公益財団法人|特定非営利活動法人|独立行政法人|地方独立行政法人|国立大学法人/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 export function useCompanies() {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -76,7 +84,11 @@ export function useCompanies() {
     }
   }, [companies]);
 
-  const addCompany = useCallback(async (company: Company) => {
+  const addCompany = useCallback(async (company: Company): Promise<boolean> => {
+    const normalizedNew = normalizeName(company.name);
+    const isDuplicate = companies.some(c => normalizeName(c.name) === normalizedNew);
+    if (isDuplicate) return false;
+
     setCompanies((prev) => {
       const newList = [company, ...prev];
       // Milestone tracking based on new count
@@ -85,7 +97,8 @@ export function useCompanies() {
       return newList;
     });
     await addCompanyRepo(company).catch(console.error);
-  }, []);
+    return true;
+  }, [companies]);
 
   const updateCompany = useCallback(async (company: Company) => {
     setCompanies((prev) =>

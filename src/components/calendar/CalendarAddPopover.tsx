@@ -7,8 +7,10 @@ import {
   STATUS_LABELS,
   STAGE_PRESETS,
 } from '@jobsimplify/shared';
+import type { CompanySearchResult } from '@jobsimplify/shared';
 import { CompanyLogo } from '../ui/CompanyLogo';
 import TimeDropdown from '../ui/TimeDropdown';
+import { useCompanySearch } from '../../hooks/useCompanySearch';
 
 interface CalendarAddPopoverProps {
   dateStr: string;
@@ -49,6 +51,12 @@ export default function CalendarAddPopover({
   const [time, setTime] = useState(initialTime ?? '');
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const {
+    results: masterSearchResults,
+    loading: masterLoading,
+    search: searchMaster,
+  } = useCompanySearch({ debounceMs: 300, limit: 8, minQueryLength: 1 });
+
   // Deduplicate by company name (keep first occurrence)
   const uniqueByName = (list: Company[]) => {
     const seen = new Set<string>();
@@ -72,14 +80,22 @@ export default function CalendarAddPopover({
     return arr;
   }, [companies]);
 
-  // Filter companies by query
-  const filteredCompanies = companyQuery.trim()
+  // Existing companies matching query
+  const existingMatches = companyQuery.trim()
     ? uniqueByName(
         companies.filter((c) => c.name.toLowerCase().includes(companyQuery.toLowerCase()))
-      ).slice(0, 8)
+      ).slice(0, 5)
     : shuffledCompanies.slice(0, 5);
 
-  const isNewCompany = companyQuery.trim().length > 0 && !selectedCompanyId;
+  // Master DB results (excluding already-added companies)
+  const filteredMasterResults = useMemo(() => {
+    if (!companyQuery.trim()) return [];
+    const existingNames = new Set(companies.map(c => c.name.toLowerCase()));
+    return masterSearchResults.filter(r => !existingNames.has(r.name.toLowerCase())).slice(0, 5);
+  }, [masterSearchResults, companies, companyQuery]);
+
+  const hasQuery = companyQuery.trim().length > 0;
+  const isNewCompany = hasQuery && !selectedCompanyId;
   const canSubmit =
     (selectedCompanyId || companyQuery.trim()) &&
     selectedStageType &&
@@ -120,12 +136,20 @@ export default function CalendarAddPopover({
     setShowDropdown(false);
   }, []);
 
+  const handleSelectMasterCompany = useCallback((company: CompanySearchResult) => {
+    setSelectedCompanyId(null);
+    setSelectedCompanyName(company.name);
+    setCompanyQuery(company.name);
+    setShowDropdown(false);
+  }, []);
+
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setCompanyQuery(e.target.value);
     setSelectedCompanyId(null);
     setSelectedCompanyName('');
     setShowDropdown(true);
-  }, []);
+    searchMaster(e.target.value);
+  }, [searchMaster]);
 
   function handleSubmit() {
     if (!selectedStageType) return;
@@ -216,9 +240,14 @@ export default function CalendarAddPopover({
               className="input-field text-sm"
               autoComplete="off"
             />
-            {showDropdown && filteredCompanies.length > 0 && !selectedCompanyId && (
+            {showDropdown && !selectedCompanyId && (existingMatches.length > 0 || filteredMasterResults.length > 0 || masterLoading) && (
               <ul className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                {filteredCompanies.map((c) => (
+                {hasQuery && existingMatches.length > 0 && (
+                  <li className="px-3 pt-2 pb-1 text-xs font-semibold text-gray-400 select-none">
+                    追加済み企業
+                  </li>
+                )}
+                {existingMatches.map((c) => (
                   <li
                     key={c.id}
                     onClick={() => handleSelectCompany(c)}
@@ -236,6 +265,32 @@ export default function CalendarAddPopover({
                     )}
                   </li>
                 ))}
+                {hasQuery && filteredMasterResults.length > 0 && (
+                  <li className="px-3 pt-2 pb-1 text-xs font-semibold text-gray-400 select-none border-t border-gray-100">
+                    新規追加
+                  </li>
+                )}
+                {filteredMasterResults.map((r) => (
+                  <li
+                    key={r.id}
+                    onClick={() => handleSelectMasterCompany(r)}
+                    className="px-3 py-2 text-sm text-gray-800 hover:bg-primary-50 cursor-pointer flex items-center gap-2"
+                  >
+                    <CompanyLogo
+                      name={r.name}
+                      logoUrl={r.logoUrl}
+                      websiteDomain={r.websiteDomain}
+                      size="sm"
+                    />
+                    <span className="truncate">{r.name}</span>
+                    {r.industry && (
+                      <span className="text-xs text-gray-400 flex-shrink-0">{r.industry}</span>
+                    )}
+                  </li>
+                ))}
+                {masterLoading && hasQuery && (
+                  <li className="px-3 py-2 text-xs text-gray-400">検索中...</li>
+                )}
               </ul>
             )}
             {isNewCompany && companyQuery.trim().length >= 1 && !showDropdown && (

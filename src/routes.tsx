@@ -6,7 +6,6 @@ const TrackerPage = lazy(() => import('./pages/TrackerPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const EmailsPage = lazy(() => import('./pages/EmailsPage'));
 const OnboardingWizardPage = lazy(() => import('./pages/OnboardingWizardPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
@@ -60,7 +59,6 @@ export const routes: RouteObject[] = [
       { index: true, element: <TrackerPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'settings', element: <SettingsPage /> },
-      { path: 'emails', element: <EmailsPage /> },
       { path: 'admin', element: <AdminPage /> },
     ],
   },

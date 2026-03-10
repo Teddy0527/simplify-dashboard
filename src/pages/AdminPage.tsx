@@ -9,11 +9,12 @@ import { useAuth } from '../shared/hooks/useAuth';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
 import PopularCompaniesSection from '../components/admin/analytics/PopularCompaniesSection';
 
-type Tab = 'companies' | 'analytics' | 'devtools';
+type Tab = 'companies' | 'analytics' | 'test-users' | 'devtools';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'companies', label: '企業一覧' },
   { key: 'analytics', label: 'ユーザー分析' },
+  { key: 'test-users', label: 'テストユーザー' },
   { key: 'devtools', label: 'Dev Tools' },
 ];
 
@@ -55,8 +56,164 @@ export default function AdminPage() {
 
       {tab === 'companies' && <PopularCompaniesSection />}
       {tab === 'analytics' && <AnalyticsTab />}
+      {tab === 'test-users' && <TestUserRequestsTab />}
       {tab === 'devtools' && <DevToolsTab />}
     </div>
+  );
+}
+
+// ────────────────────────────────────────────
+// Tab: Test User Requests
+// ────────────────────────────────────────────
+
+interface TestUserRequest {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_at: string | null;
+}
+
+function TestUserRequestsTab() {
+  const [requests, setRequests] = useState<TestUserRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  async function loadRequests() {
+    setLoading(true);
+    const { data } = await getSupabase()
+      .from('calendar_test_user_requests')
+      .select('*')
+      .order('requested_at', { ascending: false });
+    setRequests((data as TestUserRequest[]) ?? []);
+    setLoading(false);
+  }
+
+  async function handleAction(request: TestUserRequest, action: 'approved' | 'rejected') {
+    setActionLoading(request.id);
+    const supabase = getSupabase();
+
+    // Update request status
+    await supabase
+      .from('calendar_test_user_requests')
+      .update({ status: action, reviewed_at: new Date().toISOString() })
+      .eq('id', request.id);
+
+    // If approved, set is_test_user_approved on user_calendar_settings
+    if (action === 'approved') {
+      // Upsert: create row if not exists
+      await supabase
+        .from('user_calendar_settings')
+        .upsert(
+          { user_id: request.user_id, is_test_user_approved: true },
+          { onConflict: 'user_id' },
+        );
+    }
+
+    await loadRequests();
+    setActionLoading(null);
+  }
+
+  const pendingCount = requests.filter((r) => r.status === 'pending').length;
+
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <div className="inline-block w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin mb-2" />
+        <p className="text-xs">読み込み中...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-sm text-gray-500">
+            {requests.length}件の申請 ・ {pendingCount}件が承認待ち
+          </p>
+        </div>
+        <button
+          onClick={loadRequests}
+          className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
+        >
+          更新
+        </button>
+      </div>
+
+      {requests.length === 0 ? (
+        <div className="card p-8 text-center text-gray-400">
+          <p className="text-sm">テストユーザー申請はまだありません</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((req) => (
+            <div key={req.id} className="card p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {req.user_name ?? '名前なし'}
+                    </p>
+                    <StatusBadge status={req.status} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{req.user_email}</p>
+                  <p className="text-[10px] text-gray-300 mt-1">
+                    申請日: {new Date(req.requested_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {req.reviewed_at && (
+                      <> ・ 対応日: {new Date(req.reviewed_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
+                    )}
+                  </p>
+                </div>
+
+                {req.status === 'pending' && (
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => handleAction(req, 'approved')}
+                      disabled={actionLoading === req.id}
+                      className="btn-primary text-xs px-3 py-1.5"
+                    >
+                      {actionLoading === req.id ? '...' : '承認'}
+                    </button>
+                    <button
+                      onClick={() => handleAction(req, 'rejected')}
+                      disabled={actionLoading === req.id}
+                      className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      拒否
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: 'pending' | 'approved' | 'rejected' }) {
+  const styles = {
+    pending: 'bg-amber-50 text-amber-600',
+    approved: 'bg-green-50 text-green-600',
+    rejected: 'bg-gray-100 text-gray-400',
+  };
+  const labels = {
+    pending: '承認待ち',
+    approved: '承認済み',
+    rejected: '拒否',
+  };
+  return (
+    <span className={`text-[10px] rounded-full px-2 py-0.5 ${styles[status]}`}>
+      {labels[status]}
+    </span>
   );
 }
 
