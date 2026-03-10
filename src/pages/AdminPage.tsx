@@ -100,20 +100,29 @@ function TestUserRequestsTab() {
     const supabase = getSupabase();
 
     // Update request status
-    await supabase
+    const { error: statusError } = await supabase
       .from('calendar_test_user_requests')
       .update({ status: action, reviewed_at: new Date().toISOString() })
       .eq('id', request.id);
 
+    if (statusError) {
+      alert(`ステータス更新に失敗しました: ${statusError.message}`);
+      setActionLoading(null);
+      return;
+    }
+
     // If approved, set is_test_user_approved on user_calendar_settings
     if (action === 'approved') {
-      // Upsert: create row if not exists
-      await supabase
+      const { error: settingsError } = await supabase
         .from('user_calendar_settings')
         .upsert(
           { user_id: request.user_id, is_test_user_approved: true },
           { onConflict: 'user_id' },
         );
+
+      if (settingsError) {
+        alert(`カレンダー設定の更新に失敗しました: ${settingsError.message}`);
+      }
     }
 
     await loadRequests();
