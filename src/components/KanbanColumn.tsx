@@ -20,7 +20,7 @@ const KanbanColumn = memo(function KanbanColumn({ column, companies, onCardClick
   const itemIds = useMemo(() => companies.map((c) => c.id), [companies]);
 
   return (
-    <div className="flex flex-col w-[280px] min-w-[280px]">
+    <div className="flex flex-col w-[280px] min-w-[280px] h-full min-h-0">
       {/* Column header */}
       <div className="flex items-center gap-2 px-3 py-3 mb-2">
         <span>{column.icon}</span>

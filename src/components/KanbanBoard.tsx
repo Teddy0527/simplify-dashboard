@@ -246,7 +246,7 @@ export default function KanbanBoard({ companies, onReorder, onCardClick, selecte
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div ref={scrollRef} className="flex gap-4 pb-4 px-6 overflow-x-auto kanban-scroll cursor-grab">
+      <div ref={scrollRef} className="h-full min-h-0 flex gap-4 pb-4 px-6 overflow-x-auto kanban-scroll cursor-grab">
         {COLUMNS.map((col) => {
           const filtered = companies.filter((c) => col.statuses.includes(c.status));
           return (
