@@ -38,6 +38,24 @@ export function useCalendarTestUser(): UseCalendarTestUserReturn {
       .finally(() => setIsLoading(false));
   }, [user]);
 
+  // Poll for approval while status is 'pending'
+  useEffect(() => {
+    if (status !== 'pending' || !user) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await getSupabase()
+        .from('calendar_test_user_requests')
+        .select('status')
+        .eq('user_id', user.id)
+        .single();
+      if (data?.status && data.status !== 'pending') {
+        setStatus(data.status as RequestStatus);
+      }
+    }, 10_000);
+
+    return () => clearInterval(interval);
+  }, [status, user]);
+
   const apply = useCallback(async () => {
     if (!user) return;
 

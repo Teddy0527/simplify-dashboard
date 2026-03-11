@@ -31,7 +31,11 @@ const integrations: Integration[] = [
   },
 ];
 
-function IntegrationCard({ integration }: { integration: Integration }) {
+function IntegrationCard({ integration, badgeText, badgeClassName }: {
+  integration: Integration;
+  badgeText?: string | null;
+  badgeClassName?: string;
+}) {
   const isComingSoon = integration.status === 'coming_soon';
   const isTestRecruiting = integration.status === 'test_recruiting';
   const isGoogleCalendar = integration.id === 'google-calendar';
@@ -62,9 +66,9 @@ function IntegrationCard({ integration }: { integration: Integration }) {
             準備中
           </span>
         )}
-        {isTestRecruiting && (
-          <span className="bg-amber-50 text-amber-600 text-xs rounded-full px-2.5 py-0.5">
-            テストユーザー募集中
+        {badgeText && (
+          <span className={badgeClassName ?? 'bg-amber-50 text-amber-600 text-xs rounded-full px-2.5 py-0.5'}>
+            {badgeText}
           </span>
         )}
       </div>
@@ -90,6 +94,28 @@ function IntegrationCard({ integration }: { integration: Integration }) {
   );
 }
 
+function GoogleCalendarCard({ integration }: { integration: Integration }) {
+  const { isConnected, isTestUserApproved } = useGoogleCalendar();
+  const { status: requestStatus } = useCalendarTestUser();
+
+  const isApprovedOrConnected = isTestUserApproved || isConnected || requestStatus === 'approved';
+
+  let badgeText: string | null = null;
+  let badgeClassName: string | undefined;
+
+  if (isConnected) {
+    badgeText = '連携中';
+    badgeClassName = 'bg-green-50 text-green-600 text-xs rounded-full px-2.5 py-0.5';
+  } else if (isApprovedOrConnected) {
+    badgeText = '連携可能';
+    badgeClassName = 'bg-blue-50 text-blue-600 text-xs rounded-full px-2.5 py-0.5';
+  } else {
+    badgeText = 'テストユーザー募集中';
+  }
+
+  return <IntegrationCard integration={integration} badgeText={badgeText} badgeClassName={badgeClassName} />;
+}
+
 function GoogleCalendarTestUserAction() {
   const { isConnected, isLoading: isCalLoading, isTestUserApproved } = useGoogleCalendar();
   const { status: requestStatus, isLoading: isReqLoading, apply } = useCalendarTestUser();
@@ -108,7 +134,7 @@ function GoogleCalendarTestUserAction() {
   }
 
   // Approved test user or already connected: show full connect flow
-  if (isTestUserApproved || isConnected) {
+  if (isTestUserApproved || isConnected || requestStatus === 'approved') {
     return <GoogleCalendarAction />;
   }
 
@@ -291,9 +317,13 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in">
-          {integrations.map((integration) => (
-            <IntegrationCard key={integration.id} integration={integration} />
-          ))}
+          {integrations.map((integration) =>
+            integration.id === 'google-calendar' ? (
+              <GoogleCalendarCard key={integration.id} integration={integration} />
+            ) : (
+              <IntegrationCard key={integration.id} integration={integration} />
+            )
+          )}
         </div>
       </div>
     </div>
